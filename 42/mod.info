@@ -1,7 +1,7 @@
 id=EnshroudedSleepClockSpike
-name=Enshrouded Sleep - Player State Probe
-description=Diagnostic v0.0.2. Logs instantiated multiplayer player lifecycle, sleep, death, and access-state transitions without modifying game time.
+name=Enshrouded Sleep - Player/Connection State Probe
+description=Diagnostic v0.0.2b. Logs multiplayer connection lifecycle and vanilla sleep fast-forward telemetry without modifying game time.
 author=Jonathan Jacobs
 category=features
-modversion=0.0.2
+modversion=0.0.2b
 versionMin=42.20.0
