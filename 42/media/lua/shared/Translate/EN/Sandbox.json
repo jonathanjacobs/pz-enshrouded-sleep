@@ -1,7 +1,7 @@
 {
-  "Sandbox_EnshroudedSleepClockSpike": "Enshrouded Sleep - Player State Probe",
-  "Sandbox_EnshroudedSleepClockSpike_Enabled": "Enable player-state diagnostic probe",
-  "Sandbox_EnshroudedSleepClockSpike_Enabled_tooltip": "Logs instantiated multiplayer player lifecycle, sleep, death, and access-state transitions. This build does not modify game time.",
+  "Sandbox_EnshroudedSleepClockSpike": "Enshrouded Sleep - Player/Connection State Probe",
+  "Sandbox_EnshroudedSleepClockSpike_Enabled": "Enable diagnostic probe",
+  "Sandbox_EnshroudedSleepClockSpike_Enabled_tooltip": "Logs multiplayer player lifecycle, connection state, and vanilla sleep fast-forward telemetry. This build does not modify game time.",
   "Sandbox_EnshroudedSleepClockSpike_HeartbeatSeconds": "Heartbeat interval (seconds)",
-  "Sandbox_EnshroudedSleepClockSpike_HeartbeatSeconds_tooltip": "How often the server logs a complete snapshot of all instantiated in-world players. State changes are logged immediately on the next one-second scan."
+  "Sandbox_EnshroudedSleepClockSpike_HeartbeatSeconds_tooltip": "How often the server logs full player and connection snapshots. State changes are scanned once per real second."
 }
