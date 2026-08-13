@@ -1,5 +1,5 @@
 id=EnshroudedSleepClockSpike
-name=Enshrouded Sleep - Clock Spike
-description=Diagnostic Build 42 multiplayer mod for testing clock-only acceleration.
+name=Enshrouded Sleep - Player State Probe
+description=Diagnostic Build 42 multiplayer mod for observing player lifecycle, sleep, and death state.
 author=Jonathan Jacobs
 pzversion=42
