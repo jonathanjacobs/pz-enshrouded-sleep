@@ -6,10 +6,10 @@ option EnshroudedSleepClockSpike.Enabled = {
     page = EnshroudedSleepClockSpike,
 }
 
-option EnshroudedSleepClockSpike.HeartbeatSeconds = {
-    type = integer,
-    min = 5,
-    max = 60,
-    default = 10,
+option EnshroudedSleepClockSpike.PartialSleepSpeedScale = {
+    type = double,
+    min = 0.0,
+    max = 5.0,
+    default = 1.0,
     page = EnshroudedSleepClockSpike,
 }
