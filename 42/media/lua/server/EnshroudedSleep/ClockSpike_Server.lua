@@ -1,438 +1,382 @@
 if isClient() then return end
 
--- Enshrouded Sleep - Player/Connection State Probe
--- v0.0.2b diagnostic instrumentation for Project Zomboid Build 42.20+
+-- Enshrouded Sleep - proportional calendar/world-time compression
+-- v0.0.3 functional prototype for Project Zomboid Build 42.20+
 --
--- Purpose:
---   1. Observe instantiated in-world player lifecycle and sleep/death state.
---   2. Observe accepted network connections before an IsoPlayer is instantiated.
---   3. Measure vanilla full-sleep fast-forward behavior.
+-- Vanilla Project Zomboid owns sleep eligibility, sleep/wake state, death,
+-- respawn, joins/disconnects, and the all-living-players-asleep fast-forward.
 --
--- This build intentionally DOES NOT modify GameTime, MinutesPerDay, or any
--- game-time/simulation multiplier.
+-- This mod only changes GameTime MinutesPerDay while SOME, but not all,
+-- currently instantiated living players are asleep. It never calls
+-- GameTime:setMultiplier().
 
-local PREFIX = "[EnshroudedSleep:Probe]"
+local PREFIX = "[EnshroudedSleep]"
+local EPSILON = 0.0001
 
-local previousPlayers = {}
-local previousPlayerCount = -1
-local previousConnections = {}
-local previousConnectionCount = -1
-local lastScanAt = 0
-local lastHeartbeatAt = 0
-local sleepTelemetryWasActive = false
-local connectionApiWarningLogged = false
+local baselineMinutesPerDay = nil
+local cachedNativeConfig = nil
+local lastConfigRefreshAt = -1
+local lastStateSignature = nil
+local lastError = nil
+local startupConfigLogged = false
 
 local function log(message)
     print(PREFIX .. " " .. tostring(message))
 end
 
-local function now()
-    return os.time()
+local function formatNumber(value, decimals)
+    if type(value) ~= "number" then return tostring(value) end
+    return string.format("%." .. tostring(decimals or 3) .. "f", value)
 end
 
-local function safeCall(obj, methodName, ...)
-    if not obj then return "nil" end
-
+local function safeMethod(obj, methodName, ...)
+    if not obj then return nil, "nil object" end
     local okMethod, method = pcall(function() return obj[methodName] end)
-    if not okMethod or not method then return "N/A" end
-
+    if not okMethod or not method then return nil, methodName .. " unavailable" end
     local ok, value = pcall(method, obj, ...)
-    if not ok then return "ERROR" end
-    return value
+    if not ok then return nil, tostring(value) end
+    return value, nil
 end
 
-local function safeField(obj, fieldName)
-    if not obj then return "nil" end
-    local ok, value = pcall(function() return obj[fieldName] end)
-    if not ok then return "ERROR" end
-    return value
+local function logErrorOnce(message)
+    if message ~= lastError then
+        lastError = message
+        log("ERROR | " .. tostring(message) .. " | restoring native baseline where possible")
+    end
 end
 
-local function getConfig()
+local function clearError()
+    lastError = nil
+end
+
+local function getModConfig()
     local vars = SandboxVars and SandboxVars.EnshroudedSleepClockSpike or nil
+    local scale = tonumber(vars and vars.PartialSleepSpeedScale) or 1.0
+    if scale < 0 then scale = 0 end
+
     return {
         enabled = vars == nil or vars.Enabled ~= false,
-        heartbeatSeconds = math.max(5, tonumber(vars and vars.HeartbeatSeconds) or 10),
+        partialSleepSpeedScale = scale,
     }
 end
 
-local function getGameTimeTelemetry()
+local function readNativeConfig(force)
+    local now = os.time()
+    if cachedNativeConfig and not force and now == lastConfigRefreshAt then
+        return cachedNativeConfig
+    end
+    lastConfigRefreshAt = now
+
+    if type(getServerOptions) ~= "function" then
+        cachedNativeConfig = nil
+        return nil, "getServerOptions() unavailable"
+    end
+
+    local okOptions, options = pcall(getServerOptions)
+    if not okOptions or not options then
+        cachedNativeConfig = nil
+        return nil, "could not read native ServerOptions"
+    end
+
+    local sleepAllowed, errAllowed = safeMethod(options, "getBoolean", "SleepAllowed")
+    local sleepNeeded, errNeeded = safeMethod(options, "getBoolean", "SleepNeeded")
+    local nativeFastForward, errFastForward = safeMethod(options, "getDouble", "FastForwardMultiplier")
+
+    nativeFastForward = tonumber(nativeFastForward)
+
+    if sleepAllowed == nil then
+        cachedNativeConfig = nil
+        return nil, "could not read SleepAllowed: " .. tostring(errAllowed)
+    end
+
+    if nativeFastForward == nil then
+        cachedNativeConfig = nil
+        return nil, "could not read FastForwardMultiplier: " .. tostring(errFastForward)
+    end
+
+    local sandboxDayLengthMinutes = nil
+    if type(getSandboxOptions) == "function" then
+        local okSandbox, sandboxOptions = pcall(getSandboxOptions)
+        if okSandbox and sandboxOptions then
+            sandboxDayLengthMinutes = safeMethod(sandboxOptions, "getDayLengthMinutes")
+            sandboxDayLengthMinutes = tonumber(sandboxDayLengthMinutes)
+        end
+    end
+
+    cachedNativeConfig = {
+        sleepAllowed = sleepAllowed == true,
+        sleepNeeded = sleepNeeded,
+        sleepNeededError = errNeeded,
+        nativeFastForward = math.max(0.0, nativeFastForward),
+        sandboxDayLengthMinutes = sandboxDayLengthMinutes,
+    }
+
+    return cachedNativeConfig, nil
+end
+
+local function ensureBaseline()
+    if baselineMinutesPerDay ~= nil then return true end
+
     local gt = getGameTime()
     if not gt then
+        return false, "getGameTime() unavailable"
+    end
+
+    local value, err = safeMethod(gt, "getMinutesPerDay")
+    value = tonumber(value)
+
+    if value == nil or value <= 0 then
+        return false, "invalid runtime MinutesPerDay: " .. tostring(value or err)
+    end
+
+    baselineMinutesPerDay = value
+    return true, nil
+end
+
+local function setMinutesPerDay(target)
+    if type(target) ~= "number" or target <= 0 then
+        return false, "invalid target MinutesPerDay: " .. tostring(target)
+    end
+
+    local gt = getGameTime()
+    if not gt then return false, "getGameTime() unavailable" end
+
+    local current, readErr = safeMethod(gt, "getMinutesPerDay")
+    current = tonumber(current)
+    if current == nil then return false, "could not read MinutesPerDay: " .. tostring(readErr) end
+
+    if math.abs(current - target) <= EPSILON then
+        return true, nil
+    end
+
+    local _, setErr = safeMethod(gt, "setMinutesPerDay", target)
+    if setErr then return false, "setMinutesPerDay failed: " .. tostring(setErr) end
+
+    return true, nil
+end
+
+local function restoreBaseline()
+    if baselineMinutesPerDay == nil then return true, nil end
+    return setMinutesPerDay(baselineMinutesPerDay)
+end
+
+local function countLivingAndSleepingPlayers()
+    if type(getOnlinePlayers) ~= "function" then
+        return nil, nil, "getOnlinePlayers() unavailable"
+    end
+
+    local players = getOnlinePlayers()
+    if not players then return 0, 0, nil end
+
+    local size, sizeErr = safeMethod(players, "size")
+    size = tonumber(size)
+    if size == nil then return nil, nil, "could not read online-player count: " .. tostring(sizeErr) end
+
+    local living = 0
+    local sleeping = 0
+
+    for i = 0, size - 1 do
+        local player, getErr = safeMethod(players, "get", i)
+        if not player then
+            return nil, nil, "could not read player index " .. tostring(i) .. ": " .. tostring(getErr)
+        end
+
+        local dead, deadErr = safeMethod(player, "isDead")
+        if dead == nil then
+            return nil, nil, "could not read isDead() for player index " .. tostring(i) .. ": " .. tostring(deadErr)
+        end
+
+        if dead ~= true then
+            living = living + 1
+
+            local asleep, sleepErr = safeMethod(player, "isAsleep")
+            if asleep == nil then
+                return nil, nil, "could not read isAsleep() for player index " .. tostring(i) .. ": " .. tostring(sleepErr)
+            end
+
+            if asleep == true then sleeping = sleeping + 1 end
+        end
+    end
+
+    return living, sleeping, nil
+end
+
+local function calculateDecision(nativeConfig, modConfig, living, sleeping)
+    local nativeFF = nativeConfig.nativeFastForward
+    local scale = modConfig.partialSleepSpeedScale
+    local effectivePartialSleepCap = nativeFF * scale
+
+    if living <= 0 or sleeping <= 0 then
         return {
-            clock = "N/A",
-            minutesPerDay = "N/A",
-            multiplier = "N/A",
-            serverMultiplier = "N/A",
-            trueMultiplier = "N/A",
-            worldAgeHours = "N/A",
+            mode = "baseline",
+            sleepFraction = 0.0,
+            calendarCompressionFactor = 1.0,
+            realTimeCompensationFactor = 1.0,
+            effectivePartialSleepCap = effectivePartialSleepCap,
+            targetMinutesPerDay = baselineMinutesPerDay,
         }
     end
 
-    local hour = safeCall(gt, "getHour")
-    local minute = safeCall(gt, "getMinutes")
-    local clock
-    if type(hour) == "number" and type(minute) == "number" then
-        clock = string.format("%02d:%02d", hour, minute)
-    else
-        clock = tostring(safeCall(gt, "getTimeOfDay"))
+    local sleepFraction = math.min(1.0, sleeping / living)
+
+    -- Full sleep belongs to vanilla. The theoretical target is logged only so
+    -- admins can see what the continuous MinutesPerDay model would have been;
+    -- we do NOT apply it because vanilla also engages its own fast-forward.
+    if sleeping >= living then
+        local theoreticalFactor = math.max(1.0, effectivePartialSleepCap)
+        return {
+            mode = "vanilla",
+            sleepFraction = 1.0,
+            calendarCompressionFactor = 1.0,
+            realTimeCompensationFactor = 1.0,
+            effectivePartialSleepCap = effectivePartialSleepCap,
+            targetMinutesPerDay = baselineMinutesPerDay,
+            theoreticalFullSleepMinutesPerDay = baselineMinutesPerDay / theoreticalFactor,
+        }
     end
 
+    local compression = math.max(1.0, effectivePartialSleepCap * sleepFraction)
+
     return {
-        clock = clock,
-        minutesPerDay = tostring(safeCall(gt, "getMinutesPerDay")),
-        multiplier = tostring(safeCall(gt, "getMultiplier")),
-        serverMultiplier = tostring(safeCall(gt, "getServerMultiplier")),
-        trueMultiplier = tostring(safeCall(gt, "getTrueMultiplier")),
-        worldAgeHours = tostring(safeCall(gt, "getWorldAgeHours")),
+        mode = "partial",
+        sleepFraction = sleepFraction,
+        calendarCompressionFactor = compression,
+        realTimeCompensationFactor = 1.0 / compression,
+        effectivePartialSleepCap = effectivePartialSleepCap,
+        targetMinutesPerDay = baselineMinutesPerDay / compression,
     }
 end
 
-local function formatClock()
-    return getGameTimeTelemetry().clock
-end
+local function maybeLogStartupConfig(nativeConfig, modConfig)
+    if startupConfigLogged or baselineMinutesPerDay == nil then return end
+    startupConfigLogged = true
 
-local function getGameServerFastForward()
-    if not GameServer then return "N/A" end
-    return tostring(safeField(GameServer, "bFastForward"))
-end
+    log(string.format(
+        "CONFIG | BaselineMinutesPerDay=%s | SandboxDayLengthMinutes=%s | SleepAllowed=%s | SleepNeeded=%s | NativeFastForward=%s | PartialSleepSpeedScale=%s | EffectivePartialSleepCap=%s",
+        formatNumber(baselineMinutesPerDay, 3),
+        nativeConfig.sandboxDayLengthMinutes and formatNumber(nativeConfig.sandboxDayLengthMinutes, 3) or "N/A",
+        tostring(nativeConfig.sleepAllowed),
+        nativeConfig.sleepNeeded ~= nil and tostring(nativeConfig.sleepNeeded) or "N/A",
+        formatNumber(nativeConfig.nativeFastForward, 3),
+        formatNumber(modConfig.partialSleepSpeedScale, 3),
+        formatNumber(nativeConfig.nativeFastForward * modConfig.partialSleepSpeedScale, 3)
+    ))
 
-local function getConfiguredFastForwardMultiplier()
-    if not ServerOptions then return "N/A" end
-
-    local ok, value = pcall(function()
-        local instance = ServerOptions.getInstance()
-        if not instance then return "N/A" end
-        return instance:getDouble("FastForwardMultiplier")
-    end)
-
-    if not ok then return "ERROR" end
-    return tostring(value)
-end
-
-local function playerSnapshot(player)
-    return {
-        key = tostring(player),
-        username = tostring(safeCall(player, "getUsername")),
-        displayName = tostring(safeCall(player, "getDisplayName")),
-        onlineID = tostring(safeCall(player, "getOnlineID")),
-        asleep = tostring(safeCall(player, "isAsleep")),
-        dead = tostring(safeCall(player, "isDead")),
-        accessLevel = tostring(safeCall(player, "getAccessLevel")),
-        godMode = tostring(safeCall(player, "isGodMod")),
-        x = tostring(safeCall(player, "getX")),
-        y = tostring(safeCall(player, "getY")),
-        z = tostring(safeCall(player, "getZ")),
-    }
-end
-
-local function describePlayer(s)
-    return string.format(
-        "user=%s | display=%s | onlineID=%s | object=%s | asleep=%s | dead=%s | access=%s | god=%s | pos=(%s,%s,%s)",
-        s.username,
-        s.displayName,
-        s.onlineID,
-        s.key,
-        s.asleep,
-        s.dead,
-        s.accessLevel,
-        s.godMode,
-        s.x,
-        s.y,
-        s.z
-    )
-end
-
-local function playerStateFingerprint(s)
-    -- Deliberately excludes position so movement does not spam state changes.
-    return table.concat({
-        s.username,
-        s.displayName,
-        s.onlineID,
-        s.asleep,
-        s.dead,
-        s.accessLevel,
-        s.godMode,
-    }, "|")
-end
-
-local function getAnyPlayerFromConnection(connection)
-    if not GameServer then return nil end
-
-    local okMethod, method = pcall(function() return GameServer.getAnyPlayerFromConnection end)
-    if not okMethod or not method then return nil end
-
-    local ok, player = pcall(method, connection)
-    if not ok then return nil end
-    return player
-end
-
-local function connectionSnapshot(connection)
-    local guid = safeCall(connection, "getConnectedGUID")
-    local anyPlayer = getAnyPlayerFromConnection(connection)
-
-    return {
-        key = tostring(guid) .. "@" .. tostring(connection),
-        object = tostring(connection),
-        guid = tostring(guid),
-        username = tostring(safeField(connection, "username")),
-        steamID = tostring(safeField(connection, "steamID")),
-        ownerID = tostring(safeField(connection, "ownerID")),
-        accessLevel = tostring(safeField(connection, "accessLevel")),
-        wasInLoadingQueue = tostring(safeField(connection, "wasInLoadingQueue")),
-        fullyConnected = tostring(safeCall(connection, "isFullyConnected")),
-        connectionType = tostring(safeCall(connection, "getConnectionType")),
-        anyPlayer = anyPlayer and tostring(anyPlayer) or "nil",
-        anyPlayerOnlineID = anyPlayer and tostring(safeCall(anyPlayer, "getOnlineID")) or "nil",
-        anyPlayerDead = anyPlayer and tostring(safeCall(anyPlayer, "isDead")) or "nil",
-    }
-end
-
-local function describeConnection(s)
-    return string.format(
-        "user=%s | guid=%s | steamID=%s | ownerID=%s | object=%s | accessByte=%s | fullyConnected=%s | wasInLoadingQueue=%s | type=%s | anyPlayer=%s | anyPlayerOnlineID=%s | anyPlayerDead=%s",
-        s.username,
-        s.guid,
-        s.steamID,
-        s.ownerID,
-        s.object,
-        s.accessLevel,
-        s.fullyConnected,
-        s.wasInLoadingQueue,
-        s.connectionType,
-        s.anyPlayer,
-        s.anyPlayerOnlineID,
-        s.anyPlayerDead
-    )
-end
-
-local function connectionStateFingerprint(s)
-    return table.concat({
-        s.username,
-        s.guid,
-        s.steamID,
-        s.ownerID,
-        s.accessLevel,
-        s.fullyConnected,
-        s.wasInLoadingQueue,
-        s.connectionType,
-        s.anyPlayer,
-        s.anyPlayerOnlineID,
-        s.anyPlayerDead,
-    }, "|")
-end
-
-local function getConnectionList()
-    if not GameServer then return nil, "GameServer unavailable" end
-
-    local engine = safeField(GameServer, "udpEngine")
-    if engine == "ERROR" or engine == "nil" or engine == nil then
-        return nil, "GameServer.udpEngine unavailable"
-    end
-
-    local connections = safeField(engine, "connections")
-    if connections == "ERROR" or connections == "nil" or connections == nil then
-        return nil, "GameServer.udpEngine.connections unavailable"
-    end
-
-    return connections, nil
-end
-
-local function scanConnections(forceHeartbeat)
-    local connections, err = getConnectionList()
-    if not connections then
-        if not connectionApiWarningLogged then
-            connectionApiWarningLogged = true
-            log("CONNECTION TELEMETRY UNAVAILABLE | " .. tostring(err))
-        end
-        return 0
-    end
-
-    local size = safeCall(connections, "size")
-    if type(size) ~= "number" then
-        if not connectionApiWarningLogged then
-            connectionApiWarningLogged = true
-            log("CONNECTION TELEMETRY UNAVAILABLE | could not read connections:size() | value=" .. tostring(size))
-        end
-        return 0
-    end
-
-    local current = {}
-
-    if size ~= previousConnectionCount then
+    if nativeConfig.sandboxDayLengthMinutes
+        and math.abs(nativeConfig.sandboxDayLengthMinutes - baselineMinutesPerDay) > EPSILON then
         log(string.format(
-            "CONNECTION COUNT CHANGED | previous=%d | current=%d | inWorld=%d | clock=%s",
-            previousConnectionCount,
-            size,
-            getOnlinePlayers() and getOnlinePlayers():size() or 0,
-            formatClock()
+            "NOTICE | runtime MinutesPerDay (%s) differs from sandbox day-length minutes (%s); runtime value remains authoritative",
+            formatNumber(baselineMinutesPerDay, 3),
+            formatNumber(nativeConfig.sandboxDayLengthMinutes, 3)
         ))
-        previousConnectionCount = size
     end
-
-    for i = 0, size - 1 do
-        local connection = safeCall(connections, "get", i)
-        if connection and connection ~= "ERROR" and connection ~= "N/A" and connection ~= "nil" then
-            local snapshot = connectionSnapshot(connection)
-            current[snapshot.key] = snapshot
-
-            local old = previousConnections[snapshot.key]
-            if not old then
-                log("CONNECTION ADDED | " .. describeConnection(snapshot) .. " | clock=" .. formatClock())
-            elseif connectionStateFingerprint(old) ~= connectionStateFingerprint(snapshot) then
-                log("CONNECTION STATE CHANGED | before={" .. describeConnection(old)
-                    .. "} | after={" .. describeConnection(snapshot)
-                    .. "} | clock=" .. formatClock())
-            end
-        end
-    end
-
-    for key, old in pairs(previousConnections) do
-        if not current[key] then
-            log("CONNECTION REMOVED | " .. describeConnection(old) .. " | clock=" .. formatClock())
-        end
-    end
-
-    previousConnections = current
-
-    if forceHeartbeat then
-        log(string.format("CONNECTION HEARTBEAT | connections=%d | clock=%s", size, formatClock()))
-        for _, snapshot in pairs(current) do
-            log("CONNECTION SNAPSHOT | " .. describeConnection(snapshot))
-        end
-    end
-
-    return size
 end
 
-local function scanPlayers(forceHeartbeat)
-    local players = getOnlinePlayers()
-    local count = players and players:size() or 0
-    local current = {}
-    local sleeping = 0
-    local dead = 0
-    local living = 0
+local function logStateIfChanged(mode, living, sleeping, decision, extra)
+    local signature = table.concat({
+        tostring(mode),
+        tostring(living),
+        tostring(sleeping),
+        formatNumber(decision and decision.sleepFraction or 0, 6),
+        formatNumber(decision and decision.calendarCompressionFactor or 1, 6),
+        formatNumber(decision and decision.targetMinutesPerDay or baselineMinutesPerDay or 0, 6),
+        tostring(extra or ""),
+    }, "|")
 
-    if count ~= previousPlayerCount then
+    if signature == lastStateSignature then return end
+    lastStateSignature = signature
+
+    if mode == "partial" then
         log(string.format(
-            "PLAYER COUNT CHANGED | previous=%d | current=%d | clock=%s",
-            previousPlayerCount,
-            count,
-            formatClock()
-        ))
-        previousPlayerCount = count
-    end
-
-    if players then
-        for i = 0, count - 1 do
-            local player = players:get(i)
-            if player then
-                local snapshot = playerSnapshot(player)
-                current[snapshot.key] = snapshot
-
-                if snapshot.asleep == "true" then sleeping = sleeping + 1 end
-                if snapshot.dead == "true" then
-                    dead = dead + 1
-                else
-                    living = living + 1
-                end
-
-                local old = previousPlayers[snapshot.key]
-                if not old then
-                    log("PLAYER ADDED | " .. describePlayer(snapshot) .. " | clock=" .. formatClock())
-                elseif playerStateFingerprint(old) ~= playerStateFingerprint(snapshot) then
-                    log("PLAYER STATE CHANGED | before={" .. describePlayer(old)
-                        .. "} | after={" .. describePlayer(snapshot)
-                        .. "} | clock=" .. formatClock())
-                end
-            end
-        end
-    end
-
-    for key, old in pairs(previousPlayers) do
-        if not current[key] then
-            log("PLAYER REMOVED | " .. describePlayer(old) .. " | clock=" .. formatClock())
-        end
-    end
-
-    previousPlayers = current
-
-    if forceHeartbeat then
-        log(string.format(
-            "HEARTBEAT | inWorld=%d | living=%d | sleeping=%d | dead=%d | clock=%s",
-            count,
+            "STATE | mode=partial | living=%d | sleeping=%d | sleepFraction=%s | CalendarCompressionFactor=%s | EffectiveMinutesPerDay=%s | RealTimeCompensationFactor=%s",
             living,
             sleeping,
-            dead,
-            formatClock()
+            formatNumber(decision.sleepFraction, 4),
+            formatNumber(decision.calendarCompressionFactor, 3),
+            formatNumber(decision.targetMinutesPerDay, 3),
+            formatNumber(decision.realTimeCompensationFactor, 5)
         ))
-
-        for _, snapshot in pairs(current) do
-            log("PLAYER SNAPSHOT | " .. describePlayer(snapshot))
-        end
+    elseif mode == "vanilla" then
+        log(string.format(
+            "STATE | mode=vanilla-full-sleep | living=%d | sleeping=%d | restoredMinutesPerDay=%s | theoreticalCompressedMinutesPerDay=%s | vanilla fast-forward owns full sleep",
+            living,
+            sleeping,
+            formatNumber(baselineMinutesPerDay, 3),
+            formatNumber(decision.theoreticalFullSleepMinutesPerDay, 3)
+        ))
+    else
+        log(string.format(
+            "STATE | mode=%s | living=%d | sleeping=%d | MinutesPerDay=%s%s",
+            tostring(mode),
+            living or 0,
+            sleeping or 0,
+            baselineMinutesPerDay and formatNumber(baselineMinutesPerDay, 3) or "N/A",
+            extra and (" | " .. tostring(extra)) or ""
+        ))
     end
-
-    return {
-        inWorld = count,
-        living = living,
-        sleeping = sleeping,
-        dead = dead,
-    }
-end
-
-local function logSleepTelemetry(label, playerStats, connectionCount)
-    local time = getGameTimeTelemetry()
-    log(string.format(
-        "%s | clock=%s | connections=%d | inWorld=%d | living=%d | sleeping=%d | dead=%d | bFastForward=%s | configuredFastForward=%s | MinutesPerDay=%s | Multiplier=%s | ServerMultiplier=%s | TrueMultiplier=%s | WorldAgeHours=%s",
-        label,
-        time.clock,
-        connectionCount,
-        playerStats.inWorld,
-        playerStats.living,
-        playerStats.sleeping,
-        playerStats.dead,
-        getGameServerFastForward(),
-        getConfiguredFastForwardMultiplier(),
-        time.minutesPerDay,
-        time.multiplier,
-        time.serverMultiplier,
-        time.trueMultiplier,
-        time.worldAgeHours
-    ))
 end
 
 local function update()
-    local config = getConfig()
-    if not config.enabled then return end
-
-    local t = now()
-    if t == lastScanAt then return end
-    lastScanAt = t
-
-    local heartbeat = false
-    if lastHeartbeatAt == 0 or t - lastHeartbeatAt >= config.heartbeatSeconds then
-        lastHeartbeatAt = t
-        heartbeat = true
+    local baselineOK, baselineErr = ensureBaseline()
+    if not baselineOK then
+        logErrorOnce(baselineErr)
+        return
     end
 
-    -- Scan connections first so the log shows network state before player state.
-    local connectionCount = scanConnections(heartbeat)
-    local playerStats = scanPlayers(heartbeat)
+    local modConfig = getModConfig()
 
-    local bFastForward = getGameServerFastForward()
-    local sleepTelemetryActive = playerStats.sleeping > 0 or bFastForward == "true"
-
-    if sleepTelemetryActive then
-        logSleepTelemetry("SLEEP TELEMETRY", playerStats, connectionCount)
-    elseif sleepTelemetryWasActive then
-        logSleepTelemetry("SLEEP TELEMETRY END", playerStats, connectionCount)
+    if not modConfig.enabled then
+        local restored, restoreErr = restoreBaseline()
+        if not restored then logErrorOnce(restoreErr) else clearError() end
+        logStateIfChanged("disabled", 0, 0, nil, "mod disabled")
+        return
     end
 
-    sleepTelemetryWasActive = sleepTelemetryActive
+    local nativeConfig, nativeErr = readNativeConfig(false)
+    if not nativeConfig then
+        restoreBaseline()
+        logErrorOnce(nativeErr)
+        logStateIfChanged("fail-safe", 0, 0, nil, nativeErr)
+        return
+    end
+
+    maybeLogStartupConfig(nativeConfig, modConfig)
+
+    if not nativeConfig.sleepAllowed then
+        local restored, restoreErr = restoreBaseline()
+        if not restored then logErrorOnce(restoreErr) else clearError() end
+        logStateIfChanged("native-sleep-disabled", 0, 0, nil, "SleepAllowed=false")
+        return
+    end
+
+    local living, sleeping, playerErr = countLivingAndSleepingPlayers()
+    if living == nil then
+        restoreBaseline()
+        logErrorOnce(playerErr)
+        logStateIfChanged("fail-safe", 0, 0, nil, playerErr)
+        return
+    end
+
+    local decision = calculateDecision(nativeConfig, modConfig, living, sleeping)
+    local applied, applyErr = setMinutesPerDay(decision.targetMinutesPerDay)
+
+    if not applied then
+        restoreBaseline()
+        logErrorOnce(applyErr)
+        logStateIfChanged("fail-safe", living, sleeping, decision, applyErr)
+        return
+    end
+
+    clearError()
+    logStateIfChanged(decision.mode, living, sleeping, decision, nil)
 end
 
+-- Every tick is intentional: changing MinutesPerDay is cheap, and the actual
+-- setter only runs when the target changes. Per-tick observation minimizes the
+-- window in which partial compression could overlap vanilla full-sleep FF when
+-- the final awake player falls asleep.
 Events.OnTickEvenPaused.Add(update)
 
-log("Loaded v0.0.2b player/connection-state diagnostic probe.")
-log("This build DOES NOT modify MinutesPerDay or any game-time/simulation multiplier.")
-log("Watching getOnlinePlayers(), GameServer.udpEngine.connections, and vanilla sleep fast-forward telemetry.")
+log("Loaded v0.0.3 proportional calendar-compression prototype.")
+log("Partial sleep changes MinutesPerDay only; global simulation multiplier is never modified.")
+log("At 100% living players asleep, native MinutesPerDay is restored and vanilla sleep fast-forward takes over.")
