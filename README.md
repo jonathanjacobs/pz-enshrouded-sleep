@@ -1,82 +1,75 @@
-# Enshrouded Sleep - Clock Spike v0.0.1
+# Enshrouded Sleep - Player State Probe v0.0.2
 
-Diagnostic technical spike for Project Zomboid Build 42.20+.
+Diagnostic instrumentation build for Project Zomboid Build 42.20+.
 
 ## Purpose
 
-This is **not yet the Enshrouded Sleep mod**. It tests the core technical assumption:
+This build validates the multiplayer player-lifecycle and sleep/death state information needed by the eventual Enshrouded-style sleep mechanic.
 
-> Can a dedicated B42 server dynamically reduce `GameTime.MinutesPerDay` so
-> world/calendar time passes faster while the active gameplay simulation
-> remains at normal speed?
+It intentionally **does not modify** `MinutesPerDay`, `GameTime` multipliers, or any simulation speed.
 
-The test intentionally never calls `GameTime:setMultiplier()`.
+## What it logs
 
-## Default test cycle
+The server scans `getOnlinePlayers()` once per real second and logs:
 
-After the first fully instantiated player appears in `getOnlinePlayers()`:
+- changes in instantiated in-world player count
+- player object additions and removals
+- username and display name
+- online ID
+- Lua/Java object identity
+- asleep/awake state via `isAsleep()`
+- dead/alive state via `isDead()`
+- access level / admin state
+- god mode state
+- player coordinates
 
-1. Record the server's current `MinutesPerDay`.
-2. Wait 10 real seconds.
-3. Set `MinutesPerDay = baseline / 20`.
-4. Leave that clock rate active for 60 real seconds.
-5. Restore the original baseline exactly.
-6. Stop. It will not run a second spike until Lua/server restart.
-
-If the player disconnects during the test, the baseline is restored immediately.
-
-## Recommended server setup
-
-Use a disposable test world.
-
-For an easy-to-measure test, set the normal day length to 1 real hour per
-24 in-game hours.
-
-At the default 20x acceleration:
-
-- Baseline: 60 real minutes / game day.
-- Temporary: 3 real minutes / game day.
-- 60 real seconds of the spike should advance the game clock by roughly 8 hours.
-
-## What to observe
-
-During the 60-second accelerated period:
-
-- Watch the in-game clock.
-- Walk/run.
-- Open/close inventory.
-- Transfer items.
-- Perform timed actions.
-- Observe zombies.
-- If safe, test combat.
-- If practical, drive a vehicle.
-
-The success condition is:
-
-- The world clock advances rapidly.
-- Movement/combat/animations/zombies/vehicle simulation remain normal.
-- Server log shows `Multiplier`, `ServerMultiplier`, and `TrueMultiplier`
-  remaining unchanged when `MinutesPerDay` changes.
+Every 10 seconds by default it also emits a complete heartbeat snapshot of all instantiated players.
 
 ## Log filter
 
-Search the server log for:
+Search the server console/log for:
 
-`[EnshroudedSleep:Spike]`
+`[EnshroudedSleep:Probe]`
 
-Please save or paste those lines after the test.
+Important event types include:
 
-## Sandbox options
+- `PLAYER COUNT CHANGED`
+- `PLAYER ADDED`
+- `PLAYER STATE CHANGED`
+- `PLAYER REMOVED`
+- `HEARTBEAT`
+- `PLAYER SNAPSHOT`
 
-- Enable diagnostic clock spike: true
-- Clock acceleration factor: 20x
-- Warm-up seconds: 10
-- Test duration: 60 real seconds
+## Recommended lifecycle test
+
+Keep one stable admin character online while a second player performs this sequence:
+
+1. Connect and fully spawn.
+2. Run around for approximately 30 seconds.
+3. Die.
+4. Remain connected through the death / new-character flow.
+5. Create and spawn a replacement character.
+6. Run around for approximately 30 seconds.
+7. Die again.
+8. Remain in the post-death state for 20-30 seconds.
+9. Disconnect completely.
+
+Record approximate real-world timestamps for the first spawn, first death, replacement spawn, second death, and logout.
+
+Collect both the normal server console and the connection log. Together they let us correlate authenticated/network-connected sessions with instantiated `IsoPlayer` objects.
+
+## Sleep-state test
+
+With a single player, also test entering and leaving sleep if convenient. The probe should emit `PLAYER STATE CHANGED` when `isAsleep()` changes.
 
 ## Mod ID
 
+The diagnostic Mod ID remains:
+
 `EnshroudedSleepClockSpike`
+
+This is intentionally unchanged from v0.0.1 so an existing development server does not need its `Mods=` configuration edited.
 
 ## Version
 
-`0.0.1`
+`0.0.2`
