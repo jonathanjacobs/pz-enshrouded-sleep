@@ -1,0 +1,11 @@
+{
+  "Sandbox_EnshroudedSleepClockSpike": "Enshrouded Sleep - Clock Spike",
+  "Sandbox_EnshroudedSleepClockSpike_Enabled": "Enable diagnostic clock spike",
+  "Sandbox_EnshroudedSleepClockSpike_Enabled_tooltip": "Runs one automatic clock-only acceleration test after the first in-world player appears.",
+  "Sandbox_EnshroudedSleepClockSpike_Acceleration": "Clock acceleration factor",
+  "Sandbox_EnshroudedSleepClockSpike_Acceleration_tooltip": "Temporary world-clock acceleration for the diagnostic test. Default: 20x.",
+  "Sandbox_EnshroudedSleepClockSpike_WarmupSeconds": "Warm-up seconds",
+  "Sandbox_EnshroudedSleepClockSpike_WarmupSeconds_tooltip": "Real-time delay after the first in-world player appears before acceleration begins.",
+  "Sandbox_EnshroudedSleepClockSpike_TestSeconds": "Test duration (real seconds)",
+  "Sandbox_EnshroudedSleepClockSpike_TestSeconds_tooltip": "How long the accelerated clock test remains active before restoring the baseline."
+}
