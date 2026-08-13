@@ -6,26 +6,10 @@ option EnshroudedSleepClockSpike.Enabled = {
     page = EnshroudedSleepClockSpike,
 }
 
-option EnshroudedSleepClockSpike.Acceleration = {
-    type = integer,
-    min = 1,
-    max = 40,
-    default = 20,
-    page = EnshroudedSleepClockSpike,
-}
-
-option EnshroudedSleepClockSpike.WarmupSeconds = {
+option EnshroudedSleepClockSpike.HeartbeatSeconds = {
     type = integer,
     min = 5,
-    max = 120,
+    max = 60,
     default = 10,
-    page = EnshroudedSleepClockSpike,
-}
-
-option EnshroudedSleepClockSpike.TestSeconds = {
-    type = integer,
-    min = 10,
-    max = 600,
-    default = 60,
     page = EnshroudedSleepClockSpike,
 }
