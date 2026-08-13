@@ -1,11 +1,7 @@
 {
-  "Sandbox_EnshroudedSleepClockSpike": "Enshrouded Sleep - Clock Spike",
-  "Sandbox_EnshroudedSleepClockSpike_Enabled": "Enable diagnostic clock spike",
-  "Sandbox_EnshroudedSleepClockSpike_Enabled_tooltip": "Runs one automatic clock-only acceleration test after the first in-world player appears.",
-  "Sandbox_EnshroudedSleepClockSpike_Acceleration": "Clock acceleration factor",
-  "Sandbox_EnshroudedSleepClockSpike_Acceleration_tooltip": "Temporary world-clock acceleration for the diagnostic test. Default: 20x.",
-  "Sandbox_EnshroudedSleepClockSpike_WarmupSeconds": "Warm-up seconds",
-  "Sandbox_EnshroudedSleepClockSpike_WarmupSeconds_tooltip": "Real-time delay after the first in-world player appears before acceleration begins.",
-  "Sandbox_EnshroudedSleepClockSpike_TestSeconds": "Test duration (real seconds)",
-  "Sandbox_EnshroudedSleepClockSpike_TestSeconds_tooltip": "How long the accelerated clock test remains active before restoring the baseline."
+  "Sandbox_EnshroudedSleepClockSpike": "Enshrouded Sleep - Player State Probe",
+  "Sandbox_EnshroudedSleepClockSpike_Enabled": "Enable player-state diagnostic probe",
+  "Sandbox_EnshroudedSleepClockSpike_Enabled_tooltip": "Logs instantiated multiplayer player lifecycle, sleep, death, and access-state transitions. This build does not modify game time.",
+  "Sandbox_EnshroudedSleepClockSpike_HeartbeatSeconds": "Heartbeat interval (seconds)",
+  "Sandbox_EnshroudedSleepClockSpike_HeartbeatSeconds_tooltip": "How often the server logs a complete snapshot of all instantiated in-world players. State changes are logged immediately on the next one-second scan."
 }
