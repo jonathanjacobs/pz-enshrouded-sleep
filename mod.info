@@ -1,5 +1,5 @@
 id=EnshroudedSleepClockSpike
-name=Enshrouded Sleep - Player/Connection State Probe
-description=Diagnostic Build 42 multiplayer mod for observing player lifecycle, connection state, and vanilla sleep fast-forward behavior.
+name=Enshrouded Sleep
+description=Build 42 multiplayer sleep mod with proportional partial-sleep calendar compression.
 author=Jonathan Jacobs
 pzversion=42
