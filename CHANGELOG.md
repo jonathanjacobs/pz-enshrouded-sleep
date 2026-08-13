@@ -1,75 +1,129 @@
 # Changelog
 
-All notable changes to Enshrouded Sleep are documented here. Git remains the authoritative source for exact diffs; this file summarizes the behavioral, architectural, diagnostic, and documentation changes that matter to users and maintainers.
+Human-readable history of notable Enshrouded Sleep changes. Git remains authoritative for exact diffs; this file summarizes behavior, architecture, diagnostics, and documentation by development version.
 
 ## [Unreleased]
 
 ### Planned
-
-- Dedicated-server validation of the first functional proportional calendar-compression implementation.
-- Two-player testing at multiple sleeping fractions.
-- Validation that awake movement, combat, zombies, vehicles, animations, inventory actions, timed actions, and crafting remain at normal active-game simulation speed during partial sleep.
-- Validation of the transition from partial compression to vanilla full-sleep fast-forward when the final living player falls asleep.
-- System-by-system investigation of world-time-driven mechanics such as crops, food spoilage, generator fuel, hunger/thirst/fatigue, healing, corpse decay, composting, and weather.
-- Possible future per-system compensation using `RealTimeCompensationFactor = 1 / CalendarCompressionFactor` where real-time behavior is preferred over compressed world time.
+- Dedicated-server validation of v0.0.3.
+- Two-player partial-sleep testing at several sleeping fractions.
+- Verify normal awake movement/combat/zombie/vehicle/animation/timed-action speed during compression.
+- Verify clean handoff from partial compression to vanilla full-sleep fast-forward.
+- Investigate world-time-driven systems such as crops, food spoilage, generators, hunger/thirst/fatigue, healing, corpse decay, composting, and weather.
+- Evaluate future per-system compensation using `1 / CalendarCompressionFactor` where real-time behavior is preferred.
 
 ## [0.0.3] - 2026-08-13
 
 First functional proportional-sleep prototype.
 
 ### Added
-
-- Implemented proportional calendar/world-time compression for partial sleep.
-- Added the core model based on `SleepFraction`, native `FastForwardMultiplier`, `PartialSleepSpeedScale`, `CalendarCompressionFactor`, and `EffectiveMinutesPerDay`.
-- Added `RealTimeCompensationFactor = 1 / CalendarCompressionFactor` as a documented future-use value for systems that may eventually need to remain tied to real/simulation time.
-- Added `PartialSleepSpeedScale`, default `1.0`, as the only new gameplay tuning option.
-- Added startup logging of native and computed timing configuration.
-- Added state-transition logging for baseline, partial compression, vanilla handoff, disabled state, and recoverable error conditions.
-- Added a root `VERSION` marker.
-- Added extensive professional inline documentation throughout the Lua controller, including function contracts, invariants, control-flow rationale, loop comments, and failure-mode documentation.
+- Proportional calendar/world-time compression for partial sleep.
+- Core model using `SleepFraction`, native `FastForwardMultiplier`, `PartialSleepSpeedScale`, `CalendarCompressionFactor`, and `EffectiveMinutesPerDay`.
+- `RealTimeCompensationFactor = 1 / CalendarCompressionFactor` documented for possible future compensation work.
+- `PartialSleepSpeedScale` sandbox option, default `1.0`.
+- Startup configuration logging and state-transition logging.
+- Root `VERSION` marker.
+- Extensive inline Lua documentation: design invariants, function contracts, loop/control-flow comments, and failure-mode rationale.
 
 ### Changed
+- Reframed the mechanic from generic "acceleration" to **calendar/world-time compression**.
+- Replaced the v0.0.2b diagnostic probe with a functional server-authoritative controller.
+- Simplified the MVP to follow vanilla lifecycle semantics instead of maintaining READY/NOT READY state.
+- Removed pre-spawn readiness tracking, the proposed client/server readiness handshake, and custom respawn gating from the MVP.
+- Population now means instantiated `IsoPlayer` objects from `getOnlinePlayers()` where `isDead() == false`.
+- Sleeping players are living instantiated players where `isAsleep() == true`.
+- At 100% living players asleep, restore the exact baseline `MinutesPerDay` and let vanilla own full-sleep fast-forward.
+- Removed diagnostic-only `HeartbeatSeconds`.
+- Updated sandbox UI text, metadata, README, and requirements.
 
-- Reframed the mechanic from generic "time acceleration" to **calendar/world-time compression**.
-- Replaced the v0.0.2b diagnostic probe with the first functional server-authoritative controller.
-- Simplified the MVP to follow vanilla Project Zomboid lifecycle semantics instead of maintaining a separate READY/NOT READY state machine.
-- Removed pre-spawn/loading-player readiness tracking, the proposed client/server readiness handshake, and custom death/respawn gating from the MVP.
-- Defined the proportional population as currently instantiated `IsoPlayer` objects from `getOnlinePlayers()` where `isDead() == false`.
-- Defined sleeping players as living instantiated players where `isAsleep() == true`.
-- At 100% living players asleep, the mod restores the exact captured native `MinutesPerDay` and hands control to vanilla full-sleep fast-forward.
-- Removed the diagnostic-only `HeartbeatSeconds` sandbox option.
-- Updated sandbox labels/tooltips, root metadata, Build 42 metadata, README, and requirements for the functional prototype.
-
-### Design and compatibility notes
-
-- Native Project Zomboid settings remain authoritative: live `MinutesPerDay`, `SleepAllowed`, `SleepNeeded`, and `FastForwardMultiplier`.
-- The mod deliberately does not call `GameTime:setMultiplier()` for partial sleep.
-- The theoretical full-sleep compressed day length is not applied because vanilla independently engages full-sleep fast-forward.
-- `BaselineMinutesPerDay` is captured once and retained as the exact restoration target.
-- Review of TrueSleep reinforced the same vanilla-extension player-population model.
+### Design notes
+- Native `MinutesPerDay`, `SleepAllowed`, `SleepNeeded`, and `FastForwardMultiplier` remain authoritative.
+- Partial sleep never calls `GameTime:setMultiplier()`.
+- Full-sleep theoretical compression is not applied because vanilla independently engages fast-forward.
+- Baseline `MinutesPerDay` is captured once and retained as the exact restoration target.
+- Review of TrueSleep reinforced the same vanilla-extension population model.
 - Review of Sleep With Friends reinforced the distinction between world time and sleep-recovery/stat progression.
-- Because runtime `MinutesPerDay` changes, game-minute-driven callbacks and `WorldAgeHours`-driven systems may progress faster in real time during compression even though active simulation is not globally fast-forwarded.
-
-### Known limitations
-
-- v0.0.3 has not yet completed dedicated-server functional validation.
-- At 100% asleep, vanilla owns full-sleep fast-forward rather than the mod continuing its own proportional formula.
-- Loading clients do not affect the denominator until an `IsoPlayer` exists.
-- Dead players are excluded from the living-player denominator and vanilla death/respawn semantics are accepted.
-- No per-system compensation exists yet for world-time-driven systems.
+- Game-minute/`WorldAgeHours`-driven systems may progress faster in real time while compression is active even though active simulation is not globally fast-forwarded.
 
 ### Included commits
+- `eac821c` Document v0.0.3 Lua controller for maintainability.
+- `2e93e56` Update root mod metadata for v0.0.3.
+- `75ca853` Update v0.0.3 metadata.
+- `7bd4bdc` Add version marker.
+- `ba5ae91` Update README for v0.0.3 calendar compression prototype.
+- `d0fb825` Revise MVP requirements for calendar compression v0.0.3.
+- `1db2d93` Update sandbox labels for v0.0.3.
+- `4fc7f66` Add partial sleep speed scale option for v0.0.3.
+- `173fba4` Implement proportional calendar compression v0.0.3.
+- `887850f` Align README with vanilla-extension MVP design.
+- `28fbc76` Simplify MVP requirements to vanilla sleep semantics.
+- `3bb9736` Rewrite README with current MVP requirements.
+- `0797042` Document updated MVP requirements.
 
-- `eac821c` - Document v0.0.3 Lua controller for maintainability.
-- `2e93e56` - Update root mod metadata for v0.0.3.
-- `75ca853` - Update v0.0.3 Build 42 metadata.
-- `7bd4bdc` - Add version marker.
-- `ba5ae91` - Update README for v0.0.3 calendar compression prototype.
-- `d0fb825` - Revise MVP requirements for calendar compression v0.0.3.
-- `1db2d93` - Update sandbox labels for v0.0.3.
-- `4fc7f66` - Add partial sleep speed scale option for v0.0.3.
-- `173fba4` - Implement proportional calendar compression v0.0.3.
-- `887850f` - Align README with vanilla-extension MVP design.
-- `28fbc76` - Simplify MVP requirements to vanilla sleep semantics.
-- `3bb9736` - Rewrite README with current MVP requirements.
-- `0797042` - Document updated MVP requirements.
+## [0.0.2b] - 2026-08-13
+
+Expanded diagnostic for vanilla multiplayer sleep and connection behavior.
+
+### Added / learned
+- Added attempted connection-state telemetry before an `IsoPlayer` exists.
+- Added telemetry for `MinutesPerDay`, multipliers, `TrueMultiplier`, `WorldAgeHours`, configured fast-forward, and player-state counts.
+- Confirmed direct `GameServer.udpEngine.connections` was not exposed to dedicated-server Lua despite existing in Java API.
+- Confirmed clients may remain authenticated/loading for tens of seconds before appearing in `getOnlinePlayers()`.
+- Observed vanilla full-sleep with `MinutesPerDay` unchanged, `GameTime:getMultiplier()` rising from roughly `4.8` to roughly `575`, and `TrueMultiplier` remaining `1`.
+- Observed an effective calendar rate near 120x on the test server even though configured `FastForwardMultiplier` was `40.0`; no hard-coded relationship was adopted.
+
+### Included commits
+- `1ef38a1` Update sandbox labels for v0.0.2b probe.
+- `8da00ef` Document v0.0.2b solo diagnostic.
+- `2a5502f` Update root metadata for v0.0.2b probe.
+- `e22b0fd` Bump diagnostic metadata to v0.0.2b.
+- `65ef17f` Add v0.0.2b connection and vanilla sleep telemetry.
+
+## [0.0.2] - 2026-08-13
+
+Player lifecycle/state diagnostic replacing the clock-spike test.
+
+### Added / learned
+- Replaced active clock manipulation with pure `getOnlinePlayers()` instrumentation.
+- Logged player object identity, username/display name, online ID, sleep state, death state, access level, god mode, position, add/remove, state changes, and counts.
+- Confirmed server-side `isAsleep()` reliably reflects sleep/wake state when native sleep is enabled.
+- Confirmed dead character objects can remain in `getOnlinePlayers()` during recreation and replacement characters use a new object identity.
+- Confirmed dead characters should not count in the living-player denominator.
+- Traced earlier sleep/fatigue problems to native `SleepAllowed=false` and `SleepNeeded=false`, not admin status.
+
+### Included commits
+- `815ba2b` Document v0.0.2 player lifecycle test.
+- `31cf046` Update translations for v0.0.2 probe.
+- `0919837` Update sandbox options for v0.0.2 probe.
+- `7a7eae4` Update root metadata for v0.0.2.
+- `b7d951f` Bump diagnostic mod to v0.0.2.
+- `b21b38a` Replace clock spike with v0.0.2 player-state probe.
+
+## [0.0.1] - 2026-08-13
+
+Initial Build 42 proof of concept for the `MinutesPerDay` technique.
+
+### Added / learned
+- Added the dedicated-server clock-spike diagnostic, mod metadata, sandbox options, translations, and initial README.
+- Added required B42 `AnimSets` and `actiongroups` directory placeholders under `common/media` and `42/media` to avoid media-scanner errors.
+- Captured live baseline `MinutesPerDay`, temporarily set it to `baseline / 20`, then restored the exact baseline without using `GameTime:setMultiplier()`.
+- On the test server, baseline was `90`; test value `4.5` produced approximately 20x calendar/world-age progression while `TrueMultiplier` stayed `1` and active gameplay did not visibly speed up.
+- Established the core project premise: world/calendar time can be compressed through `MinutesPerDay` without globally accelerating active gameplay simulation.
+
+### Included commits
+- `cdd64b1`, `433030d`, `535dcf9`, `e2a5c14` Add required B42 media directories.
+- `cdf8ad2` Add v0.0.1 clock spike server diagnostic.
+- `8075ba0` Add sandbox translations.
+- `78e1d29` Add diagnostic sandbox options.
+- `9e5a2a3` Add B42 mod metadata.
+- `7ee0cdd` Add root mod metadata.
+- `f7f66ad` Add v0.0.1 diagnostic clock spike README.
+
+## Repository initialization - 2026-08-13
+
+- `8cd4542` Create basic CI workflow with GitHub Actions.
+- `79cd9c2` Initial commit.
+
+---
+
+For exact source-level history, consult the Git commit history. This changelog is intentionally grouped by meaningful development version rather than one section per commit.
