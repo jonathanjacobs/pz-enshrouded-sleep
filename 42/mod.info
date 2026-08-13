@@ -1,7 +1,7 @@
 id=EnshroudedSleepClockSpike
-name=Enshrouded Sleep - Clock Spike
-description=Diagnostic v0.0.1. Tests whether MinutesPerDay can accelerate world-clock time without accelerating gameplay simulation.
+name=Enshrouded Sleep - Player State Probe
+description=Diagnostic v0.0.2. Logs instantiated multiplayer player lifecycle, sleep, death, and access-state transitions without modifying game time.
 author=Jonathan Jacobs
 category=features
-modversion=0.0.1
+modversion=0.0.2
 versionMin=42.20.0
