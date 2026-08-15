@@ -1,15 +1,15 @@
--- Enshrouded Sleep - server clock synchronization diagnostic
--- v0.0.5 diagnostic instrumentation for Project Zomboid Build 42.20+
+-- Enshrouded Sleep - server clock and sleep synchronization diagnostic
+-- v0.0.6 diagnostic instrumentation for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
--- Record the authoritative server's GameTime state once per real second so it
--- can be correlated with the v0.0.5 client clock diagnostic. This is intended
--- to identify whether visual clock snapping originates in MinutesPerDay
--- replication, multiplayer clock synchronization, or the client UI layer.
+-- Record the authoritative server GameTime state once per real second and, when
+-- at least one player is asleep, record each living player's vanilla sleep
+-- counters. This preserves the v0.0.5 clock evidence while adding telemetry for
+-- the long-sleep time-domain investigation discovered in the same test series.
 --
 -- IMPORTANT: this file is observational only. It never changes GameTime,
--- player state, sleep state, or native synchronization behavior.
+-- player state, sleep state, fatigue, pills, or native synchronization behavior.
 
 if isClient() then return end
 
@@ -51,54 +51,59 @@ local function safeMethod(obj, methodName, ...)
     return value
 end
 
----Safely read a public Java field exposed through Kahlua.
----@param obj any Java/Lua object.
----@param fieldName string Public field name.
----@return any|nil value
-local function safeField(obj, fieldName)
-    if not obj then return nil end
-
-    local ok, value = pcall(function() return obj[fieldName] end)
-    if not ok then return nil end
-
-    return value
-end
-
----Count instantiated living and sleeping players for diagnostic correlation.
----Unlike the authoritative controller, a failed read does not alter GameTime;
----the sample simply reports N/A counts.
+---Collect instantiated living players and aggregate sleep counts without mutating
+---their state. Player objects are returned for per-player sleep telemetry.
 ---@return integer|nil living
 ---@return integer|nil sleeping
-local function countPlayers()
-    if type(getOnlinePlayers) ~= "function" then return nil, nil end
+---@return table playerStates
+local function collectPlayers()
+    local playerStates = {}
+    if type(getOnlinePlayers) ~= "function" then return nil, nil, playerStates end
 
     local players = getOnlinePlayers()
-    if not players then return 0, 0 end
+    if not players then return 0, 0, playerStates end
 
     local size = tonumber(safeMethod(players, "size"))
-    if size == nil then return nil, nil end
+    if size == nil then return nil, nil, playerStates end
 
     local living = 0
     local sleeping = 0
 
-    -- Inspect each currently instantiated IsoPlayer without mutating it.
+    -- Inspect each currently instantiated IsoPlayer without changing it.
     for i = 0, size - 1 do
         local player = safeMethod(players, "get", i)
-        if not player then return nil, nil end
+        if not player then return nil, nil, {} end
 
         local dead = safeMethod(player, "isDead")
-        if dead == nil then return nil, nil end
+        if dead == nil then return nil, nil, {} end
 
-        -- Mirror the controller's population semantics for useful log correlation.
         if dead ~= true then
             living = living + 1
+
             local asleep = safeMethod(player, "isAsleep")
-            if asleep == nil then return nil, nil end
+            if asleep == nil then return nil, nil, {} end
             if asleep == true then sleeping = sleeping + 1 end
+
+            local stats = safeMethod(player, "getStats")
+
+            playerStates[#playerStates + 1] = {
+                playerName = tostring(
+                    safeMethod(player, "getUsername")
+                    or safeMethod(player, "getDisplayName")
+                    or "N/A"
+                ),
+                onlineID = tonumber(safeMethod(player, "getOnlineID")),
+                asleep = asleep,
+                dead = dead,
+                asleepTime = tonumber(safeMethod(player, "getAsleepTime")),
+                forceWakeUpTime = tonumber(safeMethod(player, "getForceWakeUpTime")),
+                fatigue = tonumber(safeMethod(stats, "getFatigue")),
+                sleepingPillsTaken = tonumber(safeMethod(player, "getSleepingPillsTaken")),
+            }
         end
     end
 
-    return living, sleeping
+    return living, sleeping, playerStates
 end
 
 ---Derive a descriptive state from the observed population only.
@@ -113,7 +118,7 @@ local function deriveMode(living, sleeping)
     return "partial"
 end
 
----Capture one authoritative server clock sample per real second.
+---Capture one authoritative server clock/sleep sample per real second.
 ---@return nil
 local function sampleClock()
     local now = os.time()
@@ -126,7 +131,6 @@ local function sampleClock()
 
     local gt = getGameTime()
 
-    -- Diagnostics must never turn a missing GameTime object into a server failure.
     if not gt then
         if lastError ~= "getGameTime() unavailable" then
             lastError = "getGameTime() unavailable"
@@ -135,7 +139,7 @@ local function sampleClock()
         return
     end
 
-    local living, sleeping = countPlayers()
+    local living, sleeping, playerStates = collectPlayers()
 
     -- Suppress idle-server samples; startup still emits the loaded message below.
     if living == 0 then
@@ -152,27 +156,40 @@ local function sampleClock()
     local trueMultiplier = tonumber(safeMethod(gt, "getTrueMultiplier"))
     local serverMultiplier = tonumber(safeMethod(gt, "getServerMultiplier"))
     local deltaMinutesPerDay = tonumber(safeMethod(gt, "getDeltaMinutesPerDay"))
-    local serverTimeOfDay = tonumber(safeField(gt, "ServerTimeOfDay"))
-    local serverLastTimeOfDay = tonumber(safeField(gt, "ServerLastTimeOfDay"))
-    local rawTimeOfDay = tonumber(safeField(gt, "TimeOfDay"))
 
     log(string.format(
-        "SAMPLE | epoch=%d | mode=%s | living=%s | sleeping=%s | MinutesPerDay=%s | TimeOfDay=%s | RawTimeOfDay=%s | ServerTimeOfDay=%s | ServerLastTimeOfDay=%s | WorldAgeHours=%s | DeltaMinutesPerDay=%s | Multiplier=%s | TrueMultiplier=%s | ServerMultiplier=%s",
+        "SAMPLE | epoch=%d | mode=%s | living=%s | sleeping=%s | MinutesPerDay=%s | TimeOfDay=%s | WorldAgeHours=%s | DeltaMinutesPerDay=%s | Multiplier=%s | TrueMultiplier=%s | ServerMultiplier=%s",
         now,
         deriveMode(living, sleeping),
         tostring(living or "N/A"),
         tostring(sleeping or "N/A"),
         formatNumber(minutesPerDay, 4),
         formatNumber(timeOfDay, 6),
-        formatNumber(rawTimeOfDay, 6),
-        formatNumber(serverTimeOfDay, 6),
-        formatNumber(serverLastTimeOfDay, 6),
         formatNumber(worldAgeHours, 6),
         formatNumber(deltaMinutesPerDay, 6),
         formatNumber(multiplier, 4),
         formatNumber(trueMultiplier, 4),
         formatNumber(serverMultiplier, 4)
     ))
+
+    -- When anyone is asleep, record every living player's sleep counters so we
+    -- can determine whether AsleepTime/fatigue/wake scheduling follow compressed
+    -- world time or ordinary simulation time.
+    if sleeping and sleeping > 0 then
+        for _, state in ipairs(playerStates) do
+            log(string.format(
+                "PLAYER | epoch=%d | player=%s | onlineID=%s | asleep=%s | AsleepTime=%s | ForceWakeUpTime=%s | Fatigue=%s | SleepingPillsTaken=%s",
+                now,
+                state.playerName,
+                tostring(state.onlineID or "N/A"),
+                tostring(state.asleep),
+                formatNumber(state.asleepTime, 6),
+                formatNumber(state.forceWakeUpTime, 6),
+                formatNumber(state.fatigue, 6),
+                tostring(state.sleepingPillsTaken or "N/A")
+            ))
+        end
+    end
 end
 
 if Events.OnTickEvenPaused then
@@ -181,4 +198,4 @@ else
     Events.OnTick.Add(sampleClock)
 end
 
-log("Loaded v0.0.5 read-only server clock synchronization diagnostic.")
+log("Loaded v0.0.6 server clock/sleep diagnostic.")
