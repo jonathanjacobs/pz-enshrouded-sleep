@@ -5,12 +5,48 @@ Human-readable history of notable Enshrouded Sleep changes. Git remains authorit
 ## [Unreleased]
 
 ### Planned
-- Dedicated-server validation of v0.0.3.
+- Dedicated-server validation of the standardized v0.0.4 package.
 - Two-player partial-sleep testing at several sleeping fractions.
 - Verify normal awake movement/combat/zombie/vehicle/animation/timed-action speed during compression.
 - Verify clean handoff from partial compression to vanilla full-sleep fast-forward.
 - Investigate world-time-driven systems such as crops, food spoilage, generators, hunger/thirst/fatigue, healing, corpse decay, composting, and weather.
 - Evaluate future per-system compensation using `1 / CalendarCompressionFactor` where real-time behavior is preferred.
+
+## [0.0.4] - 2026-08-14
+
+Deployment and naming cleanup following the first multiplayer deployment attempts. The proportional sleep algorithm is unchanged from v0.0.3.
+
+### Changed
+- Standardized the stable Project Zomboid Mod ID from the prototype name `EnshroudedSleepClockSpike` to `pz-enshrouded-sleep`.
+- Standardized the sandbox namespace from `EnshroudedSleepClockSpike` to `EnshroudedSleep`.
+- Renamed the server controller from `ClockSpike_Server.lua` to `EnshroudedSleep_Server.lua`.
+- Bumped root and Build 42 metadata to v0.0.4.
+- Updated README installation guidance so local folder name, Mod ID, and server `Mods=` configuration are clearly distinguished.
+- Clarified that GitHub's `-main` suffix is a source-archive branch suffix and is not part of the stable Project Zomboid Mod ID.
+
+### Migration notes
+- Recommended local folder: `pz-enshrouded-sleep/`.
+- Server Mod ID: `pz-enshrouded-sleep`.
+- Sandbox configuration block is now:
+
+```lua
+EnshroudedSleep = {
+    Enabled = true,
+    PartialSleepSpeedScale = 1.0,
+},
+```
+
+- Remove old `EnshroudedSleepClockSpike` entries from the test-server `Mods=` and SandboxVars configuration before testing v0.0.4.
+
+### Included commits
+- `82cec2b` Document standardized v0.0.4 deployment identity.
+- `036cd5b` Remove legacy ClockSpike server filename.
+- `33b459d` Rename and migrate server controller for v0.0.4.
+- `a98575d` Align sandbox translation keys for v0.0.4.
+- `d6a4252` Standardize sandbox namespace for v0.0.4.
+- `6f16d2b` Bump version to 0.0.4.
+- `1a4baab` Standardize Build 42 mod ID for v0.0.4.
+- `d1b1bde` Standardize mod ID and metadata for v0.0.4.
 
 ## [0.0.3] - 2026-08-13
 
