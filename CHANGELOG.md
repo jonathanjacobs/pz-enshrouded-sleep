@@ -5,12 +5,40 @@ Human-readable history of notable Enshrouded Sleep changes. Git remains authorit
 ## [Unreleased]
 
 ### Planned
-- Dedicated-server validation of the standardized v0.0.4 package.
-- Two-player partial-sleep testing at several sleeping fractions.
+- Run the v0.0.5 client/server clock-synchronization diagnostic with two living players and one sleeper.
+- Determine whether clients receive the dynamic `MinutesPerDay` change during partial sleep.
+- Determine whether clock snapping originates in replicated GameTime state, multiplayer clock synchronization/interpolation, or UI rendering.
+- Resolve GitHub issues #1 and #2 so both sleeping and awake clocks advance smoothly during partial-sleep compression.
 - Verify normal awake movement/combat/zombie/vehicle/animation/timed-action speed during compression.
-- Verify clean handoff from partial compression to vanilla full-sleep fast-forward.
 - Investigate world-time-driven systems such as crops, food spoilage, generators, hunger/thirst/fatigue, healing, corpse decay, composting, and weather.
 - Evaluate future per-system compensation using `1 / CalendarCompressionFactor` where real-time behavior is preferred.
+
+## [0.0.5] - 2026-08-14
+
+Read-only clock-synchronization diagnostic build following the first successful two-player proportional-sleep test.
+
+### Added
+- Client-side clock diagnostic at `42/media/lua/client/EnshroudedSleep/ClockSyncDiagnostic_Client.lua`.
+- Server-side clock diagnostic at `42/media/lua/server/EnshroudedSleep/ClockSyncDiagnostic_Server.lua`.
+- One-real-second samples of `MinutesPerDay`, `TimeOfDay`, `WorldAgeHours`, `DeltaMinutesPerDay`, `Multiplier`, `TrueMultiplier`, and `ServerMultiplier`.
+- Client sampling of public GameTime fields `ServerTimeOfDay`, `ServerLastTimeOfDay`, and raw `TimeOfDay` where exposed through Kahlua.
+- Server samples correlated with living/sleeping population and a diagnostic baseline/partial/full-sleep state label.
+
+### Diagnostic safety
+- The v0.0.5 instrumentation is observational only.
+- It does not call `setMinutesPerDay()`, `setTimeOfDay()`, `setMultiplier()`, `GameServer.syncClock()`, or any sleep/player-state mutation API.
+- The proportional server controller remains behaviorally unchanged from v0.0.4 while the client synchronization path is investigated.
+
+### Purpose
+The v0.0.4 multiplayer test showed correct server-side `MinutesPerDay=4.5` partial compression but visible jumps in both the sleeping black-screen clock and the awake player's HUD/watch. v0.0.5 is designed to distinguish among three possible causes:
+
+1. the dynamic server `MinutesPerDay` value is not replicated to clients;
+2. the underlying client world clock is synchronized in coarse corrections;
+3. client world time is correct but the clock UI itself updates/interpolates poorly at high calendar-compression factors.
+
+### Known issues
+- #1: sleeping black-screen clock jumps during partial-sleep compression.
+- #2: awake player's HUD/watch clock snaps forward during partial-sleep compression.
 
 ## [0.0.4] - 2026-08-14
 
@@ -24,6 +52,39 @@ Deployment and naming cleanup following the first multiplayer deployment attempt
 - Updated README installation guidance so local folder name, Mod ID, and server `Mods=` configuration are clearly distinguished.
 - Clarified that GitHub's `-main` suffix is a source-archive branch suffix and is not part of the stable Project Zomboid Mod ID.
 
+### Multiplayer validation
+The first successful two-player v0.0.4 test validated the core server-side architecture on the test server:
+
+```text
+2 living / 0 sleeping
+-> mode=baseline
+-> MinutesPerDay=90.000
+
+2 living / 1 sleeping
+-> mode=partial
+-> SleepFraction=0.5000
+-> CalendarCompressionFactor=20.000
+-> EffectiveMinutesPerDay=4.500
+-> RealTimeCompensationFactor=0.05000
+
+2 living / 2 sleeping
+-> mode=vanilla-full-sleep
+-> restore MinutesPerDay=90.000
+-> vanilla full-sleep fast-forward owns the state
+```
+
+The test also observed correct return to partial sleep when one player woke, correct denominator recalculation when a player disconnected, and exact restoration to the 90-minute baseline when compression ended.
+
+No Enshrouded Sleep controller exception or fail-safe event was observed during these transitions.
+
+### Client-display defect discovered
+Although server-side proportional behavior passed, both clients showed visibly discontinuous clock presentation during partial compression:
+
+- the sleeping player's black-screen clock appeared to hold and then jump forward;
+- the awake player's upper-right HUD/watch time also advanced in visible leaps rather than smooth rapid progression.
+
+At `MinutesPerDay=4.5`, world time advances about 5.33 in-game minutes per real second. Rapid display progression is therefore expected; long holds followed by large corrections are not. These observations are tracked as GitHub issues #1 and #2.
+
 ### Migration notes
 - Recommended local folder: `pz-enshrouded-sleep/`.
 - Server Mod ID: `pz-enshrouded-sleep`.
@@ -36,9 +97,11 @@ EnshroudedSleep = {
 },
 ```
 
-- Remove old `EnshroudedSleepClockSpike` entries from the test-server `Mods=` and SandboxVars configuration before testing v0.0.4.
+- Remove old `EnshroudedSleepClockSpike` entries from the test-server `Mods=` and SandboxVars configuration before testing v0.0.4 or later.
 
 ### Included commits
+- `85ec2bc` Align requirements with v0.0.4 deployment identity.
+- `d1e0df9` Document v0.0.4 naming and deployment migration.
 - `82cec2b` Document standardized v0.0.4 deployment identity.
 - `036cd5b` Remove legacy ClockSpike server filename.
 - `33b459d` Rename and migrate server controller for v0.0.4.
