@@ -12,7 +12,7 @@ The key idea is **calendar/world-time compression**, not global simulation accel
 
 The current development version is `v0.0.5`. The proportional controller is behaviorally unchanged from the successfully tested `v0.0.4` implementation; v0.0.5 adds read-only client/server clock-synchronization instrumentation to diagnose visual clock snapping during partial sleep.
 
-See [`REQUIREMENTS.md`](REQUIREMENTS.md) for the canonical specification and acceptance tests, and [`CHANGELOG.md`](CHANGELOG.md) for development history.
+See [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) for the canonical specification and acceptance tests, [`docs/TESTING.md`](docs/TESTING.md) for repeatable test procedures, and [`CHANGELOG.md`](CHANGELOG.md) for development history.
 
 ## Current validation status
 
