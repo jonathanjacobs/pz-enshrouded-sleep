@@ -10,9 +10,50 @@ The key idea is **calendar/world-time compression**, not global simulation accel
 - awake players, zombies, vehicles, animations, physics, inventory actions, timed actions, combat, and crafting remain at normal active-game simulation speed;
 - if all currently instantiated living players are asleep, the mod restores the native day length and vanilla full-sleep fast-forward takes over.
 
-The current implementation is the first functional prototype: `v0.0.3`.
+The current development version is `v0.0.4`. This release is a deployment/naming cleanup over the `v0.0.3` functional prototype; the proportional sleep algorithm is unchanged.
 
-See [`REQUIREMENTS.md`](REQUIREMENTS.md) for the canonical specification and acceptance tests.
+See [`REQUIREMENTS.md`](REQUIREMENTS.md) for the canonical specification and acceptance tests, and [`CHANGELOG.md`](CHANGELOG.md) for development history.
+
+## Installation identity
+
+The stable Project Zomboid Mod ID is:
+
+```text
+pz-enshrouded-sleep
+```
+
+The local mod folder should preferably use the same stable name:
+
+```text
+pz-enshrouded-sleep/
+```
+
+The server `Mods=` entry must use the `id=` value from `mod.info`:
+
+```text
+Mods=pz-enshrouded-sleep
+```
+
+Some Build 42/server configurations may display or preserve a leading backslash form such as `\pz-enshrouded-sleep`; the authoritative identifier remains `pz-enshrouded-sleep`.
+
+GitHub's **Download ZIP** feature names the extracted source folder after both the repository and branch, typically:
+
+```text
+pz-enshrouded-sleep-main/
+```
+
+That branch suffix is not part of the Mod ID. For the least ambiguous server deployment, use a packaged release whose top-level folder is exactly `pz-enshrouded-sleep/`, or rename the extracted GitHub folder to `pz-enshrouded-sleep` before placing it in the server's local mods directory.
+
+The mod's sandbox namespace is now:
+
+```lua
+EnshroudedSleep = {
+    Enabled = true,
+    PartialSleepSpeedScale = 1.0,
+},
+```
+
+`v0.0.4` intentionally removes the old prototype-facing names `EnshroudedSleepClockSpike` and `ClockSpike_Server.lua` from active configuration/source layout.
 
 ## What "compression" means
 
@@ -218,10 +259,13 @@ Likewise, any mod that keys logic directly to `WorldAgeHours` will observe the c
 
 Compatibility with other sleep/recovery mods should therefore be tested explicitly rather than assumed.
 
-## v0.0.3 implementation
+## v0.0.4 implementation
 
-The functional prototype now:
+The current prototype:
 
+- uses stable Mod ID `pz-enshrouded-sleep`;
+- uses sandbox namespace `EnshroudedSleep`;
+- uses server source filename `EnshroudedSleep_Server.lua`;
 - captures the exact runtime `MinutesPerDay` baseline;
 - reads native `SleepAllowed`, `SleepNeeded`, and `FastForwardMultiplier` from `getServerOptions()`;
 - exposes `PartialSleepSpeedScale` as a double-valued sandbox option;
@@ -230,14 +274,6 @@ The functional prototype now:
 - restores the exact baseline at zero sleepers, all sleepers, disable, or fail-safe conditions;
 - never calls the global simulation multiplier;
 - logs inherited configuration and state transitions, including the calculated compression factor and effective day length.
-
-Current Mod ID remains:
-
-```text
-EnshroudedSleepClockSpike
-```
-
-The ID is intentionally unchanged during development so existing dedicated-server `Mods=` configuration does not need to be edited.
 
 ## MVP acceptance criteria
 
