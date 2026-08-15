@@ -3,7 +3,7 @@
 Development and reference documentation lives in this directory.
 
 - [`REQUIREMENTS.md`](REQUIREMENTS.md) — canonical MVP behavior, design requirements, validated findings, and acceptance criteria.
-- [`TESTING.md`](TESTING.md) — repeatable dedicated-server and client diagnostic test procedures.
+- [`TESTING.md`](TESTING.md) — repeatable dedicated-server and client test procedures, including the v0.0.6 client clock-replication and sleep-duration diagnostic test.
 
 Repository-level documentation remains at the project root:
 
