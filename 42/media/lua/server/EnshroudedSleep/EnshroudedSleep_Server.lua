@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - proportional calendar/world-time compression
--- v0.0.4 functional prototype for Project Zomboid Build 42.20+
+-- v0.0.5 functional prototype for Project Zomboid Build 42.20+
 --
 -- DESIGN SUMMARY
 -- --------------
@@ -614,6 +614,6 @@ end
 -- fast-forward when the final awake living player falls asleep.
 Events.OnTickEvenPaused.Add(update)
 
-log("Loaded v0.0.4 proportional calendar-compression prototype.")
+log("Loaded v0.0.5 proportional calendar-compression prototype.")
 log("Partial sleep changes MinutesPerDay only; global simulation multiplier is never modified.")
 log("At 100% living players asleep, native MinutesPerDay is restored and vanilla sleep fast-forward takes over.")
