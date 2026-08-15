@@ -24,6 +24,7 @@ local MAX_VALID_MINUTES_PER_DAY = 1440.0
 
 local lastStateSignature = nil
 local lastError = nil
+local cachedBaselineMinutesPerDay = nil
 
 ---Write one namespaced synchronization message to the client log.
 ---@param message any Value to stringify.
@@ -70,14 +71,17 @@ end
 ---Validate and apply one authoritative ClockState packet.
 ---@param module string Server-command module name.
 ---@param command string Server-command command name.
----@param args table|nil Command arguments.
+---@param args any Command arguments supplied by Project Zomboid.
 ---@return nil
 local function onServerCommand(module, command, args)
     -- Ignore all unrelated server commands; this listener is deliberately narrow.
     if module ~= MODULE or command ~= COMMAND then return end
 
-    if type(args) ~= "table" then
-        logErrorOnce("ClockState packet missing argument table")
+    -- Kahlua command arguments behave table-like but may not always report the
+    -- stock Lua type string, so only nil is rejected here; field access below is
+    -- protected by the surrounding event dispatch/runtime.
+    if not args then
+        logErrorOnce("ClockState packet missing arguments")
         return
     end
 
@@ -91,6 +95,11 @@ local function onServerCommand(module, command, args)
     if target == nil or target < MIN_VALID_MINUTES_PER_DAY or target > MAX_VALID_MINUTES_PER_DAY then
         logErrorOnce("invalid ClockState minutesPerDay=" .. tostring(args.minutesPerDay))
         return
+    end
+
+    local baseline = tonumber(args.baselineMinutesPerDay)
+    if baseline and baseline >= MIN_VALID_MINUTES_PER_DAY and baseline <= MAX_VALID_MINUTES_PER_DAY then
+        cachedBaselineMinutesPerDay = baseline
     end
 
     local gt = getGameTime()
@@ -133,18 +142,39 @@ local function onServerCommand(module, command, args)
     -- packets that find the client already synchronized remain silent.
     if changed or signature ~= lastStateSignature then
         log(string.format(
-            "APPLY | mode=%s | living=%s | sleeping=%s | beforeMinutesPerDay=%.4f | targetMinutesPerDay=%.4f | afterMinutesPerDay=%.4f | serverEpoch=%s",
+            "APPLY | mode=%s | living=%s | sleeping=%s | beforeMinutesPerDay=%.4f | targetMinutesPerDay=%.4f | afterMinutesPerDay=%.4f | baselineMinutesPerDay=%s | serverEpoch=%s",
             mode,
             tostring(args.living or "N/A"),
             tostring(args.sleeping or "N/A"),
             current,
             target,
             after,
+            cachedBaselineMinutesPerDay and string.format("%.4f", cachedBaselineMinutesPerDay) or "N/A",
             tostring(args.serverEpoch or "N/A")
         ))
     end
 
     lastStateSignature = signature
+end
+
+---Restore the last server-advertised baseline when the client disconnects while
+---partial compression is active. A subsequent world load should reset GameTime
+---anyway, but explicit restoration prevents a compressed local value from
+---lingering across disconnect-state UI transitions.
+---@return nil
+local function onDisconnect()
+    if not cachedBaselineMinutesPerDay then return end
+
+    local gt = getGameTime()
+    if not gt then return end
+
+    local current = tonumber(safeMethod(gt, "getMinutesPerDay"))
+    if current and math.abs(current - cachedBaselineMinutesPerDay) <= EPSILON then return end
+
+    local _, err = safeMethod(gt, "setMinutesPerDay", cachedBaselineMinutesPerDay)
+    if not err then
+        log(string.format("RESTORE | disconnect | MinutesPerDay=%.4f", cachedBaselineMinutesPerDay))
+    end
 end
 
 -- OnServerCommand is the normal Lua event for server-to-client mod commands.
@@ -155,4 +185,10 @@ if Events.OnServerCommand then
     log("Loaded v0.0.6 client MinutesPerDay synchronization experiment.")
 else
     log("ERROR | Events.OnServerCommand unavailable; client clock replication disabled")
+end
+
+-- Disconnect restoration is defensive only; absence of the event does not block
+-- the synchronization experiment itself.
+if Events.OnDisconnect then
+    Events.OnDisconnect.Add(onDisconnect)
 end
