@@ -1,15 +1,15 @@
 VERSION = 1,
 
-option EnshroudedSleepClockSpike.Enabled = {
+option EnshroudedSleep.Enabled = {
     type = boolean,
     default = true,
-    page = EnshroudedSleepClockSpike,
+    page = EnshroudedSleep,
 }
 
-option EnshroudedSleepClockSpike.PartialSleepSpeedScale = {
+option EnshroudedSleep.PartialSleepSpeedScale = {
     type = double,
     min = 0.0,
     max = 5.0,
     default = 1.0,
-    page = EnshroudedSleepClockSpike,
+    page = EnshroudedSleep,
 }
