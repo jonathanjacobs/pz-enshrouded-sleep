@@ -5,13 +5,92 @@ Human-readable history of notable Enshrouded Sleep changes. Git remains authorit
 ## [Unreleased]
 
 ### Planned
-- Run the v0.0.5 client/server clock-synchronization diagnostic with two living players and one sleeper.
-- Determine whether clients receive the dynamic `MinutesPerDay` change during partial sleep.
-- Determine whether clock snapping originates in replicated GameTime state, multiplayer clock synchronization/interpolation, or UI rendering.
-- Resolve GitHub issues #1 and #2 so both sleeping and awake clocks advance smoothly during partial-sleep compression.
-- Verify normal awake movement/combat/zombie/vehicle/animation/timed-action speed during compression.
+- Run the v0.0.6 two-player client clock-replication test and verify that both clients adopt the server's effective `MinutesPerDay` during partial sleep.
+- Confirm whether explicit client `MinutesPerDay` synchronization removes the recurring ~51-minute TimeOfDay corrections observed in v0.0.5.
+- Use the new per-player sleep telemetry to determine which time domain drives `AsleepTime`, `ForceWakeUpTime`, fatigue recovery, and automatic wake behavior.
+- Resolve GitHub issues #1 and #2 once client clock continuity is verified.
+- Resolve GitHub issue #3 once vanilla sleep-duration behavior under compressed world time is understood and corrected if necessary.
+- Verify normal awake movement/combat/zombie/vehicle/animation/timed-action speed during client clock replication.
 - Investigate world-time-driven systems such as crops, food spoilage, generators, hunger/thirst/fatigue, healing, corpse decay, composting, and weather.
 - Evaluate future per-system compensation using `1 / CalendarCompressionFactor` where real-time behavior is preferred.
+
+## [0.0.6] - 2026-08-15
+
+First targeted synchronization experiment based on the v0.0.5 client/server evidence.
+
+### Clock diagnosis established by v0.0.5
+
+The sleeping client's local console established that the server's runtime `MinutesPerDay` change is not automatically mirrored into client GameTime.
+
+During two-player / one-sleeper partial compression:
+
+```text
+SERVER
+MinutesPerDay=4.5
+world time advances smoothly at the intended compressed rate
+
+CLIENT
+MinutesPerDay=90
+local TimeOfDay advances at native day length
+periodic multiplayer correction
+approximately 51 in-game minute jump
+repeat
+```
+
+This means the visible sleeping-clock and HUD/watch snapping is not primarily a widget-rendering defect. The client's underlying GameTime advances using the wrong day length between normal server-time corrections.
+
+### Added - explicit client clock-state synchronization
+
+- Added `42/media/lua/server/EnshroudedSleep/ClockStateSync_Server.lua`.
+- Added `42/media/lua/client/EnshroudedSleep/ClockStateSync_Client.lua`.
+- The server broadcasts an `EnshroudedSleep / ClockState` command when effective clock state changes and as a two-second convergence heartbeat.
+- The packet contains the authoritative runtime `MinutesPerDay`, mode, living/sleeping counts, protocol version, build version, and server epoch.
+- The client validates the packet and mirrors only `GameTime:setMinutesPerDay()` locally.
+- The client does **not** set `TimeOfDay`, `WorldAgeHours`, or any GameTime multiplier; normal Project Zomboid multiplayer synchronization remains authoritative for world time.
+- State changes and actual client corrections are logged under:
+
+```text
+[EnshroudedSleepSync][SERVER]
+[EnshroudedSleepSync][CLIENT]
+```
+
+### Added - long-sleep diagnostics
+
+The v0.0.5 test also revealed a separate defect: one sleeping character remained asleep while more than 30 authoritative world-hours elapsed during compressed time. Sleeping pills were present, but the magnitude is large enough that the behavior is tracked independently as issue #3.
+
+v0.0.6 extends server and client diagnostics with:
+
+```text
+player / OnlineID
+isAsleep
+AsleepTime
+ForceWakeUpTime
+Fatigue
+SleepingPillsTaken
+```
+
+These values are observational only. v0.0.6 does not yet alter sleep recovery, fatigue, wake targets, or sleeping-pill behavior.
+
+### Safety / architecture
+
+- The proportional server controller remains the sole authority for deciding the target `MinutesPerDay`.
+- The new server sync module observes and republishes the controller's resulting value; it does not calculate or apply compression itself.
+- The client sync module mirrors the server's current day-length pacing value only.
+- The authoritative controller still never calls `GameTime:setMultiplier()`.
+- At all-living-players-asleep, the server restores native `MinutesPerDay` and sends that native value to clients before/while vanilla full-sleep fast-forward owns the state.
+- A two-second heartbeat allows late-loading clients to converge even if they missed the original state-transition packet.
+
+### Testing
+
+- Expanded `docs/TESTING.md` with a dedicated v0.0.6 procedure.
+- The critical success condition is that clients change from `MinutesPerDay=90` to approximately `4.5` during the one-of-two-sleeping interval and the prior ~51-minute sawtooth corrections disappear or become negligible.
+- The same test records sleep counters so issue #3 can be diagnosed without requiring a separate reproduction.
+
+### Known issues under test
+
+- #1: sleeping black-screen clock jumps during partial-sleep compression.
+- #2: awake player's HUD/watch clock snaps forward during partial-sleep compression.
+- #3: sleeping character can remain asleep for implausibly large amounts of compressed world time.
 
 ## [0.0.5] - 2026-08-14
 
@@ -21,24 +100,29 @@ Read-only clock-synchronization diagnostic build following the first successful 
 - Client-side clock diagnostic at `42/media/lua/client/EnshroudedSleep/ClockSyncDiagnostic_Client.lua`.
 - Server-side clock diagnostic at `42/media/lua/server/EnshroudedSleep/ClockSyncDiagnostic_Server.lua`.
 - One-real-second samples of `MinutesPerDay`, `TimeOfDay`, `WorldAgeHours`, `DeltaMinutesPerDay`, `Multiplier`, `TrueMultiplier`, and `ServerMultiplier`.
-- Client sampling of public GameTime fields `ServerTimeOfDay`, `ServerLastTimeOfDay`, and raw `TimeOfDay` where exposed through Kahlua.
+- Client sampling attempts for public GameTime fields `ServerTimeOfDay`, `ServerLastTimeOfDay`, and raw `TimeOfDay`; these fields were not exposed to the tested Lua environment and reported `N/A`.
 - Server samples correlated with living/sleeping population and a diagnostic baseline/partial/full-sleep state label.
 
 ### Diagnostic safety
-- The v0.0.5 instrumentation is observational only.
-- It does not call `setMinutesPerDay()`, `setTimeOfDay()`, `setMultiplier()`, `GameServer.syncClock()`, or any sleep/player-state mutation API.
-- The proportional server controller remains behaviorally unchanged from v0.0.4 while the client synchronization path is investigated.
+- The v0.0.5 instrumentation was observational only.
+- It did not call `setMinutesPerDay()`, `setTimeOfDay()`, `setMultiplier()`, `GameServer.syncClock()`, or any sleep/player-state mutation API.
+- The proportional server controller remained behaviorally unchanged from v0.0.4 while the client synchronization path was investigated.
 
-### Purpose
-The v0.0.4 multiplayer test showed correct server-side `MinutesPerDay=4.5` partial compression but visible jumps in both the sleeping black-screen clock and the awake player's HUD/watch. v0.0.5 is designed to distinguish among three possible causes:
+### Result
+The v0.0.5 multiplayer logs resolved the main clock-snap ambiguity:
 
-1. the dynamic server `MinutesPerDay` value is not replicated to clients;
-2. the underlying client world clock is synchronized in coarse corrections;
-3. client world time is correct but the clock UI itself updates/interpolates poorly at high calendar-compression factors.
+1. the server correctly applied `MinutesPerDay=4.5` during partial sleep;
+2. the client remained at `MinutesPerDay=90` for the same interval;
+3. client `TimeOfDay` advanced slowly between server corrections;
+4. recurring corrections were approximately 0.85 game-hours, or about 51 in-game minutes;
+5. therefore explicit client replication of effective `MinutesPerDay` is the next targeted experiment.
+
+The test also exposed the separate long-sleep issue now tracked as #3.
 
 ### Known issues
 - #1: sleeping black-screen clock jumps during partial-sleep compression.
 - #2: awake player's HUD/watch clock snaps forward during partial-sleep compression.
+- #3: sleeping character can remain asleep for implausibly large amounts of compressed world time.
 
 ## [0.0.4] - 2026-08-14
 
