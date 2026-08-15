@@ -9,9 +9,9 @@
 -- to clients. Clients therefore continued advancing a 90-minute day while the
 -- server was running a 4.5-minute day, then periodically snapped forward.
 --
--- This module broadcasts the authoritative server MinutesPerDay to all clients
--- whenever the effective clock state changes and as a low-frequency heartbeat.
--- It does not decide the compression policy and never changes GameTime itself;
+-- This module broadcasts the effective authoritative MinutesPerDay to clients
+-- whenever the clock state changes and as a low-frequency heartbeat. It does
+-- not decide the compression policy and never changes GameTime itself;
 -- EnshroudedSleep_Server.lua remains the sole authoritative controller.
 
 if isClient() then return end
@@ -22,6 +22,7 @@ local COMMAND = "ClockState"
 local PROTOCOL_VERSION = 1
 local HEARTBEAT_SECONDS = 2
 
+local baselineMinutesPerDay = nil
 local lastSentSignature = nil
 local lastSentAt = -1
 local lastError = nil
@@ -65,6 +66,19 @@ end
 ---@return nil
 local function clearError()
     lastError = nil
+end
+
+---Capture the native runtime MinutesPerDay before any partial-sleep value is
+---needed. On a dedicated server this module begins running with no living
+---players, so the first valid GameTime value is the native baseline.
+---@param current number Current server MinutesPerDay.
+---@return nil
+local function ensureBaseline(current)
+    if baselineMinutesPerDay ~= nil then return end
+    if type(current) == "number" and current > 0 then
+        baselineMinutesPerDay = current
+        log(string.format("CONFIG | captured baselineMinutesPerDay=%.4f", current))
+    end
 end
 
 ---Count currently instantiated living and sleeping players for state labeling.
@@ -115,7 +129,7 @@ local function deriveMode(living, sleeping)
     return "partial"
 end
 
----Broadcast current authoritative MinutesPerDay when state changes or the
+---Broadcast effective authoritative MinutesPerDay when state changes or the
 ---heartbeat expires. The heartbeat ensures a client that finishes loading after
 ---an earlier state-change packet still converges to the current server value.
 ---@return nil
@@ -123,17 +137,18 @@ local function synchronizeClients()
     local now = os.time()
     local gt = getGameTime()
 
-    -- A valid GameTime object and positive MinutesPerDay are required for a safe packet.
     if not gt then
         logErrorOnce("getGameTime() unavailable")
         return
     end
 
-    local minutesPerDay = tonumber(safeMethod(gt, "getMinutesPerDay"))
-    if minutesPerDay == nil or minutesPerDay <= 0 then
-        logErrorOnce("invalid authoritative MinutesPerDay: " .. tostring(minutesPerDay))
+    local currentMinutesPerDay = tonumber(safeMethod(gt, "getMinutesPerDay"))
+    if currentMinutesPerDay == nil or currentMinutesPerDay <= 0 then
+        logErrorOnce("invalid authoritative MinutesPerDay: " .. tostring(currentMinutesPerDay))
         return
     end
+
+    ensureBaseline(currentMinutesPerDay)
 
     local living, sleeping = countPlayers()
 
@@ -145,11 +160,22 @@ local function synchronizeClients()
     end
 
     local mode = deriveMode(living, sleeping)
+
+    -- Baseline and full-sleep states must always tell clients to use the native
+    -- baseline, even if this observer runs a fraction of a tick before the main
+    -- controller has restored the server value. Partial mode mirrors the current
+    -- controller output and will converge on the following tick if observed just
+    -- before a new compressed value is applied.
+    local targetMinutesPerDay = currentMinutesPerDay
+    if mode ~= "partial" and baselineMinutesPerDay ~= nil then
+        targetMinutesPerDay = baselineMinutesPerDay
+    end
+
     local signature = table.concat({
         mode,
         tostring(living),
         tostring(sleeping),
-        string.format("%.6f", minutesPerDay),
+        string.format("%.6f", targetMinutesPerDay),
     }, "|")
 
     local stateChanged = signature ~= lastSentSignature
@@ -168,7 +194,8 @@ local function synchronizeClients()
         protocolVersion = PROTOCOL_VERSION,
         buildVersion = "0.0.6",
         mode = mode,
-        minutesPerDay = minutesPerDay,
+        minutesPerDay = targetMinutesPerDay,
+        baselineMinutesPerDay = baselineMinutesPerDay or targetMinutesPerDay,
         living = living or -1,
         sleeping = sleeping or -1,
         serverEpoch = now,
@@ -187,11 +214,12 @@ local function synchronizeClients()
     -- State-change packets are logged; routine heartbeat packets stay quiet.
     if stateChanged then
         log(string.format(
-            "STATE | mode=%s | living=%s | sleeping=%s | authoritativeMinutesPerDay=%.4f | broadcast ClockState",
+            "STATE | mode=%s | living=%s | sleeping=%s | currentServerMinutesPerDay=%.4f | broadcastMinutesPerDay=%.4f | broadcast ClockState",
             mode,
             tostring(living or "N/A"),
             tostring(sleeping or "N/A"),
-            minutesPerDay
+            currentMinutesPerDay,
+            targetMinutesPerDay
         ))
     end
 end
