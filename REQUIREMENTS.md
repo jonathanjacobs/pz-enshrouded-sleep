@@ -2,9 +2,9 @@
 
 Status: design specification and implementation target for the first functional multiplayer release (`v0.1.0`).
 
-Last updated: 2026-08-13.
+Last updated: 2026-08-14.
 
-The repository now contains the first functional proportional-sleep prototype (`v0.0.3`). These requirements define the intended behavior based on dedicated-server testing on Project Zomboid Build 42.20.2 and review of the B42 TrueSleep and Sleep With Friends mod implementations.
+The repository now contains development version `v0.0.4`. The proportional calendar-compression algorithm was introduced in `v0.0.3`; `v0.0.4` standardizes deployment identity and naming without intentionally changing that algorithm. These requirements define the intended behavior based on dedicated-server testing on Project Zomboid Build 42.20.2 and review of the B42 TrueSleep and Sleep With Friends mod implementations.
 
 ## 1. Goal
 
@@ -40,6 +40,8 @@ This is consistent with the B42 TrueSleep implementation, which also builds its 
 
 ## 3. Definitions
 
+- **ModID** - stable Project Zomboid identifier `pz-enshrouded-sleep`, used by `mod.info` and the server `Mods=` configuration.
+- **Sandbox namespace** - `EnshroudedSleep`, used for the mod's sandbox-variable block.
 - **BaselineMinutesPerDay** - the actual live value returned by `getGameTime():getMinutesPerDay()` while the mod is not applying partial-sleep compression.
 - **NativeFastForward** - the server's configured `FastForwardMultiplier`.
 - **PartialSleepSpeedScale** - the mod-specific administrator tuning factor. Neutral/default value: `1.0`.
@@ -265,9 +267,11 @@ If vanilla allows a character to sleep and that character is actually asleep, th
 
 The functional MVP intentionally keeps its configuration small:
 
-```text
-Enabled = true
-PartialSleepSpeedScale = 1.0
+```lua
+EnshroudedSleep = {
+    Enabled = true,
+    PartialSleepSpeedScale = 1.0,
+},
 ```
 
 The following values are inherited from Project Zomboid and must not be duplicated as mod defaults:
