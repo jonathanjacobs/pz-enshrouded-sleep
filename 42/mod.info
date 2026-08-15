@@ -1,7 +1,7 @@
-id=EnshroudedSleepClockSpike
+id=pz-enshrouded-sleep
 name=Enshrouded Sleep
 description=Functional proportional partial-sleep calendar compression for Build 42 multiplayer.
 author=Jonathan Jacobs
 category=features
-modversion=0.0.3
+modversion=0.0.4
 versionMin=42.20.0
