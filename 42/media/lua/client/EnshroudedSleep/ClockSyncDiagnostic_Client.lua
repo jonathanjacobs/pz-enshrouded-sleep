@@ -1,16 +1,17 @@
--- Enshrouded Sleep - client clock synchronization diagnostic
--- v0.0.5 diagnostic instrumentation for Project Zomboid Build 42.20+
+-- Enshrouded Sleep - client clock and sleep synchronization diagnostic
+-- v0.0.6 diagnostic instrumentation for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
--- This file records the multiplayer client's view of GameTime once per real
--- second. It exists to diagnose the clock-display snapping observed during the
--- first successful two-player v0.0.4 partial-sleep test.
+-- Record the multiplayer client's view of GameTime and local sleep state once
+-- per real second. v0.0.5 established that runtime server MinutesPerDay changes
+-- were not automatically replicated to clients. v0.0.6 keeps this diagnostic
+-- active while the ClockState synchronization experiment is tested and adds
+-- sleep-duration telemetry for the long-sleep investigation.
 --
--- IMPORTANT: this diagnostic is observational only. It never changes
--- MinutesPerDay, TimeOfDay, the GameTime multiplier, sleep state, or clock sync.
+-- This file is observational only. The separate ClockStateSync_Client.lua file
+-- is the only v0.0.6 client component that mutates local MinutesPerDay.
 
--- This file is intended for multiplayer clients only.
 if not isClient() then return end
 
 local PREFIX = "[EnshroudedSleepDiag][CLIENT]"
@@ -52,49 +53,53 @@ local function safeMethod(obj, methodName, ...)
     return value
 end
 
----Safely read a public Java field exposed through Kahlua.
----@param obj any Java/Lua object.
----@param fieldName string Public field name.
----@return any|nil value
-local function safeField(obj, fieldName)
-    if not obj then return nil end
-
-    local ok, value = pcall(function() return obj[fieldName] end)
-    if not ok then return nil end
-
-    return value
-end
-
----Read the local player's current sleep/death state for correlation with the
----clock sample. Failure to resolve a player is valid during loading.
----@return string playerName
----@return any asleep
----@return any dead
+---Resolve the local player and read sleep/recovery values relevant to issue #3.
+---@return table state
 local function readPlayerState()
-    if type(getPlayer) ~= "function" then return "N/A", nil, nil end
+    local state = {
+        playerName = "N/A",
+        onlineID = nil,
+        asleep = nil,
+        dead = nil,
+        asleepTime = nil,
+        forceWakeUpTime = nil,
+        fatigue = nil,
+        sleepingPillsTaken = nil,
+    }
+
+    if type(getPlayer) ~= "function" then return state end
 
     local ok, player = pcall(getPlayer)
-    if not ok or not player then return "N/A", nil, nil end
+    if not ok or not player then return state end
 
-    local username = safeMethod(player, "getUsername")
+    state.playerName = tostring(
+        safeMethod(player, "getUsername")
         or safeMethod(player, "getDisplayName")
         or "N/A"
+    )
+    state.onlineID = tonumber(safeMethod(player, "getOnlineID"))
+    state.asleep = safeMethod(player, "isAsleep")
+    state.dead = safeMethod(player, "isDead")
+    state.asleepTime = tonumber(safeMethod(player, "getAsleepTime"))
+    state.forceWakeUpTime = tonumber(safeMethod(player, "getForceWakeUpTime"))
+    state.sleepingPillsTaken = tonumber(safeMethod(player, "getSleepingPillsTaken"))
 
-    return tostring(username), safeMethod(player, "isAsleep"), safeMethod(player, "isDead")
+    local stats = safeMethod(player, "getStats")
+    state.fatigue = tonumber(safeMethod(stats, "getFatigue"))
+
+    return state
 end
 
----Capture one real-time client clock sample.
----
----The most important comparison is whether client MinutesPerDay follows the
----server's 90 -> 4.5 transition during two-player partial sleep. We also record
----local TimeOfDay plus GameTime's public ServerTimeOfDay/ServerLastTimeOfDay
----fields to distinguish a replicated-day-length problem from coarse time sync
----or UI-only interpolation behavior.
+---Capture one real-time client clock/sleep sample.
+---The key v0.0.6 clock test is whether local MinutesPerDay now follows the
+---server's 90 -> 4.5 -> 90 state transitions and eliminates large TimeOfDay
+---corrections. Sleep fields diagnose whether vanilla wake/recovery counters use
+---a different time domain than compressed world/calendar time.
 ---@return nil
 local function sampleClock()
     local now = os.time()
 
-    -- OnTickEvenPaused executes many times per second; sample only once per wall second.
+    -- OnTickEvenPaused executes many times per second; sample once per wall second.
     if now == lastSampleAt or (lastSampleAt >= 0 and now - lastSampleAt < SAMPLE_INTERVAL_SECONDS) then
         return
     end
@@ -102,7 +107,6 @@ local function sampleClock()
 
     local gt = getGameTime()
 
-    -- A missing GameTime object is unusual but should never destabilize the client.
     if not gt then
         if lastError ~= "getGameTime() unavailable" then
             lastError = "getGameTime() unavailable"
@@ -113,8 +117,7 @@ local function sampleClock()
 
     lastError = nil
 
-    local playerName, asleep, dead = readPlayerState()
-
+    local playerState = readPlayerState()
     local minutesPerDay = tonumber(safeMethod(gt, "getMinutesPerDay"))
     local timeOfDay = tonumber(safeMethod(gt, "getTimeOfDay"))
     local worldAgeHours = tonumber(safeMethod(gt, "getWorldAgeHours"))
@@ -123,23 +126,19 @@ local function sampleClock()
     local serverMultiplier = tonumber(safeMethod(gt, "getServerMultiplier"))
     local deltaMinutesPerDay = tonumber(safeMethod(gt, "getDeltaMinutesPerDay"))
 
-    -- These are public GameTime fields in the B42 Java API. They are diagnostic
-    -- only because Kahlua field exposure can vary; unavailable fields print N/A.
-    local serverTimeOfDay = tonumber(safeField(gt, "ServerTimeOfDay"))
-    local serverLastTimeOfDay = tonumber(safeField(gt, "ServerLastTimeOfDay"))
-    local rawTimeOfDay = tonumber(safeField(gt, "TimeOfDay"))
-
     log(string.format(
-        "SAMPLE | epoch=%d | player=%s | asleep=%s | dead=%s | MinutesPerDay=%s | TimeOfDay=%s | RawTimeOfDay=%s | ServerTimeOfDay=%s | ServerLastTimeOfDay=%s | WorldAgeHours=%s | DeltaMinutesPerDay=%s | Multiplier=%s | TrueMultiplier=%s | ServerMultiplier=%s",
+        "SAMPLE | epoch=%d | player=%s | onlineID=%s | asleep=%s | dead=%s | AsleepTime=%s | ForceWakeUpTime=%s | Fatigue=%s | SleepingPillsTaken=%s | MinutesPerDay=%s | TimeOfDay=%s | WorldAgeHours=%s | DeltaMinutesPerDay=%s | Multiplier=%s | TrueMultiplier=%s | ServerMultiplier=%s",
         now,
-        playerName,
-        tostring(asleep),
-        tostring(dead),
+        playerState.playerName,
+        tostring(playerState.onlineID or "N/A"),
+        tostring(playerState.asleep),
+        tostring(playerState.dead),
+        formatNumber(playerState.asleepTime, 6),
+        formatNumber(playerState.forceWakeUpTime, 6),
+        formatNumber(playerState.fatigue, 6),
+        tostring(playerState.sleepingPillsTaken or "N/A"),
         formatNumber(minutesPerDay, 4),
         formatNumber(timeOfDay, 6),
-        formatNumber(rawTimeOfDay, 6),
-        formatNumber(serverTimeOfDay, 6),
-        formatNumber(serverLastTimeOfDay, 6),
         formatNumber(worldAgeHours, 6),
         formatNumber(deltaMinutesPerDay, 6),
         formatNumber(multiplier, 4),
@@ -148,12 +147,12 @@ local function sampleClock()
     ))
 end
 
--- Prefer the same event used by the authoritative controller so samples continue
--- through local paused/sleep-screen states. Fall back to OnTick if unavailable.
+-- Use the same event family as the authoritative controller so diagnostics
+-- continue through the sleeping black-screen state.
 if Events.OnTickEvenPaused then
     Events.OnTickEvenPaused.Add(sampleClock)
 else
     Events.OnTick.Add(sampleClock)
 end
 
-log("Loaded v0.0.5 read-only client clock synchronization diagnostic.")
+log("Loaded v0.0.6 client clock/sleep diagnostic.")
