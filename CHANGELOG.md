@@ -4,8 +4,25 @@ Human-readable history of notable Enshrouded Sleep changes. Git remains authorit
 
 ## [Unreleased]
 
+### Platform compatibility review - Project Zomboid 42.20.3 Stable (2026-08-17)
+
+The Project Zomboid 42.20.3 Stable hotfix release notes were reviewed before the next v0.0.6 multiplayer test.
+
+The announced 42.20.3 changes are limited to multiplayer server player-limit/connection handling, a fix for clients hanging on `Loading Map`, memory-leak and memory-usage fixes, chunk-rendering fixes, and lighting-update fixes. No announced change directly targets the Enshrouded Sleep dependencies used by the current implementation: `GameTime:MinutesPerDay`, `getOnlinePlayers()`, `IsoPlayer:isAsleep()`, sleep/fatigue behavior, Lua events, `sendServerCommand`, or `Events.OnServerCommand`.
+
+Repository impact:
+
+- No Lua/source change is required solely for 42.20.3.
+- No mod-version bump is required; the current development build remains `v0.0.6`.
+- `versionMin=42.20.0` remains appropriate and is unchanged.
+- The existing Build 42 `42/` + `common/` layout remains unchanged.
+- Prior 42.20.2 test results remain useful historical evidence and are not being discarded or repeated wholesale.
+- The next v0.0.6 two-player test will run on 42.20.3 and include a compact regression smoke check covering load, player population, baseline, partial compression, full-sleep handoff, client clock-state replication, and wake restoration.
+- Until that test passes, documentation should distinguish **validated on 42.20.2** from **42.20.3 compatibility reviewed / regression pending**.
+
 ### Planned
-- Run the v0.0.6 two-player client clock-replication test and verify that both clients adopt the server's effective `MinutesPerDay` during partial sleep.
+- Run the v0.0.6 two-player client clock-replication test on Project Zomboid 42.20.3 and verify that both clients adopt the server's effective `MinutesPerDay` during partial sleep.
+- Confirm the 42.20.3 regression smoke path: mod load, two-player population, baseline `MinutesPerDay`, one-of-two partial compression, all-asleep vanilla handoff, wake restoration, and disconnect/population handling as practical.
 - Confirm whether explicit client `MinutesPerDay` synchronization removes the recurring ~51-minute TimeOfDay corrections observed in v0.0.5.
 - Use the new per-player sleep telemetry to determine which time domain drives `AsleepTime`, `ForceWakeUpTime`, fatigue recovery, and automatic wake behavior.
 - Resolve GitHub issues #1 and #2 once client clock continuity is verified.
