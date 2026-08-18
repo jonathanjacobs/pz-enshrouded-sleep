@@ -1,39 +1,41 @@
 # Architecture
 
-This document describes the current Enshrouded Sleep architecture without the historical test-by-test detail. For empirical development history, see [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md). For normative behavior, see [`REQUIREMENTS.md`](REQUIREMENTS.md).
+This document describes the current Enshrouded Sleep architecture without test-by-test history. For empirical evidence, see [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md). For normative behavior, see [`REQUIREMENTS.md`](REQUIREMENTS.md). Durable decisions are recorded under [`adr/`](adr/).
+
+Current development version: `v0.0.8`
 
 ## Design goal
 
 Enshrouded Sleep adds proportional multiplayer sleep to Project Zomboid Build 42 while preserving vanilla sleep rules.
 
-The mod does **not** globally fast-forward the active simulation. Instead, when some but not all living players are asleep, it shortens the real-world duration of the Project Zomboid day by changing `GameTime:MinutesPerDay`.
-
-This distinction is central:
+The mod does **not** globally fast-forward active simulation. When some but not all living players are asleep, it shortens the real-world duration of the PZ day by changing `GameTime:MinutesPerDay`.
 
 ```text
 ACTIVE SIMULATION
 movement, combat, zombies, vehicles, animations, physics, timed actions
--> remains at normal speed
+-> intended to remain normal-speed
 
 WORLD / CALENDAR TIME
-time of day, date, WorldAgeHours, game-minute-driven systems
+time of day, date, WorldAgeHours, game-minute/world-time-driven systems
 -> advances faster during partial sleep
 ```
 
+ADR-001 records the decision to use `MinutesPerDay` rather than a global simulation multiplier.
+
 ## Population model
 
-The authoritative server uses the currently instantiated living player population:
+The authoritative server uses:
 
 ```text
 LivingPlayers = getOnlinePlayers() where isDead() == false
 SleepingPlayers = LivingPlayers where isAsleep() == true
 ```
 
-This deliberately follows vanilla-visible player lifecycle semantics. A client that has authenticated but does not yet have an instantiated `IsoPlayer` does not count. Dead characters do not count. Respawns, joins, and disconnects affect the denominator when vanilla changes the instantiated population.
+A client that has authenticated but does not yet have an instantiated `IsoPlayer` does not count. Dead characters do not count. Respawns, joins, and disconnects affect the denominator when vanilla changes instantiated player state.
+
+ADR-002 records the decision to extend vanilla lifecycle semantics instead of maintaining a second custom readiness registry.
 
 ## State machine
-
-The controller has three normal states.
 
 ```text
 SleepingPlayers == 0
@@ -45,11 +47,11 @@ SleepingPlayers == 0
 
 SleepingPlayers == LivingPlayers
     -> restore native baseline MinutesPerDay
-    -> stop applying partial compression
+    -> stop partial compression
     -> vanilla full-sleep fast-forward owns the state
 ```
 
-The mod never intentionally stacks its `MinutesPerDay` compression with vanilla all-players-asleep fast-forward.
+The mod never intentionally stacks partial `MinutesPerDay` compression with vanilla all-asleep fast-forward.
 
 ## Compression formula
 
@@ -61,7 +63,7 @@ CalendarCompressionFactor = max(1.0,
 EffectiveMinutesPerDay = BaselineMinutesPerDay / CalendarCompressionFactor
 ```
 
-Example using the validated WHG test configuration:
+Validated two-player example:
 
 ```text
 BaselineMinutesPerDay = 90
@@ -79,16 +81,14 @@ At `MinutesPerDay=4.5`, world time advances roughly 5.33 in-game minutes per rea
 
 ## Native settings remain authoritative
 
-The controller derives its policy from Project Zomboid rather than duplicating native settings.
+The controller reads:
 
-It reads:
-
-- live `GameTime:getMinutesPerDay()` as the baseline;
+- live `GameTime:getMinutesPerDay()` baseline;
 - `SleepAllowed`;
 - `SleepNeeded`;
 - `FastForwardMultiplier`.
 
-The mod-specific gameplay settings are intentionally small:
+Mod-specific configuration:
 
 ```text
 Enabled = true
@@ -96,28 +96,26 @@ PartialSleepSpeedScale = 1.0
 DiagnosticsEnabled = false
 ```
 
-`DiagnosticsEnabled` is support instrumentation only and does not change gameplay behavior.
+`DiagnosticsEnabled` changes observability only; it must not affect gameplay policy.
 
 ## Server authority and client pacing
 
-Project Zomboid's normal multiplayer synchronization keeps clients close to the authoritative server time, but development testing showed that a runtime server `MinutesPerDay` change is not automatically mirrored to clients.
+Testing established that changing server `MinutesPerDay` does not automatically make tested clients use the same day-length pacing value. Without explicit synchronization, clients drift between native multiplayer corrections and visible clocks jump.
 
-Enshrouded Sleep therefore has a narrow server-to-client clock-state replication layer:
+The architecture therefore uses:
 
 ```text
 server controller
-    -> calculates and applies authoritative MinutesPerDay
+    -> calculates/applies authoritative MinutesPerDay
 
 server sync observer
-    -> broadcasts the resulting MinutesPerDay
+    -> publishes resulting MinutesPerDay
 
 client sync handler
     -> mirrors that MinutesPerDay locally
 ```
 
-The client does **not** independently calculate proportional compression.
-
-The client sync path intentionally does not call:
+The client does not independently calculate proportional compression and intentionally does not call:
 
 ```text
 setTimeOfDay()
@@ -125,21 +123,17 @@ setMultiplier()
 GameServer.syncClock()
 ```
 
-The server remains authoritative for world time and sleep state. The client receives only the day-length pacing value needed to advance smoothly between normal multiplayer time corrections.
+A two-second heartbeat allows late-loading clients to converge. A one-observer-pass settling guard lets the controller apply the new day length before the synchronization observer publishes a newly observed population/sleep state.
 
-A two-second heartbeat allows late-loading clients to converge even if they miss a transition packet. State changes are sent promptly. The server sync observer waits one observer pass after a visible population/sleep-state transition so the authoritative controller can settle `MinutesPerDay` before the new state is published.
+ADR-003 records this client-pacing decision.
 
 ## Full-sleep handoff
 
-When all instantiated living players are asleep, Enshrouded Sleep restores the exact baseline `MinutesPerDay` and steps aside.
-
-Vanilla Project Zomboid then performs its own full-sleep acceleration. Testing has shown that vanilla full sleep uses a mechanism distinct from changing `MinutesPerDay`, so the mod does not attempt to reproduce or numerically infer vanilla's full-sleep multiplier.
+When all instantiated living players are asleep, Enshrouded Sleep restores the exact baseline `MinutesPerDay` and steps aside. Vanilla then performs its own full-sleep acceleration using a mechanism distinct from `MinutesPerDay`.
 
 ## Fail-safe behavior
 
-The server captures the native baseline once and fails toward that value.
-
-Recoverable failures should never intentionally leave the server in a compressed day-length state. Baseline restoration is attempted when:
+The server captures the native baseline and fails toward it. Restoration is attempted when:
 
 - partial sleep ends;
 - all living players become asleep;
@@ -147,11 +141,13 @@ Recoverable failures should never intentionally leave the server in a compressed
 - the mod is disabled;
 - a recoverable controller error occurs.
 
-The client also restores the last server-advertised baseline on disconnect when practical.
+The client restores the last server-advertised baseline on disconnect when practical.
 
-## Logging and diagnostics
+## Logging / observability architecture
 
-Normal public-alpha operation retains low-volume transition logging:
+### Low-volume operational logging
+
+Normal operation retains transition/startup logging:
 
 ```text
 [EnshroudedSleep]
@@ -159,35 +155,85 @@ Normal public-alpha operation retains low-volume transition logging:
 [EnshroudedSleepSync][CLIENT]
 ```
 
-Verbose one-second telemetry is available under:
+### Verbose clock/sleep diagnostics
 
 ```text
 [EnshroudedSleepDiag][SERVER]
 [EnshroudedSleepDiag][CLIENT]
 ```
 
-but is disabled by default through:
+### v0.0.8 health/time-domain diagnostics
+
+```text
+[EnshroudedSleepHealthDiag][SERVER]
+[EnshroudedSleepHealthDiag][CLIENT]
+```
+
+All verbose samplers are gated by:
 
 ```text
 DiagnosticsEnabled = false
 ```
 
-It should only be enabled temporarily for focused reproduction because it can generate large logs on an active multiplayer server.
+by default.
 
-## Known architectural boundary: world-time-driven systems
+When enabled, sampling occurs once per real second rather than every simulation tick.
 
-The clock architecture is now behaviorally validated, but changing `MinutesPerDay` intentionally means that world-time-driven systems may progress faster in real time while partial sleep is active.
+The new server health diagnostic records every instantiated living player. The client health diagnostic records the owning local player. This dual-sided design is intentional: previous sleep telemetry showed that some useful player timing/state values are exposed differently on server and client.
 
-Systems requiring characterization during public alpha include:
+The health diagnostics are strictly observational and use guarded method calls. Missing Lua-exposed getters become `N/A` rather than failing the gameplay session.
+
+## Architectural boundary — multiple PZ time domains
+
+The validated clock architecture establishes that world/calendar time can be compressed without globally accelerating active movement/combat simulation. It does **not** prove that every health, survival, healing, environmental, or mod subsystem remains tied to real/simulation time.
+
+A subsystem may be:
+
+- simulation/real-time bound;
+- world/calendar-time bound;
+- mixed/nonlinear;
+- event-driven;
+- differently exposed on client/server.
+
+This is now a first-class architecture concern rather than a documentation footnote.
+
+### Current blocking investigation
+
+[`SPIKE-004`](spikes/SPIKE-004-health-time-domains.md) maps player health/survival variables under baseline and partial compression before Public Alpha deployment.
+
+High-priority variables include:
+
+- bleeding and actual health loss;
+- hunger/thirst;
+- fatigue/endurance;
+- wound/injury healing timers;
+- sickness/poison/infection;
+- body temperature/cold progression.
+
+If a system is world-time bound, its real-time rate during compression factor `A` may approach `A` times baseline. That behavior is not automatically a defect; the product decision depends on severity and gameplay consequences. High-severity awake-player harm is a deployment blocker.
+
+## Future compensation policy
+
+The architecture deliberately does **not** assume that every world-time-driven system should be compensated.
+
+If SPIKE-004 or later field testing identifies a system that should remain tied to real/simulation time, the natural conceptual compensation factor is:
+
+```text
+RealTimeCompensationFactor = 1 / CalendarCompressionFactor
+```
+
+Any actual compensation must be system-specific, measured, and validated. Broad global compensation would risk undoing intended world-time progression or fighting vanilla internals.
+
+## Non-health world-time systems
+
+After the player-health safety gate, Public Alpha will characterize:
 
 - food aging/spoilage;
 - farming/crops;
 - generator fuel usage;
-- hunger/thirst/fatigue;
-- healing;
 - corpse decay;
 - composting;
 - weather;
-- other mods driven by game minutes or `WorldAgeHours`.
+- mods driven by game minutes or `WorldAgeHours`.
 
-This is not the same as global simulation acceleration. Whether any of these systems should later be compensated is a product/design decision and is intentionally deferred until field evidence exists.
+Whether these should follow compressed world time, be documented as expected, or receive optional compensation remains an evidence-driven product decision.
