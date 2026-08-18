@@ -1,15 +1,15 @@
 -- Enshrouded Sleep - server clock and sleep synchronization diagnostic
--- v0.0.7 public-alpha support instrumentation for Project Zomboid Build 42.20+
+-- v0.0.8 pre-Public-Alpha support instrumentation for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
--- Record the authoritative server GameTime state once per real second and, when
--- at least one player is asleep, record each living player's vanilla sleep
--- counters. v0.0.6 established that explicit client MinutesPerDay replication
--- fixes the visible clock drift and that client-side sleep counters track
--- compressed world time sensibly. v0.0.7 then passed a clean regression.
+-- Record authoritative server GameTime state once per real second and, when at
+-- least one player is asleep, record each living player's vanilla sleep counters.
+-- v0.0.6 established that explicit client MinutesPerDay replication fixes the
+-- visible clock drift; v0.0.7 then passed a clean regression. v0.0.8 retains
+-- this proven clock/sleep sampler alongside the new health/time-domain diagnostic.
 --
--- Public-alpha note: verbose diagnostics are now opt-in through
+-- Verbose diagnostics are opt-in through
 -- SandboxVars.EnshroudedSleep.DiagnosticsEnabled. They are disabled by default
 -- because a busy multiplayer server can otherwise produce very large logs.
 -- Low-volume controller/synchronization state-transition logging remains active
@@ -83,7 +83,6 @@ local function collectPlayers()
     local living = 0
     local sleeping = 0
 
-    -- Inspect each currently instantiated IsoPlayer without changing it.
     for i = 0, size - 1 do
         local player = safeMethod(players, "get", i)
         if not player then return nil, nil, {} end
@@ -120,11 +119,6 @@ local function collectPlayers()
     return living, sleeping, playerStates
 end
 
----Derive a descriptive state from the observed population only.
----This is diagnostic labeling, not a second source of authoritative behavior.
----@param living integer|nil
----@param sleeping integer|nil
----@return string mode
 local function deriveMode(living, sleeping)
     if living == nil or sleeping == nil then return "unknown" end
     if living <= 0 or sleeping <= 0 then return "baseline" end
@@ -132,17 +126,10 @@ local function deriveMode(living, sleeping)
     return "partial"
 end
 
----Capture one authoritative server clock/sleep sample per real second when
----verbose diagnostics are explicitly enabled.
----@return nil
 local function sampleClock()
-    -- Public-alpha default is OFF. This early return keeps the development
-    -- sampler effectively dormant while preserving it for support sessions.
     if not diagnosticsEnabled() then return end
 
     local now = os.time()
-
-    -- The event fires many times per second; wall-clock gating keeps logs readable.
     if now == lastSampleAt or (lastSampleAt >= 0 and now - lastSampleAt < SAMPLE_INTERVAL_SECONDS) then
         return
     end
@@ -159,8 +146,6 @@ local function sampleClock()
     end
 
     local living, sleeping, playerStates = collectPlayers()
-
-    -- Suppress idle-server samples; startup still emits the loaded message below.
     if living == 0 then
         lastError = nil
         return
@@ -191,8 +176,6 @@ local function sampleClock()
         formatNumber(serverMultiplier, 4)
     ))
 
-    -- Keep server-side sleep values for correlation even though local client
-    -- sleep counters provide the more useful wake-time evidence.
     if sleeping and sleeping > 0 then
         for _, state in ipairs(playerStates) do
             log(string.format(
@@ -216,4 +199,4 @@ else
     Events.OnTick.Add(sampleClock)
 end
 
-log("Loaded v0.0.7 server diagnostic module; verbose telemetry is disabled unless DiagnosticsEnabled=true.")
+log("Loaded v0.0.8 server clock/sleep diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")
