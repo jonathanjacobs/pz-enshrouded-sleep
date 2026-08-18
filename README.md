@@ -2,24 +2,17 @@
 
 **Proportional multiplayer sleeping for Project Zomboid Build 42.**
 
-Status: **Public Alpha**  
-Current version: **v0.0.7**  
+Status: **Public Alpha candidate — pre-deployment health/time-domain validation in progress**  
+Current development version: **v0.0.8**  
 Current behaviorally validated PZ baseline: **42.20.3**
 
-Enshrouded Sleep lets some players sleep without requiring every connected survivor to go to bed at the same time.
+Enshrouded Sleep lets some players sleep without requiring every survivor on a multiplayer server to go to bed at the same time.
 
-When part of the living player population is asleep, the mod proportionally accelerates **world/calendar time**. Awake players continue playing at normal movement, combat, animation, vehicle, zombie, and timed-action speed. When every living player is asleep, the mod steps aside and lets vanilla Project Zomboid full-sleep fast-forward take over.
+When part of the living player population is asleep, the mod proportionally compresses **world/calendar time**. Awake players continue moving, fighting, driving, crafting, and interacting at normal active-game speed. When every living player is asleep, Enshrouded Sleep restores the native day length and lets vanilla Project Zomboid full-sleep fast-forward take over.
 
 ## What it does
 
-Vanilla Project Zomboid already knows:
-
-- whether a character is allowed/tired enough to sleep;
-- when a character actually enters or leaves sleep;
-- how fatigue, sleeping pills, traits, death, respawn, and other native systems behave;
-- how to fast-forward when all living players are asleep.
-
-Enshrouded Sleep does not replace those systems. It adds the missing multiplayer case:
+Vanilla Project Zomboid already owns sleep eligibility, fatigue, sleeping pills, traits, waking, death/respawn, and full-sleep fast-forward. Enshrouded Sleep adds the missing multiplayer case:
 
 ```text
 no one asleep
@@ -27,63 +20,82 @@ no one asleep
 
 some, but not all, living players asleep
 -> proportionally compress world/calendar time
--> awake gameplay remains normal-speed
+-> awake active gameplay remains normal-speed
 
 all living players asleep
 -> restore normal day length
 -> vanilla full-sleep fast-forward takes over
 ```
 
-For example, on a server using a 90-real-minute day and native fast-forward setting of 40:
+For example, on the validated test configuration using a 90-real-minute day and native fast-forward setting of 40:
 
 ```text
 2 living / 0 sleeping -> 90 min/day
 2 living / 1 sleeping -> 4.5 min/day
-2 living / 2 sleeping -> restore 90; vanilla full-sleep behavior owns the state
+2 living / 2 sleeping -> restore 90; vanilla owns full sleep
 ```
 
-The same calculation scales continuously with larger player populations.
+The same formula scales continuously with larger player populations.
 
-## Current status — Public Alpha
+## Current status
 
-The core server/client architecture has passed controlled two-player multiplayer testing on Project Zomboid 42.20.3.
+The core server/client sleep and clock architecture has passed controlled two-player multiplayer testing on Project Zomboid 42.20.3.
 
 Validated behavior includes:
 
-- proportional partial-sleep compression;
+- proportional partial-sleep calendar compression;
 - synchronized server/client day-length pacing;
 - smooth sleeping black-screen clock;
 - smooth awake HUD/watch clock;
 - normal-speed awake movement/actions while calendar time is compressed;
-- correct return to native day length when sleepers wake;
+- exact return to native day length when sleepers wake;
 - correct handoff to vanilla when all living players sleep;
-- correct recalculation after player disconnects;
+- correct recalculation after disconnects;
 - normal vanilla wake timing once client/server clock pacing is synchronized;
 - clean regression without the earlier client error flood.
 
 The original clock-jump and pathological-long-sleep bugs are closed.
 
-Public Alpha now moves testing onto real multiplayer servers with larger populations and normal mod stacks. The main unknown is no longer the basic clock architecture; it is how the mechanic behaves at scale and how other **world-time-driven systems** interact with compressed calendar time.
+### Why Public Alpha deployment is temporarily paused
 
-See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) before deploying to a live server.
+Pre-deployment review identified a separate safety question: **world/calendar time really is passing faster**, so player health and survival systems may not all progress on the same time domain.
 
-## Important alpha caveat: world time really is passing faster
+For example, if one awake player is bleeding while another player sleeps, we need to know whether blood loss remains tied to normal active-simulation time or accelerates with compressed world time. The same question applies to hunger, thirst, fatigue, healing, sickness, infection, temperature, and related systems.
+
+v0.0.8 therefore adds a broad, read-only health/time-domain diagnostic and formalizes [`SPIKE-004`](docs/spikes/SPIKE-004-health-time-domains.md). Public Alpha deployment is a **GO candidate**, but remains blocked until that controlled test establishes that partial sleep does not create an unacceptable awake-player health hazard.
+
+## v0.0.8 health/time-domain diagnostics
+
+When verbose diagnostics are explicitly enabled, v0.0.8 samples all instantiated living players on the server once per real second and records a broad set of metrics including:
+
+- health and overall body health;
+- hunger, thirst, fatigue, endurance;
+- stress, panic, pain, boredom, unhappiness;
+- sickness, poison, food sickness and infection state;
+- temperature, wetness and cold progression;
+- nutrition/weight metrics;
+- vanilla sleep counters;
+- detailed timers and state for injured body parts, including bleeding, cuts, scratches, bites, deep wounds, fractures, burns, bandages and wound infection.
+
+The owning client records the corresponding local state because previous sleep diagnostics showed that some useful player timing values can be exposed differently on client and server.
+
+This instrumentation is observational only. It does not alter health, injuries, sleep, fatigue, or time behavior.
+
+## Important design caveat: world time really is passing faster
 
 Enshrouded Sleep does not merely animate the clock faster. During partial sleep, Project Zomboid world/calendar minutes genuinely elapse faster in real time.
 
-That means systems tied to game minutes or `WorldAgeHours` may also progress faster while someone sleeps. Public Alpha is specifically intended to characterize effects on systems such as:
+Systems tied to game minutes or `WorldAgeHours` may therefore progress faster while someone sleeps. Current investigation priorities include:
 
+- player health/survival effects — **SPIKE-004, pre-alpha blocker**;
 - food spoilage;
-- crops/farming;
+- farming/crops;
 - generator fuel consumption;
-- hunger/thirst/fatigue;
-- healing;
-- corpse decay;
-- composting;
+- corpse decay and composting;
 - weather;
 - other mods driven by world/game time.
 
-This is different from globally speeding up gameplay. Controlled testing has shown that awake movement/actions remain normal-speed.
+This is distinct from globally accelerating active gameplay. Controlled tests have shown awake movement/actions remain normal-speed.
 
 ## Installation
 
@@ -117,19 +129,11 @@ Server configuration:
 Mods=pz-enshrouded-sleep
 ```
 
-If you download the repository using GitHub's **Download ZIP**, GitHub normally creates an outer folder named:
-
-```text
-pz-enshrouded-sleep-main
-```
-
-Rename that outer folder to `pz-enshrouded-sleep` before installation. The `-main` suffix is a Git branch/archive name; it is not part of the Project Zomboid Mod ID.
+GitHub **Download ZIP** normally creates `pz-enshrouded-sleep-main`; rename that outer folder to `pz-enshrouded-sleep` before installation. The `-main` suffix is a Git archive/branch name, not part of the PZ Mod ID.
 
 Until an automated distribution mechanism is used, participating clients need the same mod snapshot installed locally.
 
 ## Configuration
-
-The public-alpha configuration is intentionally small:
 
 ```lua
 EnshroudedSleep = {
@@ -139,34 +143,18 @@ EnshroudedSleep = {
 },
 ```
 
-### `Enabled`
+`Enabled` turns the mechanic on/off.
 
-Enables/disables Enshrouded Sleep.
+`PartialSleepSpeedScale` scales the server's native `FastForwardMultiplier` for **partial sleep only**. `1.0` is the neutral/default value.
 
-### `PartialSleepSpeedScale`
-
-Scales the server's native `FastForwardMultiplier` for **partial sleep only**.
+`DiagnosticsEnabled` controls verbose development/support telemetry:
 
 ```text
-1.0 -> neutral/default
-0.5 -> half the normal partial-sleep compression
-2.0 -> twice the normal partial-sleep compression
+false -> normal operation; low-volume state-transition logs only
+true  -> one-second clock, sleep, health, survival and injury telemetry
 ```
 
-For initial Public Alpha deployment, `1.0` is recommended.
-
-### `DiagnosticsEnabled`
-
-Development/support telemetry.
-
-```text
-false -> normal public-alpha operation
-true  -> one-second server/client clock and sleep telemetry
-```
-
-Leave this `false` unless diagnosing a specific problem. On an active multiplayer server, verbose diagnostics can generate very large logs.
-
-Low-volume startup and state-transition logging remains enabled independently.
+Leave diagnostics off except during controlled testing or focused troubleshooting; the expanded health diagnostic can generate large logs.
 
 ## How proportional sleep is calculated
 
@@ -188,20 +176,24 @@ EffectiveMinutesPerDay =
     BaselineMinutesPerDay / CalendarCompressionFactor
 ```
 
-The server remains authoritative. Clients receive the resulting effective `MinutesPerDay` so their local clocks pace smoothly between normal multiplayer time synchronization updates.
+The server remains authoritative. Clients receive the resulting effective `MinutesPerDay` so their local clocks pace smoothly between normal multiplayer synchronization updates.
 
-For the technical design, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+For the technical design and rationale, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and the architecture decision records under [`docs/adr/`](docs/adr/).
 
 ## Roadmap
 
-The current roadmap is evidence-driven.
+### Pre-Public-Alpha — current
 
-### Public Alpha — now
+- complete SPIKE-004 health/survival time-domain characterization;
+- make a GO / CONDITIONAL GO / NO-GO decision for live WHG deployment;
+- run a short v0.0.8 startup/core regression after the diagnostic additions.
+
+### Public Alpha — next, if SPIKE-004 passes
 
 - validate real 3–12+ player populations;
-- exercise joins, disconnects, deaths, respawns, and repeated sleep cycles;
+- exercise joins, disconnects, deaths, respawns and repeated sleep cycles;
 - monitor long-session stability and client errors;
-- characterize spoilage, farming, generators, hunger/thirst/fatigue, healing, weather, and other world-time-driven systems;
+- characterize non-health world-time systems such as spoilage, farming, generators and weather;
 - test interaction with the normal multiplayer mod stack.
 
 ### Public Beta / v0.1.x
@@ -210,57 +202,30 @@ The current roadmap is evidence-driven.
 - document or address important world-time side effects;
 - build a compatibility matrix for important B42 mods;
 - improve distribution and administrator experience;
-- remove development instrumentation that is no longer useful;
 - establish regression practice for future PZ B42 releases.
 
 ### Stable / v1.0
 
 - representative multiplayer scale validated;
-- no known high-severity save/world-state risk;
+- no known high-severity save/world/player-state risk;
 - world-time behavior clearly documented;
 - reliable install/upgrade/disable/rollback workflow;
 - compatibility claims limited to combinations actually tested.
 
-See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the full roadmap and exit criteria.
-
-## Reporting Public Alpha problems
-
-The most useful reports include:
-
-```text
-approximate real-world time of the incident
-players online
-players asleep if known
-whether the reporting player was awake or asleep
-what happened
-whether the PZ error counter increased
-whether waking/reconnecting cleared the behavior
-```
-
-Particularly important symptoms are:
-
-- clock freezing/jumping;
-- awake gameplay speeding up;
-- implausibly long sleep;
-- world remaining compressed after everyone wakes;
-- incorrect behavior after join/disconnect/death/respawn;
-- recurring Enshrouded Sleep errors;
-- severe world-time side effects.
-
-For focused reproduction/log collection, see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) and [`docs/TESTING.md`](docs/TESTING.md).
+See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the full roadmap and release-stage criteria.
 
 ## Documentation
 
-Detailed engineering material is intentionally kept out of this README.
+Detailed engineering material is intentionally kept out of this landing page.
 
 - [`docs/README.md`](docs/README.md) — documentation index
-- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — Public Alpha deployment and rollback
-- [`docs/ROADMAP.md`](docs/ROADMAP.md) — roadmap and release-stage criteria
+- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — deployment/rollback guidance and current deployment gate
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — roadmap and phase criteria
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — technical architecture
 - [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) — canonical MVP requirements
-- [`docs/TESTING.md`](docs/TESTING.md) — current testing strategy
-- [`docs/VALIDATION_HISTORY.md`](docs/VALIDATION_HISTORY.md) — detailed development/test evidence
-- [`docs/spikes/`](docs/spikes/) — future spike investigations
+- [`docs/TESTING.md`](docs/TESTING.md) — current test procedures
+- [`docs/VALIDATION_HISTORY.md`](docs/VALIDATION_HISTORY.md) — detailed validation chronology
+- [`docs/spikes/`](docs/spikes/) — formal exploratory investigations, including the current health/time-domain spike
 - [`docs/adr/`](docs/adr/) — architecture decision records
 - [`CHANGELOG.md`](CHANGELOG.md) — version/change history
 
