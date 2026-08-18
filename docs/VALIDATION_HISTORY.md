@@ -1,46 +1,47 @@
 # Validation History
 
-This document preserves the technical evidence behind the current Enshrouded Sleep architecture. It is intentionally separate from the top-level README so new users do not need to read the development history to understand or install the mod.
+This document preserves the technical evidence behind the current Enshrouded Sleep architecture. It is intentionally separate from the top-level README.
 
-For current test procedures, see [`TESTING.md`](TESTING.md). For release-level change history, see [`../CHANGELOG.md`](../CHANGELOG.md).
+For current procedures, see [`TESTING.md`](TESTING.md). For focused investigations, see [`spikes/`](spikes/). For durable design decisions, see [`adr/`](adr/).
 
 ## Summary
 
-The project progressed from a `MinutesPerDay` proof of concept to a server-authoritative proportional-sleep controller, then to explicit client day-length synchronization after multiplayer testing exposed client clock drift.
+The project progressed through four major evidence questions:
 
-The current architecture has been behaviorally validated on Project Zomboid 42.20.3 with two players. Public Alpha expands validation to larger real-world multiplayer populations and the normal WHG mod stack.
+1. can `MinutesPerDay` compress world/calendar time without globally accelerating active simulation? — **yes**;
+2. can the MVP rely on vanilla-instantiated player/sleep lifecycle and hand full sleep back to vanilla? — **yes**;
+3. can clients be paced coherently with the authoritative compressed day length? — **yes**;
+4. do health/survival subsystems create unsafe awake-player effects under calendar compression? — **currently under investigation in SPIKE-004**.
 
-## v0.0.1 — clock-compression spike
+The core sleep/clock architecture is behaviorally validated on Project Zomboid 42.20.3 with two players. WHG Public Alpha deployment is paused only for the fourth safety question, not because the earlier clock architecture regressed.
 
-Goal: determine whether Project Zomboid world/calendar time could be accelerated without globally accelerating the active simulation.
+## v0.0.1 — calendar-compression feasibility
+
+Goal: determine whether world/calendar time can be accelerated without globally accelerating active simulation.
 
 Result:
 
 - live baseline `MinutesPerDay=90`;
-- temporary test value `4.5` produced approximately 20x world/calendar progression;
+- temporary `4.5` produced approximately 20x world/calendar progression;
 - `TrueMultiplier` remained `1`;
-- awake movement/gameplay did not visibly accelerate;
-- baseline restoration worked.
+- awake gameplay did not visibly accelerate;
+- exact baseline restoration worked.
 
-This established the core premise: partial sleep could be implemented as calendar compression rather than global fast-forward.
+Decision: use `MinutesPerDay` as the partial-sleep primitive. See [`spikes/SPIKE-001-minutes-per-day-feasibility.md`](spikes/SPIKE-001-minutes-per-day-feasibility.md) and ADR-001.
 
-## v0.0.2 — player lifecycle/sleep-state spike
-
-Goal: establish reliable multiplayer population and sleep-state semantics.
+## v0.0.2 — player lifecycle/sleep-state investigation
 
 Results:
 
 - server-side `IsoPlayer:isAsleep()` reliably reflected actual sleep/wake state;
 - dead player objects can remain in `getOnlinePlayers()` during respawn;
-- dead characters therefore must be excluded from the living denominator;
+- dead characters must be excluded from the living denominator;
 - clients may authenticate/load before an `IsoPlayer` appears;
-- the MVP should use instantiated living players rather than inventing a separate readiness registry.
+- MVP should use instantiated living players rather than a custom readiness registry.
 
 ## v0.0.2b — vanilla full-sleep probe
 
-Goal: characterize vanilla all-players-asleep behavior before adding proportional sleep.
-
-Observed with baseline `MinutesPerDay=90` and configured `FastForwardMultiplier=40`:
+With baseline `MinutesPerDay=90` and configured `FastForwardMultiplier=40`:
 
 ```text
 MinutesPerDay -> remains 90
@@ -49,11 +50,11 @@ TrueMultiplier -> remains 1
 observed calendar rate -> roughly 120x baseline
 ```
 
-Conclusion: vanilla full sleep uses a mechanism distinct from `MinutesPerDay`. Enshrouded Sleep should restore baseline and step aside when all living players are asleep rather than stacking its own compression with vanilla fast-forward.
+Conclusion: vanilla full sleep uses a mechanism distinct from `MinutesPerDay`; restore baseline and step aside rather than stacking mechanisms. See [`spikes/SPIKE-002-vanilla-sleep-lifecycle.md`](spikes/SPIKE-002-vanilla-sleep-lifecycle.md) and ADR-002.
 
 ## v0.0.3 — functional proportional controller
 
-Introduced the current server-side model:
+Introduced:
 
 ```text
 SleepFraction = SleepingPlayers / LivingPlayers
@@ -63,69 +64,40 @@ CalendarCompressionFactor = max(1.0,
 EffectiveMinutesPerDay = BaselineMinutesPerDay / CalendarCompressionFactor
 ```
 
-The controller:
-
-- captures the exact live baseline;
-- uses `getOnlinePlayers()` and excludes dead players;
-- applies compression only when some, but not all, living players are asleep;
-- restores baseline at zero sleepers or all sleepers;
-- never uses `GameTime:setMultiplier()` for partial sleep;
-- fails toward baseline on recoverable errors.
+The controller captures the live baseline, excludes dead players, applies compression only during partial sleep, restores baseline otherwise, never uses `GameTime:setMultiplier()` for partial sleep, and fails toward baseline.
 
 ## v0.0.4 — first successful two-player proportional test
 
 Validated on B42.20.2:
 
 ```text
-2 living / 0 sleeping
--> MinutesPerDay=90
-
-2 living / 1 sleeping
--> SleepFraction=0.5
--> CalendarCompressionFactor=20
--> MinutesPerDay=4.5
-
-2 living / 2 sleeping
--> restore MinutesPerDay=90
--> vanilla full-sleep fast-forward takes over
+2 living / 0 sleeping -> MinutesPerDay=90
+2 living / 1 sleeping -> factor 20 -> MinutesPerDay=4.5
+2 living / 2 sleeping -> restore 90 -> vanilla full-sleep takeover
 ```
 
-Also validated:
+Wake restoration and disconnect denominator recalculation also passed.
 
-- return from full sleep to partial when one player wakes;
-- return to baseline when the last sleeper wakes;
-- denominator recalculation on disconnect.
-
-A client presentation problem remained: both the sleeping black-screen clock and awake HUD/watch clock advanced in large visible jumps.
+A client presentation problem remained: both sleeping and awake clocks visibly jumped.
 
 ## v0.0.5 — client clock diagnosis
 
-Read-only server/client diagnostics established the root cause of the clock jumps.
-
-During one-of-two partial sleep:
+Read-only server/client diagnostics showed:
 
 ```text
 SERVER MinutesPerDay = 4.5
 CLIENT MinutesPerDay = 90
 ```
 
-The server advanced compressed world time smoothly while the client advanced using the native 90-minute day and periodically received large multiplayer time corrections. Typical visible corrections were about 51 in-game minutes.
+The client advanced using native day length and periodically received large multiplayer corrections, typically about 51 in-game minutes. This established that runtime server `MinutesPerDay` changes were not automatically mirrored to the tested client.
 
-This established that runtime server `MinutesPerDay` changes are not automatically mirrored into client GameTime.
-
-The same test also exposed a sleeping character remaining asleep across more than 30 authoritative world-hours. At that point the sleep-duration cause was unresolved.
+The same test exposed a character remaining asleep across more than 30 authoritative world-hours.
 
 ## v0.0.6 — explicit client day-length synchronization
 
-Added a narrow server-to-client `ClockState` path:
+Added server `ClockState` publication and client local `MinutesPerDay` mirroring.
 
-```text
-server controller applies authoritative MinutesPerDay
--> server sync observer broadcasts it
--> client mirrors that MinutesPerDay locally
-```
-
-Two-player testing on Project Zomboid 42.20.3 showed:
+Two-player testing on PZ 42.20.3 showed:
 
 ```text
 SERVER MinutesPerDay = 4.5
@@ -135,64 +107,109 @@ CLIENT B MinutesPerDay = 4.5
 
 Results:
 
-- client `TimeOfDay` advanced at approximately 5.33 game-minutes per real second;
-- the prior ~51-minute sawtooth corrections disappeared;
-- sleeping black-screen clock was visually smooth;
-- awake HUD/watch clock was visually smooth;
+- client clock rate approximately 5.33 game-minutes per real second;
+- prior ~51-minute sawtooth corrections disappeared;
+- sleeping and awake clocks were visually smooth;
 - awake movement/actions remained normal-speed;
-- baseline and vanilla full-sleep handoff remained correct.
+- baseline/full-sleep handoff remained correct;
+- client `AsleepTime` tracked compressed world time and wake occurred near vanilla `ForceWakeUpTime`.
 
-The same test clarified the long-sleep issue. Once client `MinutesPerDay` matched the server, client `AsleepTime` advanced with compressed world time and wake occurred near vanilla `ForceWakeUpTime`, including a later sleeping-pill-influenced sleep.
-
-v0.0.6 did contain a client logging bug: a post-apply `tonumber(safeMethod(...))` expression passed both Lua return values into Kahlua and generated repeated `Double` -> `String` `ClassCastException` errors after the actual `setMinutesPerDay()` had already succeeded.
+A post-apply diagnostic expression still produced repeated Kahlua `Double` -> `String` exceptions after the setter had succeeded.
 
 ## v0.0.7 — clean regression
 
-v0.0.7 fixed the multi-return logging exception and added a one-observer-pass synchronization settling guard so a new population/sleep state is published only after the authoritative controller has settled `MinutesPerDay`.
+v0.0.7 fixed the multi-return numeric-conversion error and added one-observer-pass synchronization settling.
 
-The clean regression on Project Zomboid 42.20.3 confirmed:
+The clean PZ 42.20.3 regression confirmed:
 
-- no recurrence of the v0.0.6 `ClassCastException` error flood;
-- server and client transitions between `90` and `4.5` remained correct;
-- no stale `mode=partial` packet paired with baseline `MinutesPerDay=90` was observed;
-- client clock progression remained approximately the theoretical 5.33 game-minutes per real second at `MinutesPerDay=4.5`;
-- visual clock behavior remained smooth;
+- no recurrence of the exception flood;
+- correct server/client `90 <-> 4.5` transitions;
+- no stale partial-state packet paired with baseline 90;
+- client clock rate remained approximately theoretical;
+- sleeping and awake clocks remained smooth;
 - awake gameplay remained normal-speed;
-- full-sleep handoff and disconnect/population recalculation remained correct;
-- a pill-influenced sleep woke within a few game minutes of the recorded vanilla `ForceWakeUpTime`.
+- full-sleep handoff and disconnect recalculation remained correct;
+- pill-influenced sleep woke within a few game minutes of vanilla `ForceWakeUpTime`.
 
-Issues #1, #2, and #3 were closed after this regression.
+Issues #1, #2, and #3 were closed.
 
-## Public Alpha hardening
+See [`spikes/SPIKE-003-client-clock-synchronization.md`](spikes/SPIKE-003-client-clock-synchronization.md) and ADR-003.
 
-After the successful v0.0.7 regression, the remaining one-second diagnostic samplers were changed to be opt-in through:
+## Public Alpha hardening after v0.0.7
+
+The one-second clock/sleep samplers were gated behind:
 
 ```text
 DiagnosticsEnabled = false
 ```
 
-by default.
+by default to keep live-server log volume manageable. This did not change the controller or synchronization policy.
 
-This does not change the sleep/compression algorithm. It prevents normal public multiplayer sessions from generating large volumes of development telemetry while preserving focused diagnostics for support/reproduction sessions.
+## v0.0.8 — health/survival time-domain diagnostic stage
+
+### Trigger
+
+Before WHG Public Alpha deployment, review raised a critical question: what happens to an awake wounded or physiologically stressed player when another player triggers calendar compression?
+
+The existing evidence proves that active movement/combat simulation remains normal-speed, but it does **not** prove that bleeding, hunger, thirst, healing, infection, or other health systems use the same time domain.
+
+### Added instrumentation
+
+v0.0.8 adds:
+
+```text
+HealthTimeDomainDiagnostic_Server.lua
+HealthTimeDomainDiagnostic_Client.lua
+```
+
+When `DiagnosticsEnabled=true`:
+
+- server records a broad health/survival/nutrition snapshot for every instantiated living player once per real second;
+- owning client records corresponding local values;
+- detailed `BODY` lines are emitted for injured/non-pristine body parts;
+- each sample is correlated with `MinutesPerDay`, observed baseline, compression factor, `TimeOfDay`, `WorldAgeHours`, population and sleep phase.
+
+The diagnostic is read-only and deliberately avoids the Kahlua multi-return conversion pattern that caused the v0.0.6 error flood.
+
+### Current validation status
+
+The v0.0.8 diagnostic code is implemented but **not yet integration-tested in Project Zomboid**.
+
+The next controlled test must establish:
+
+- whether the new APIs are exposed in the tested Lua runtime;
+- baseline versus factor-20 real-time rates for bleeding/health loss and other changing metrics;
+- which systems are world-time, real/simulation-time, mixed, event-driven, or unavailable;
+- whether any result creates a Public Alpha safety blocker.
+
+### Current decision
+
+**WHG Public Alpha deployment is paused pending SPIKE-004.**
+
+This is a new evidence boundary, not a reversal of the validated v0.0.7 clock architecture.
 
 ## Current evidence boundary
 
-The following are well supported by controlled testing:
+Well supported:
 
 - two-player proportional compression;
 - client/server `MinutesPerDay` synchronization;
-- smooth sleeping and awake clock presentation;
-- normal-speed awake simulation;
+- smooth sleeping/awake clock presentation;
+- normal-speed awake active simulation;
 - baseline restoration;
 - vanilla full-sleep handoff;
 - wake/disconnect recalculation;
 - sensible vanilla sleep duration when client pacing is synchronized.
 
-The following are the main Public Alpha validation targets:
+Current pre-alpha blocker:
+
+- player health/survival time-domain safety under partial compression.
+
+Public Alpha targets after that gate:
 
 - 3–12+ player proportional fractions;
-- repeated real-world join/disconnect/death/respawn behavior;
+- real join/disconnect/death/respawn behavior;
 - long-session stability;
-- interactions with the WHG mod stack;
-- world-time-driven systems such as spoilage, farming, generators, hunger/thirst/fatigue, healing, weather, corpses, and composting;
-- behavior after future Project Zomboid B42 updates.
+- WHG mod-stack interaction;
+- non-health world-time systems such as spoilage, farming, generators, weather, corpses and composting;
+- future B42 update regressions.
