@@ -2,7 +2,8 @@
 
 Status: **In progress / Public Alpha deployment blocker**  
 Implementation target: v0.0.8  
-Primary test platform: Project Zomboid 42.20.3
+Primary test platform: Project Zomboid 42.20.3  
+Tracking issue: **GitHub #4** — `SPIKE-004: characterize player health/survival time domains under partial sleep`
 
 ## Question
 
@@ -161,6 +162,24 @@ ratio ~= 1
 
 The actual outcome must be derived from the logs; these examples are not predictions.
 
+## Results table — to be completed from test logs
+
+| Metric / subsystem | Baseline rate | Partial rate | Rate ratio | Server/client agreement | Classification | Safety consequence |
+|---|---:|---:|---:|---|---|---|
+| Overall health loss while bleeding | TBD | TBD | TBD | TBD | TBD | TBD |
+| BleedingTime | TBD | TBD | TBD | TBD | TBD | TBD |
+| Hunger | TBD | TBD | TBD | TBD | TBD | TBD |
+| Thirst | TBD | TBD | TBD | TBD | TBD | TBD |
+| Fatigue | TBD | TBD | TBD | TBD | TBD | TBD |
+| Endurance | TBD | TBD | TBD | TBD | TBD | TBD |
+| Wound/healing timer(s) | TBD | TBD | TBD | TBD | TBD | TBD |
+| Pain | TBD | TBD | TBD | TBD | TBD | TBD |
+| Sickness / food sickness | TBD | TBD | TBD | TBD | TBD | TBD |
+| Poison | TBD | TBD | TBD | TBD | TBD | TBD |
+| Zombie infection metrics | TBD | TBD | TBD | TBD | TBD | TBD |
+| Temperature / cold progression | TBD | TBD | TBD | TBD | TBD | TBD |
+| Other notable metric | TBD | TBD | TBD | TBD | TBD | TBD |
+
 ## Go / no-go criteria
 
 ### GO for WHG Public Alpha
@@ -179,11 +198,11 @@ Do not deploy publicly if partial sleep can cause severe or surprising consequen
 
 The spike must produce:
 
-1. a per-metric time-domain classification table;
+1. a completed per-metric time-domain classification table;
 2. any required new GitHub issues;
-3. a Public Alpha go/conditional-go/no-go decision;
-4. an ADR if the findings require a new architectural policy or compensation mechanism;
-5. updates to the requirements, roadmap, deployment guidance, validation history, and changelog.
+3. a Public Alpha GO / CONDITIONAL GO / NO-GO decision;
+4. an ADR if findings require a new architectural policy or compensation mechanism;
+5. updates to requirements, roadmap, deployment guidance, validation history, and changelog.
 
 ## Current decision
 
