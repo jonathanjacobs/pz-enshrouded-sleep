@@ -13,3 +13,9 @@ option EnshroudedSleep.PartialSleepSpeedScale = {
     default = 1.0,
     page = EnshroudedSleep,
 }
+
+option EnshroudedSleep.DiagnosticsEnabled = {
+    type = boolean,
+    default = false,
+    page = EnshroudedSleep,
+}
