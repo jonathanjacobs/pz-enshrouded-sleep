@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - server-to-client MinutesPerDay replication
--- v0.0.6 experimental synchronization for Project Zomboid Build 42.20+
+-- v0.0.7 synchronization cleanup for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -9,9 +9,19 @@
 -- to clients. Clients therefore continued advancing a 90-minute day while the
 -- server was running a 4.5-minute day, then periodically snapped forward.
 --
--- This module broadcasts the effective authoritative MinutesPerDay to clients
--- whenever the clock state changes and as a low-frequency heartbeat. It does
--- not decide the compression policy and never changes GameTime itself;
+-- v0.0.6 proved that broadcasting the effective server MinutesPerDay and
+-- mirroring it on clients removes the large clock corrections and produces
+-- visually smooth sleeping/HUD clocks while active gameplay remains normal-speed.
+--
+-- v0.0.7 preserves that architecture and adds a one-tick settling guard when the
+-- observed player/sleep population changes. The sync observer and authoritative
+-- controller are separate OnTick listeners; without the guard, the observer can
+-- sometimes see a new sleep-state label one fraction of a tick before the
+-- controller has applied the corresponding MinutesPerDay, causing a harmless
+-- stale transition packet (for example partial mode paired briefly with 90).
+--
+-- This module broadcasts the effective authoritative MinutesPerDay to clients.
+-- It does not decide the compression policy and never changes GameTime itself;
 -- EnshroudedSleep_Server.lua remains the sole authoritative controller.
 
 if isClient() then return end
@@ -26,6 +36,7 @@ local baselineMinutesPerDay = nil
 local lastSentSignature = nil
 local lastSentAt = -1
 local lastError = nil
+local lastObservedPopulationSignature = nil
 
 ---Write one namespaced synchronization message to the dedicated-server log.
 ---@param message any Value to stringify.
@@ -153,19 +164,32 @@ local function synchronizeClients()
     local living, sleeping = countPlayers()
 
     -- No instantiated players means there is nobody useful to notify yet. Do not
-    -- update lastSentSignature so the first player appearance forces a send.
+    -- update lastSentSignature so the first player appearance forces a later send.
     if living == 0 then
         clearError()
+        lastObservedPopulationSignature = nil
         return
     end
 
     local mode = deriveMode(living, sleeping)
+    local populationSignature = table.concat({
+        mode,
+        tostring(living),
+        tostring(sleeping),
+    }, "|")
+
+    -- The authoritative controller and this observer are independent tick
+    -- listeners. When vanilla-visible sleep/population changes, defer exactly one
+    -- observer pass so the controller can apply the matching MinutesPerDay before
+    -- this module publishes a state packet. This avoids stale transition pairs
+    -- such as mode=partial with the previous baseline value.
+    if populationSignature ~= lastObservedPopulationSignature then
+        lastObservedPopulationSignature = populationSignature
+        return
+    end
 
     -- Baseline and full-sleep states must always tell clients to use the native
-    -- baseline, even if this observer runs a fraction of a tick before the main
-    -- controller has restored the server value. Partial mode mirrors the current
-    -- controller output and will converge on the following tick if observed just
-    -- before a new compressed value is applied.
+    -- baseline. Partial mode mirrors the already-settled controller output.
     local targetMinutesPerDay = currentMinutesPerDay
     if mode ~= "partial" and baselineMinutesPerDay ~= nil then
         targetMinutesPerDay = baselineMinutesPerDay
@@ -181,8 +205,8 @@ local function synchronizeClients()
     local stateChanged = signature ~= lastSentSignature
     local heartbeatDue = lastSentAt < 0 or (now - lastSentAt) >= HEARTBEAT_SECONDS
 
-    -- Avoid a packet every tick; state changes are immediate and stable states
-    -- receive only a two-second convergence heartbeat.
+    -- Avoid a packet every tick; state changes are prompt after the one-pass
+    -- settling guard and stable states receive only a two-second heartbeat.
     if not stateChanged and not heartbeatDue then return end
 
     if type(sendServerCommand) ~= "function" then
@@ -192,7 +216,7 @@ local function synchronizeClients()
 
     local args = {
         protocolVersion = PROTOCOL_VERSION,
-        buildVersion = "0.0.6",
+        buildVersion = "0.0.7",
         mode = mode,
         minutesPerDay = targetMinutesPerDay,
         baselineMinutesPerDay = baselineMinutesPerDay or targetMinutesPerDay,
@@ -224,12 +248,13 @@ local function synchronizeClients()
     end
 end
 
--- Observe every tick so a 90 -> compressed or compressed -> 90 transition is
--- replicated promptly; the function itself rate-limits stable-state heartbeats.
+-- Observe every tick so server clock transitions are replicated promptly; the
+-- function rate-limits stable-state heartbeats and defers population transitions
+-- by one observer pass to let the authoritative controller settle first.
 if Events.OnTickEvenPaused then
     Events.OnTickEvenPaused.Add(synchronizeClients)
 else
     Events.OnTick.Add(synchronizeClients)
 end
 
-log("Loaded v0.0.6 authoritative MinutesPerDay replication experiment.")
+log("Loaded v0.0.7 authoritative MinutesPerDay replication.")
