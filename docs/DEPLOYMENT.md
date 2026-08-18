@@ -1,20 +1,45 @@
 # Public Alpha Deployment Guide
 
-Enshrouded Sleep v0.0.7 is entering **Public Alpha** field testing on multiplayer servers. The core two-player clock/sleep architecture has passed dedicated-server regression testing on Project Zomboid 42.20.3. Public alpha expands testing to larger populations, longer sessions, real player behavior, and a broader mod ecosystem.
+Current deployment status: **PAUSED pending SPIKE-004 health/time-domain validation**
 
-This is an alpha deployment. Back up the server and preserve an easy rollback path.
+Current development version: `v0.0.8`
 
-## Before deployment
+The core two-player sleep/clock architecture passed dedicated-server regression testing on Project Zomboid 42.20.3. However, pre-deployment review identified a separate player-safety question: some health/survival systems may progress faster in real time when `MinutesPerDay` is compressed.
 
-1. Stop the server cleanly.
-2. Back up the world/save and server configuration.
-3. Install the same Enshrouded Sleep snapshot on the server and all participating clients.
-4. Confirm the stable Mod ID is `pz-enshrouded-sleep`.
-5. Confirm the server is running a compatible Build 42 version. The current behaviorally validated baseline is **42.20.3**.
-6. Keep `PartialSleepSpeedScale=1.0` for the initial public-alpha deployment unless intentionally testing another value.
-7. Keep verbose diagnostics disabled for normal play.
+Do **not** deploy v0.0.8 to the WHG public server until [`SPIKE-004`](spikes/SPIKE-004-health-time-domains.md) records a GO or acceptable CONDITIONAL GO decision.
 
-Recommended sandbox settings:
+## Why deployment is gated
+
+Partial sleep intentionally makes world/calendar time pass faster. Awake active simulation remains normal-speed, but health/survival systems may use different PZ time domains.
+
+The blocking questions include whether partial sleep materially accelerates:
+
+- active bleeding and resulting health loss;
+- hunger/thirst;
+- fatigue/endurance;
+- wound healing/injury timers;
+- sickness/poison;
+- zombie infection progression;
+- temperature/cold effects.
+
+v0.0.8 adds broad read-only telemetry to answer these questions on the controlled test server.
+
+## Pre-deployment gate
+
+Before WHG Public Alpha deployment:
+
+1. Complete the v0.0.8 startup smoke test.
+2. Complete SPIKE-004 baseline/partial/baseline health monitoring.
+3. Record a per-metric time-domain classification.
+4. Confirm no unacceptable high-severity awake-player health hazard, or validate a mitigation/configuration bound.
+5. Record GO / CONDITIONAL GO / NO-GO in SPIKE-004.
+6. Run the short core two-player regression to ensure the diagnostic additions did not disturb the validated sleep/clock behavior.
+
+Only then proceed with the deployment steps below.
+
+## Intended Public Alpha configuration
+
+Unless SPIKE-004 recommends otherwise:
 
 ```lua
 EnshroudedSleep = {
@@ -24,7 +49,7 @@ EnshroudedSleep = {
 },
 ```
 
-`DiagnosticsEnabled=true` produces one-second server/client clock and sleep telemetry and can generate very large logs on an active multiplayer server. Enable it only for focused troubleshooting, then turn it back off.
+`DiagnosticsEnabled=true` now produces one-second clock, sleep, health, survival-stat, nutrition, and injury telemetry. It can generate very large logs and should only be used for controlled diagnostics, not normal Public Alpha play.
 
 ## Server installation
 
@@ -40,138 +65,132 @@ Server Mod ID:
 Mods=pz-enshrouded-sleep
 ```
 
-If the server is not distributing the mod through Workshop or another automated mechanism, every player must have the same local mod snapshot installed before joining.
+If the server is not distributing the mod through Workshop or another automated mechanism, every participating player must have the same local snapshot.
 
-A typical Windows client location is:
+Typical Windows client location:
 
 ```text
 C:\Users\<user>\Zomboid\mods\pz-enshrouded-sleep\
 ```
 
-GitHub's **Download ZIP** usually extracts a folder named `pz-enshrouded-sleep-main`. Rename the outer folder to `pz-enshrouded-sleep` before deployment to avoid ambiguity. The authoritative Mod ID remains the `id=` value in `mod.info`.
+GitHub **Download ZIP** usually extracts `pz-enshrouded-sleep-main`. Rename the outer folder to `pz-enshrouded-sleep`. The authoritative Mod ID remains the `id=` value in `mod.info`.
 
-## First public-alpha startup
+## Public Alpha deployment procedure (after gate passes)
 
-After starting the server, confirm the normal low-volume Enshrouded Sleep messages appear and no Enshrouded Sleep Lua exception is present.
+1. Announce the alpha deployment and planned restart.
+2. Stop the public server cleanly.
+3. Back up the world/save and server configuration.
+4. Preserve the previous known-good mod package for rollback.
+5. Install the exact approved Enshrouded Sleep snapshot on the server.
+6. Ensure participating clients use the same snapshot.
+7. Configure `Mods=pz-enshrouded-sleep`.
+8. Keep verbose diagnostics disabled for normal play.
+9. Start the server.
+10. Confirm normal Enshrouded Sleep startup/state prefixes and no Lua exception.
+11. Perform a brief live smoke check with at least two players before declaring the server open.
 
-Expected server prefixes:
+Expected low-volume prefixes include:
 
 ```text
 [EnshroudedSleep]
 [EnshroudedSleepSync][SERVER]
-```
-
-Expected client prefix:
-
-```text
 [EnshroudedSleepSync][CLIENT]
 ```
 
-The diagnostic modules may emit a single startup line explaining that verbose telemetry is disabled. Continuous `[EnshroudedSleepDiag] SAMPLE` output should **not** appear while `DiagnosticsEnabled=false`.
+Diagnostic modules may print one startup message, but continuous one-second diagnostic lines should not appear with `DiagnosticsEnabled=false`.
 
-## What to monitor during public alpha
-
-The public alpha is intended to expose scale and ecosystem behavior that synthetic two-player tests cannot reproduce efficiently.
+## What to monitor during Public Alpha
 
 Pay particular attention to:
 
-- multiple simultaneous sleepers with 3+ living players;
-- players joining or disconnecting while others sleep;
-- death/respawn while partial sleep is active;
-- repeated sleep/wake cycles over long sessions;
-- clock continuity for both sleepers and awake players;
-- normal-speed awake movement, combat, vehicles, timed actions, and zombies;
-- abnormal or unexpectedly long sleep duration;
-- any player-side error counter increase associated with Enshrouded Sleep;
-- food spoilage, crops, generators, hunger/thirst/fatigue, healing, weather, and other systems tied to world/game time;
-- interaction with other installed mods that use `EveryOneMinute`, `WorldAgeHours`, or sleep/recovery logic.
+- 3+ player proportional fractions;
+- multiple simultaneous sleepers;
+- joins/disconnects while others sleep;
+- death/respawn during partial sleep;
+- repeated sleep/wake cycles;
+- clock continuity;
+- normal-speed awake movement/combat/actions;
+- abnormal sleep duration;
+- player health/survival symptoms identified during SPIKE-004;
+- client error-counter increases;
+- non-health world-time systems: spoilage, crops, generators, corpses, composting, weather;
+- interaction with mods using `EveryOneMinute`, `WorldAgeHours`, or custom sleep/recovery logic.
 
 ## Expected proportional behavior
 
-The formula scales continuously with the fraction of living players asleep.
-
-For example, with native `FastForwardMultiplier=40` and `PartialSleepSpeedScale=1.0`:
+With native `FastForwardMultiplier=40` and `PartialSleepSpeedScale=1.0`:
 
 ```text
 1 of 12 sleeping -> factor ~3.33
 3 of 12 sleeping -> factor 10
 6 of 12 sleeping -> factor 20
 9 of 12 sleeping -> factor 30
-12 of 12 sleeping -> mod restores baseline; vanilla full-sleep fast-forward takes over
+12 of 12 sleeping -> restore baseline; vanilla full-sleep fast-forward takes over
 ```
 
-The actual `MinutesPerDay` target also depends on the server's native baseline day length.
+Actual `MinutesPerDay` also depends on the server's native baseline day length.
 
 ## Player-facing alpha bug reports
 
-Useful reports answer these questions:
+Useful reports answer:
 
 1. How many players were online?
 2. Approximately how many were asleep?
-3. What did the player observe?
-4. Was the reporting player awake or asleep?
-5. Did the problem stop after waking/disconnecting/reconnecting?
+3. Was the affected player awake or asleep?
+4. What happened?
+5. Did health/hunger/thirst/fatigue or another timed system change unexpectedly?
 6. Did the PZ error counter increase?
-7. Approximately when did it happen?
+7. Did the behavior clear after wake/reconnect?
+8. Approximately when did it occur?
 
 High-value symptoms include:
 
-- the HUD/watch or sleeping clock freezing and jumping;
-- awake gameplay visibly speeding up;
-- a sleeper remaining asleep for an implausible number of world hours;
-- the world staying compressed after everyone wakes;
-- the clock failing to return to native behavior after population changes;
-- severe world-system side effects during partial sleep;
+- clock freeze/jump;
+- awake gameplay speeding up;
+- implausibly long sleep;
+- world remaining compressed after wake;
+- rapid or surprising health loss while another player sleeps;
+- unexpected hunger/thirst/fatigue progression;
+- severe non-health world-system effects;
 - Enshrouded Sleep Lua/Java exceptions.
 
 ## Focused diagnostics
 
-If a reproducible problem appears, temporarily enable:
+For a reproducible issue, temporarily enable:
 
 ```lua
 DiagnosticsEnabled = true
 ```
 
-Restart as required by the server configuration workflow, reproduce the issue for the shortest practical interval, then collect:
+Reproduce the problem for the shortest practical interval and collect:
 
 ```text
 server DebugLog / log ZIP
-server console output
-at least one affected client's console.txt / logs
+server console
+at least the affected client's console.txt / log ZIP
 ```
 
-If the issue is client-specific, the affected player's log is more valuable than collecting logs from every player.
-
-Disable diagnostics again after the reproduction session.
+For health/survival questions, the affected player's owning-client log is especially useful. Disable diagnostics after the reproduction.
 
 ## Rollback procedure
 
-The safest rollback is a clean server restart without the mod.
-
-1. Announce the restart to players.
+1. Announce the restart.
 2. Stop the server cleanly.
-3. Preserve the current logs before restarting.
-4. Remove `pz-enshrouded-sleep` from the server `Mods=` configuration, or disable it through the server's normal mod-management workflow.
-5. Restore the pre-deployment sandbox/configuration file if necessary.
-6. Restart the server.
-7. Confirm native time progression and vanilla sleep behavior.
+3. Preserve logs from the incident.
+4. Remove `pz-enshrouded-sleep` from `Mods=` or disable it through the normal server workflow.
+5. Restore the prior sandbox/configuration if needed.
+6. Restart.
+7. Confirm native time/sleep behavior.
 
-The mod does not maintain a custom persistent sleep state or custom world database. Removing it should return future clock behavior to vanilla. Time/world-system progression that already occurred while the mod was active is, naturally, already part of the saved world; that is why a pre-deployment backup is recommended for the alpha.
+The mod does not maintain a custom persistent sleep database. Removing it returns **future** clock/sleep behavior to vanilla. World time and world-system changes that already occurred while the mod was active cannot be undone except by restoring a pre-deployment save backup.
 
-## Public-alpha go/no-go criteria
-
-Continue field testing while:
-
-- clocks remain coherent;
-- awake simulation remains normal-speed;
-- baseline/full-sleep handoff remains reliable;
-- no recurring Enshrouded Sleep exceptions occur;
-- no severe world-system side effect makes normal play unsafe.
+## Public Alpha rollback triggers
 
 Roll back and investigate if:
 
-- compressed `MinutesPerDay` persists after the state should have returned to baseline;
+- compressed `MinutesPerDay` persists after the state should return to baseline;
 - awake simulation globally accelerates;
-- clients repeatedly lose synchronization;
-- the mod produces a recurring exception/error flood;
-- a time-driven system causes severe persistent world damage or resource loss beyond the intended calendar compression model.
+- clients repeatedly lose clock pacing synchronization;
+- recurring Enshrouded Sleep exceptions appear;
+- an awake player's health/survival state becomes dangerously accelerated beyond the SPIKE-004 accepted behavior;
+- a time-driven system causes severe persistent world/player-state damage beyond the documented alpha model.
