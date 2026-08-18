@@ -1,35 +1,29 @@
 # Enshrouded Sleep — Testing Guide
 
-Current status: **Public Alpha**
+Current status: **Public Alpha candidate / pre-deployment validation**
 
-Current version: `v0.0.7`
+Current development version: `v0.0.8`
 
 Current behaviorally validated Project Zomboid baseline: `42.20.3`
 
-Historical diagnostic procedures and results have been consolidated into [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md). This document now focuses on tests that are still useful going forward.
+Historical procedures/results are consolidated in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md). The current blocking investigation is [`SPIKE-004`](spikes/SPIKE-004-health-time-domains.md).
 
 ## 1. Test tiers
 
-Enshrouded Sleep uses four practical test tiers.
-
 ### Tier 1 — startup smoke test
 
-Use after any source/configuration change or Project Zomboid update.
-
-Goal: prove the mod loads and native baseline behavior is intact.
+Run after any source/configuration change or Project Zomboid update.
 
 Minimum checks:
 
 1. Server starts without Enshrouded Sleep Lua errors.
 2. Client starts/connects without Enshrouded Sleep Lua errors.
-3. `[EnshroudedSleep]` startup/config messages appear.
-4. `[EnshroudedSleepSync][SERVER]` and `[EnshroudedSleepSync][CLIENT]` load.
-5. With all connected players awake, server/client `MinutesPerDay` remains at the native baseline.
-6. With `DiagnosticsEnabled=false`, continuous `[EnshroudedSleepDiag] SAMPLE` lines do not appear.
+3. Core controller and clock-state synchronization modules load.
+4. The new health diagnostic modules load without exceptions.
+5. With all players awake, server/client `MinutesPerDay` remains at native baseline.
+6. With `DiagnosticsEnabled=false`, there is no continuous one-second diagnostic output.
 
 ### Tier 2 — core multiplayer regression
-
-Use before a public deployment after any change to controller or synchronization code.
 
 Reference validated configuration:
 
@@ -44,10 +38,9 @@ PartialSleepSpeedScale = 1.0
 Procedure:
 
 1. Connect two living players.
-2. Keep both awake for at least 15 seconds.
-3. Confirm server/client baseline `MinutesPerDay=90`.
-4. Put one player to sleep and keep one awake.
-5. Confirm server controller reports:
+2. Keep both awake at least 15 seconds; confirm server/client `MinutesPerDay=90`.
+3. Put one player to sleep and keep one awake.
+4. Confirm:
 
 ```text
 living=2
@@ -57,83 +50,249 @@ CalendarCompressionFactor=20
 EffectiveMinutesPerDay=4.5
 ```
 
-6. Confirm both clients adopt/report `MinutesPerDay=4.5`.
-7. Keep partial sleep active for at least 60 real seconds.
-8. Confirm sleeping black-screen clock is rapid but visually smooth.
-9. Confirm awake HUD/watch clock is rapid but visually smooth.
-10. Have the awake player move/interact and confirm normal simulation speed.
-11. Wake the sleeper and confirm server/clients return to `90`.
-12. Put both players to sleep and confirm the mod restores `90` before vanilla full-sleep fast-forward owns the state.
-13. Wake one player and confirm partial `4.5` returns.
-14. Wake the final sleeper and confirm baseline `90` returns.
-15. Disconnect one player and confirm denominator/state recalculation remains correct.
+5. Confirm both clients use `MinutesPerDay=4.5`.
+6. Hold partial sleep at least 60 real seconds.
+7. Confirm sleeping and awake clocks are rapid but visually smooth.
+8. Confirm awake movement/actions remain normal-speed.
+9. Wake the sleeper; confirm server/clients return to `90`.
+10. Put both to sleep; confirm `90` is restored before vanilla full-sleep fast-forward.
+11. Wake one; confirm partial `4.5` returns.
+12. Wake all; confirm baseline `90`.
+13. If practical, disconnect one player and confirm denominator/state recalculation.
 
-Failure signatures include:
+The exact v0.0.7 build passed this sequence on PZ 42.20.3. v0.0.8 must reconfirm it after the diagnostic additions before public deployment.
 
-- client/server day-length disagreement;
-- large periodic clock jumps;
-- global awake gameplay acceleration;
-- compressed value persisting after wake/full-sleep handoff;
-- recurring Enshrouded Sleep exception/error flood;
-- stale partial-state packet paired with a prior baseline value.
+## 2. SPIKE-004 — health/survival time-domain test (CURRENT BLOCKER)
 
-This complete sequence passed in the v0.0.7 regression on PZ 42.20.3.
+### Objective
 
-## 2. Public Alpha field test
+Determine which player health/survival systems follow compressed world/calendar time and whether partial sleep creates an unacceptable hazard for an awake player.
 
-Public Alpha intentionally shifts emphasis from synthetic two-player reproduction to real server behavior.
+### Required configuration
 
-### Alpha observation targets
+Use the controlled test server, not the public server.
 
-Collect evidence around:
+```lua
+EnshroudedSleep = {
+    Enabled = true,
+    PartialSleepSpeedScale = 1.0,
+    DiagnosticsEnabled = true,
+}
+```
+
+Use the same v0.0.8 snapshot on server and both clients.
+
+Debug Mode is recommended so repeatable starting conditions can be created deliberately.
+
+### Expected diagnostic prefixes
+
+```text
+[EnshroudedSleepDiag][SERVER]
+[EnshroudedSleepDiag][CLIENT]
+[EnshroudedSleepHealthDiag][SERVER]
+[EnshroudedSleepHealthDiag][CLIENT]
+```
+
+The health diagnostic emits one broad `PLAYER` sample per living player per real second. It also emits `BODY` lines for injured/non-pristine body parts.
+
+### Metrics captured
+
+The diagnostic attempts to record, where exposed by the Lua bridge:
+
+```text
+clock / phase
+MinutesPerDay
+observed baseline
+CalendarCompressionFactor
+TimeOfDay
+WorldAgeHours
+living/sleeping counts and SleepFraction (server)
+
+sleep
+isAsleep
+AsleepTime
+ForceWakeUpTime
+SleepingPillsTaken
+
+health / survival
+Health
+OverallBodyHealth
+Hunger
+Thirst
+Fatigue
+Endurance
+Stress
+Panic
+Pain
+Boredom
+Unhappiness
+Sickness
+Drunkenness
+Fear
+Sanity
+FoodSickness
+Poison
+InfectionLevel
+ApparentInfectionLevel
+FakeInfectionLevel
+Infected
+Temperature
+Wetness
+CatchACold
+ColdStrength
+ColdDamageStage
+
+nutrition
+Weight
+Calories
+Carbohydrates
+Proteins
+Lipids
+
+injury details
+body-part Health
+Pain / AdditionalPain
+Bleeding / BleedingTime
+BleedingStemmed
+Bandaged / BandageLife / BandageDirty
+Cut / CutTime
+Scratched / ScratchTime
+Bitten / BiteTime
+DeepWound / DeepWoundTime
+Stitched / StitchTime
+FractureTime / Splint / SplintFactor
+Burnt / BurnTime
+InfectedWound / WoundInfectionLevel
+Glass / Bullet
+body-part Wetness / SkinTemperature / InnerTemperature / Stiffness
+```
+
+`N/A` is acceptable for methods not exposed in the tested Lua context. One missing getter is not itself a test failure.
+
+### Controlled experiment
+
+Use two players with fixed roles:
+
+```text
+Player A = awake monitored subject
+Player B = sleeper used to trigger partial compression
+```
+
+For the first run, avoid sleeping pills unless required to make Player B sleep. We want the cleanest possible time-domain comparison.
+
+#### Phase A — native baseline (minimum 60 real seconds)
+
+1. Both players awake.
+2. Confirm `MinutesPerDay=90` and `phase=baseline`.
+3. Use Debug Mode to create controlled nonzero states on Player A.
+4. **At minimum create one active bleeding injury.**
+5. Also create/adjust several slower variables if practical: hunger, thirst, fatigue, pain, an injury/healing state, sickness/food sickness, temperature/cold, etc.
+6. Do not change those variables manually during the measurement window.
+7. Hold for at least 60 real seconds.
+
+Goal: obtain baseline change-per-real-second rates.
+
+#### Phase B — partial sleep (minimum 60 real seconds, unless unsafe)
+
+1. Player A remains awake with the same monitored conditions.
+2. Player B enters normal vanilla sleep.
+3. Confirm server reaches `2 living / 1 sleeping`, factor ~20, `MinutesPerDay=4.5`.
+4. Hold the state for at least 60 real seconds **unless Player A's health becomes unsafe**.
+5. Player A may stand still to reduce confounding activity/endurance effects unless a particular metric requires movement.
+6. Do not heal, eat, drink, bandage, medicate, or otherwise reset monitored variables during the comparison interval unless needed to prevent test-character death.
+
+Goal: compare each metric's rate against Phase A.
+
+#### Phase C — restored baseline (minimum 60 real seconds)
+
+1. Wake Player B.
+2. Confirm `MinutesPerDay=90`.
+3. Hold another 60 seconds without manually changing monitored variables where practical.
+
+Goal: determine whether rates return toward baseline after compression ends.
+
+#### Optional Phase D — vanilla full sleep
+
+Both players may sleep briefly to characterize native all-asleep behavior separately. Do not use this phase to classify Enshrouded Sleep partial-compression effects.
+
+### Safety rules
+
+- Use expendable/debug test characters and a test-server save.
+- Do not run the first bleeding/infection experiment on a valued public-server character.
+- End Phase B early if the subject approaches death.
+- Preserve the exact logs before resetting/restarting.
+
+### Analysis
+
+For every numeric variable that changes enough to measure, calculate approximately:
+
+```text
+baseline rate = delta(metric) / real seconds during Phase A
+partial rate  = delta(metric) / real seconds during Phase B
+rate ratio    = partial rate / baseline rate
+```
+
+Then classify:
+
+```text
+~1x       -> simulation/real-time bound
+~compression factor -> world/calendar-time bound
+other     -> mixed/nonlinear/event-driven; investigate further
+no useful change -> insufficient data
+```
+
+Use both server and owning-client telemetry where available. Do not assume server exposure is always the most meaningful value.
+
+### Minimum go/no-go questions
+
+Before Public Alpha deployment, answer:
+
+1. Does an awake bleeding player's actual health loss accelerate materially during partial sleep?
+2. Do hunger/thirst become dangerously faster in real time?
+3. Does fatigue/endurance behavior become disruptive or dangerous?
+4. Do wound healing/injury timers scale with compressed calendar time?
+5. Do sickness/poison/zombie infection variables accelerate materially?
+6. Do temperature/cold effects accelerate materially?
+7. Is any observed acceleration severe enough to require a lower initial `PartialSleepSpeedScale` or code mitigation?
+
+### Decision rule
+
+**GO:** no unacceptable high-severity awake-player effect is found.
+
+**CONDITIONAL GO:** behavior is measurable/understood and can be safely bounded with configuration or a narrowly targeted mitigation.
+
+**NO-GO:** partial sleep can rapidly kill or seriously harm awake players through bleeding, infection, starvation/dehydration, or another high-severity health mechanism.
+
+Record the final decision and metric classification table in [`spikes/SPIKE-004-health-time-domains.md`](spikes/SPIKE-004-health-time-domains.md).
+
+## 3. Public Alpha field testing (AFTER SPIKE-004 GO)
+
+Once the health gate passes, field testing targets:
 
 - 3–12+ living players;
 - one sleeper among many awake players;
 - multiple simultaneous sleepers;
-- players joining while partial sleep is active;
-- players disconnecting while partial sleep is active;
+- joins/disconnects while partial sleep is active;
 - death/respawn while others sleep;
-- repeated sleep/wake cycles across long sessions;
-- unusual latency or reconnect scenarios;
-- normal interaction with the server's existing mod stack.
-
-### What players should report
-
-High-value observations:
-
-- sleeping clock freezes/jumps;
-- awake HUD/watch freezes/jumps;
-- awake movement/combat/actions speed up;
-- character sleeps for implausibly many world hours;
-- world remains compressed after sleepers wake;
-- unexpected time jump after join/disconnect/death;
-- PZ error counter increases around a sleep transition;
-- severe world-time side effect involving spoilage, crops, generator fuel, hunger/thirst/fatigue, healing, weather, corpses, or another mod.
+- repeated sleep/wake cycles over long sessions;
+- mod-stack interaction;
+- non-health world-time systems such as spoilage, generators, crops, corpses, composting and weather.
 
 A useful report includes:
 
 ```text
-approximate real-world time of incident
+approximate real-world time
 players online
 players asleep if known
 reporting player awake/asleep
-what was observed
+what happened
 whether error counter increased
-whether behavior cleared after wake/reconnect
+whether waking/reconnecting cleared it
 ```
 
-## 3. Public Alpha scale/proportionality checks
-
-The formula should work for any number of living players.
+## 4. Scale / proportionality checks
 
 With native FF `40` and scale `1.0`:
-
-```text
-SleepFraction = sleeping / living
-CalendarCompressionFactor = max(1, 40 * SleepFraction)
-```
-
-Examples:
 
 ```text
 12 living / 1 sleeping -> factor ~3.333
@@ -143,129 +302,70 @@ Examples:
 12 living / 12 sleeping -> restore baseline; vanilla owns full sleep
 ```
 
-Public Alpha does not require deliberately arranging every fraction. Normal server usage should be recorded when useful transitions naturally occur.
-
-If a suspicious state appears, compare the observed controller log against the formula before assuming a synchronization bug.
-
-## 4. World-time systems characterization
-
-Changing `MinutesPerDay` intentionally accelerates calendar/world time. Public Alpha should establish which systems follow that clock and whether their behavior is acceptable.
-
-Priority systems:
-
-- food aging/spoilage;
-- generator fuel consumption;
-- crops/farming;
-- hunger/thirst/fatigue;
-- healing;
-- weather;
-- corpse decay;
-- composting;
-- other installed mods driven by game minutes or `WorldAgeHours`.
-
-### Recommended method
-
-For each system:
-
-1. Record baseline behavior with no one sleeping.
-2. Observe behavior during a known partial compression factor.
-3. Determine whether progression follows world time, real/simulation time, or another clock.
-4. Decide whether that result is desirable, acceptable/documentable, or requires a future policy/compensation feature.
-
-Do not implement compensation based on assumption alone.
+Normal Public Alpha play can supply many of these cases naturally.
 
 ## 5. Configuration acceptance tests still pending
 
-These should be run on the controlled test server rather than improvised on the public server.
+Controlled-server targets:
 
-### Alternate day length
+- alternate native day length;
+- alternate native `FastForwardMultiplier`;
+- non-default `PartialSleepSpeedScale` (e.g. 0.5 or 2.0);
+- `Enabled=false` restoration;
+- practical recoverable fail-safe restoration.
 
-Change native DayLength so the live baseline is not `90`.
+All must preserve exact baseline restoration and vanilla full-sleep handoff.
 
-Pass criteria:
+## 6. Verbose diagnostics policy
 
-- mod captures the new live baseline automatically;
-- no code/config constant needs editing;
-- zero sleepers restore the new baseline;
-- all-sleepers handoff restores the new baseline.
-
-### Alternate FastForwardMultiplier
-
-Change native `FastForwardMultiplier`.
-
-Pass criteria:
-
-- proportional compression changes automatically according to the formula;
-- no duplicate mod fast-forward setting needs editing.
-
-### PartialSleepSpeedScale
-
-Test at least one non-default scale, such as `0.5` or `2.0`.
-
-Pass criteria:
-
-- compression changes proportionally;
-- baseline and vanilla full-sleep handoff remain unchanged.
-
-### Disable/fail-safe
-
-Test `Enabled=false` and at least one safe recoverable error path if practical.
-
-Pass criteria:
-
-- exact baseline is restored;
-- no compressed value remains on server/clients.
-
-## 6. Verbose diagnostics
-
-Normal Public Alpha play should use:
+Normal play:
 
 ```text
 DiagnosticsEnabled=false
 ```
 
-When a reproducible problem needs investigation, temporarily enable:
+Controlled investigation:
 
 ```text
 DiagnosticsEnabled=true
 ```
 
-This activates one-second clock/sleep telemetry on server and clients.
-
-Because the sampler can generate large logs, use it only for the shortest practical reproduction window.
+With v0.0.8 this now activates both clock/sleep and broad health/injury telemetry. Log volume can be substantial, so keep diagnostic sessions short and purposeful.
 
 Collect:
 
 ```text
 server log ZIP / DebugLog
-server console output
-at least one affected client's console.txt / log ZIP
+server console
+Player A client logs
+Player B client logs when practical
 ```
 
-For a client-specific display/sleep problem, the affected client's log is more useful than collecting every player's logs.
+For SPIKE-004, Player A's owning-client log is particularly important because Player A is the monitored health subject.
 
 ## 7. Project Zomboid update regression
 
-When PZ releases a new B42 build:
+For a new B42 build:
 
-1. Review official release notes for changes near multiplayer networking, GameTime, Lua events, sleep/fatigue, mod loading, or player lifecycle.
-2. Run Tier 1 startup smoke testing.
-3. If the update touches any dependency used by the mod, run Tier 2 core multiplayer regression.
-4. Do not discard historical evidence unless the update actually changes the relevant behavior.
-5. Record the new validated platform baseline only after successful testing.
+1. Review official release notes for multiplayer networking, GameTime, Lua events, sleep/fatigue, body-damage/stat APIs, mod loading or player lifecycle changes.
+2. Run Tier 1 smoke testing.
+3. If dependencies changed, run Tier 2 core regression.
+4. Re-run focused health tests only if the update plausibly affects those systems.
+5. Update the validated platform baseline only after successful testing.
 
 ## 8. Public Beta transition evidence
 
-Before calling the mod Public Beta, testing should establish:
+Before Public Beta:
 
 - stable operation with more than two players;
-- multiple proportional fractions observed/validated;
+- multiple proportional fractions validated;
 - no recurrence of issues #1–#3;
-- alternate native day length and FastForwardMultiplier inheritance;
-- at least one non-default `PartialSleepSpeedScale` test;
-- explicit disable/fail-safe restoration;
+- health/time-domain safety gate passed;
+- alternate day length / FastForwardMultiplier inheritance tested;
+- non-default scale tested;
+- explicit disable/fail-safe restoration tested;
 - acceptable public-server log/error behavior;
-- major world-time-driven effects understood and documented;
+- major world-time-driven effects understood/documented;
 - no known high-severity defect requiring rollback from ordinary multiplayer use.
 
-See [`ROADMAP.md`](ROADMAP.md) for the phase-level release criteria.
+See [`ROADMAP.md`](ROADMAP.md) for phase-level criteria.
