@@ -10,7 +10,7 @@ The key idea is **calendar/world-time compression**, not global simulation accel
 - awake players, zombies, vehicles, animations, physics, inventory actions, timed actions, combat, and crafting remain at normal active-game simulation speed;
 - if all currently instantiated living players are asleep, the mod restores the native day length and vanilla full-sleep fast-forward takes over.
 
-The current development version is `v0.0.6`. The proportional server controller remains behaviorally the same architecture validated in v0.0.4. v0.0.6 adds an experimental server-to-client `MinutesPerDay` synchronization path to address the clock-jump defect identified conclusively by v0.0.5, and expands sleep telemetry for the long-sleep investigation.
+The current development version is `v0.0.7`. The proportional server controller remains behaviorally unchanged from the architecture validated in earlier builds. v0.0.7 is a cleanup/verification build following the successful v0.0.6 two-player synchronization test on Project Zomboid 42.20.3: it fixes a client post-apply logging exception, avoids a harmless stale transition packet, and retains diagnostics for one clean confirmation run.
 
 See [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) for the canonical specification and acceptance tests, [`docs/TESTING.md`](docs/TESTING.md) for repeatable test procedures, and [`CHANGELOG.md`](CHANGELOG.md) for development history.
 
@@ -36,17 +36,31 @@ The test also validated wake restoration and denominator recalculation after dis
 
 v0.0.5 then established the root cause of the visible clock snapping. During the same partial-sleep condition, the server correctly ran at `MinutesPerDay=4.5`, while the tested client remained at `MinutesPerDay=90`. The client's local clock therefore advanced too slowly and periodically received multiplayer time corrections of roughly 51 in-game minutes.
 
-Open issues currently under test:
+v0.0.6 was tested successfully with two players on **Project Zomboid 42.20.3 Stable**. During one-of-two partial sleep:
 
-- **Issue #1:** sleeping black-screen clock jumps during partial compression;
-- **Issue #2:** awake player's upper-right HUD/watch clock snaps forward during partial compression;
-- **Issue #3:** a sleeping character can remain asleep for implausibly large amounts of compressed world time.
+```text
+SERVER MinutesPerDay = 4.5
+CLIENT A MinutesPerDay = 4.5
+CLIENT B MinutesPerDay = 4.5
+```
+
+Both clients' underlying `TimeOfDay` then advanced at approximately the expected 5.33 in-game minutes per real second without the prior ~51-minute sawtooth corrections. The awake player's upper-right HUD/watch clock and the sleeping player's black-screen clock were both reported visually smooth, while awake movement/actions remained normal-speed.
+
+The same run strongly indicated that the earlier long-sleep symptom shared the client pacing mismatch as its root cause: with client synchronization active, the sleeping client's `AsleepTime` advanced approximately 1:1 with compressed world time and the character woke near vanilla `ForceWakeUpTime`, including a later pill-influenced sleep.
+
+The v0.0.6 synchronization itself worked, but its client handler contained a post-apply verification/logging bug. The expression `tonumber(safeMethod(...))` passed both return values from `safeMethod()` into Kahlua's `tonumber` bridge, repeatedly producing a Java `Double` -> `String` `ClassCastException` after `setMinutesPerDay()` had already succeeded. v0.0.7 separates the safe-method return from numeric conversion and fixes the same pattern in disconnect restoration.
+
+Issue status:
+
+- **Issue #1:** functionally resolved in v0.0.6; awaiting one error-free v0.0.7 confirmation before closure;
+- **Issue #2:** functionally resolved in v0.0.6; awaiting one error-free v0.0.7 confirmation before closure;
+- **Issue #3:** likely the same root cause as the client/server day-length mismatch; awaiting one clean v0.0.7 confirmation before closure.
 
 At `MinutesPerDay=4.5`, world time naturally advances approximately 5.33 in-game minutes per real second. Rapid clock motion is expected; long holds followed by large corrections are not.
 
-## v0.0.6 synchronization experiment
+## Client clock-state synchronization
 
-v0.0.6 introduces two narrowly scoped synchronization modules:
+The synchronization path uses two narrowly scoped modules:
 
 ```text
 42/media/lua/server/EnshroudedSleep/ClockStateSync_Server.lua
@@ -65,7 +79,9 @@ setMultiplier()
 GameServer.syncClock()
 ```
 
-The server remains authoritative for actual world time, sleep state, and the proportional compression decision. The client only uses the same day-length pacing value so its local clock should advance at approximately the same rate between normal multiplayer synchronization corrections.
+The server remains authoritative for actual world time, sleep state, and the proportional compression decision. The client only uses the same day-length pacing value so its local clock advances at approximately the same rate between normal multiplayer synchronization corrections.
+
+v0.0.7 also defers a ClockState send for one observer pass whenever the visible living/sleeping population changes. This allows the independent authoritative controller to apply the corresponding `MinutesPerDay` before the synchronization observer publishes the new state, avoiding a transient stale pairing such as `mode=partial` with the previous baseline value.
 
 Synchronization prefixes are:
 
@@ -74,14 +90,14 @@ Synchronization prefixes are:
 [EnshroudedSleepSync][CLIENT]
 ```
 
-The existing one-second diagnostics remain active under:
+The one-second diagnostics remain active for the v0.0.7 confirmation under:
 
 ```text
 [EnshroudedSleepDiag][SERVER]
 [EnshroudedSleepDiag][CLIENT]
 ```
 
-For issue #3, v0.0.6 additionally records:
+Client sleep telemetry includes:
 
 ```text
 player / OnlineID
@@ -92,7 +108,7 @@ Fatigue
 SleepingPillsTaken
 ```
 
-Those sleep values are observational only in v0.0.6. No sleep-recovery or wake-time compensation has been implemented yet.
+No custom sleep-recovery or wake-time compensation is currently implemented because v0.0.6 evidence indicates it is not needed when clients share the authoritative day-length pacing.
 
 For the exact test procedure, use [`docs/TESTING.md`](docs/TESTING.md).
 
@@ -126,7 +142,7 @@ pz-enshrouded-sleep-main/
 
 That branch suffix is not part of the Mod ID. For the least ambiguous server deployment, rename the extracted GitHub folder to `pz-enshrouded-sleep` before placing it in the server's local mods directory.
 
-For v0.0.6 testing, install the same snapshot on every participating client under the normal local user mod directory, for example:
+For v0.0.7 testing, install the same snapshot on every participating client under the normal local user mod directory, for example:
 
 ```text
 C:\Users\<user>\Zomboid\mods\pz-enshrouded-sleep\
@@ -221,7 +237,7 @@ Scale 0.5 -> effective partial cap 20
 Scale 2.0 -> effective partial cap 80
 ```
 
-The current test server has been validated with:
+The current test configuration validated on PZ 42.20.3 is:
 
 ```text
 DayLength = 4
@@ -230,7 +246,7 @@ SleepNeeded = true
 FastForwardMultiplier = 40.0
 ```
 
-which produces a live `MinutesPerDay=90`. Those values are a test example, not production constants.
+which produces a live native `MinutesPerDay=90`. Those values are a test example, not production constants.
 
 ## Runtime behavior
 
@@ -259,7 +275,7 @@ Sleeping == Living
 
 The authoritative controller never calls `GameTime:setMultiplier()`.
 
-In v0.0.6, a separate sync observer republishes the resulting server `MinutesPerDay` to clients. It does not calculate or override the authoritative target.
+A separate synchronization observer republishes the resulting server `MinutesPerDay` to clients. It does not calculate or override the authoritative target.
 
 ## Important distinction: world time vs active simulation
 
@@ -300,14 +316,23 @@ Dedicated-server testing on B42.20.2 established that:
 - vanilla full-sleep fast-forward does not work by changing `MinutesPerDay`;
 - v0.0.4 correctly applies the expected 20x partial-sleep compression in a two-player/one-sleeper test and correctly restores baseline for vanilla full sleep;
 - v0.0.5 proved that a runtime server `MinutesPerDay` change is not automatically reflected in client `getMinutesPerDay()`;
-- the mismatched server/client day lengths produce a repeating drift-and-correction pattern visible as large clock jumps;
-- the same v0.0.5 run exposed a separate long-sleep behavior that now requires direct sleep-counter telemetry.
+- the mismatched server/client day lengths produce a repeating drift-and-correction pattern visible as large clock jumps.
+
+The v0.0.6 two-player regression/integration test on B42.20.3 additionally established that:
+
+- explicit server-to-client `MinutesPerDay` replication causes both clients to adopt the same effective day length as the server;
+- at `MinutesPerDay=4.5`, client `TimeOfDay` advances at approximately the expected 5.33 game-minutes per real second without the previous ~51-minute corrections;
+- both sleeping and awake clock displays are visually smooth under partial compression;
+- awake gameplay remains normal-speed while client calendar pacing is compressed;
+- baseline restoration, vanilla full-sleep handoff, wake restoration, and population recalculation continue to work on B42.20.3;
+- client-side `AsleepTime` tracks compressed world time closely enough for vanilla wake scheduling to remain sensible;
+- the remaining v0.0.6 error flood is a post-apply logging/verification bridge bug, not a failure of clock-state replication.
 
 ## Vanilla full-sleep observation
 
-On the current B42.20.2 test server, `FastForwardMultiplier=40.0` did **not** correspond to an observed 40x calendar rate during vanilla full sleep.
+Historical B42.20.2 testing with `FastForwardMultiplier=40.0` showed that vanilla full sleep did **not** correspond to an observed 40x calendar rate.
 
-The measured full-sleep behavior was approximately:
+The measured behavior was approximately:
 
 ```text
 MinutesPerDay: 90 -> remains 90
@@ -316,17 +341,17 @@ TrueMultiplier: remains 1
 Observed calendar progression: roughly 120x baseline
 ```
 
-The mod deliberately does not convert that observation into a hard-coded `120x` or `3 * FastForwardMultiplier` rule.
+The B42.20.3 v0.0.6 run again showed native `MinutesPerDay=90` restored before vanilla full-sleep fast-forward and an approximately 576 GameTime multiplier during that handoff. The mod deliberately does not convert these observations into a hard-coded `120x` or `3 * FastForwardMultiplier` rule.
 
 For partial sleep, the configured `FastForwardMultiplier` is used as the administrator's **policy input** for calendar compression. At 100% asleep, vanilla owns the behavior.
 
-## v0.0.6 implementation
+## v0.0.7 implementation
 
 The current development build:
 
 - uses stable Mod ID `pz-enshrouded-sleep`;
 - uses sandbox namespace `EnshroudedSleep`;
-- retains the server-authoritative proportional controller introduced in v0.0.3 and validated in v0.0.4;
+- retains the server-authoritative proportional controller introduced in v0.0.3 and validated across v0.0.4/v0.0.6 testing;
 - captures the exact runtime `MinutesPerDay` baseline;
 - reads native `SleepAllowed`, `SleepNeeded`, and `FastForwardMultiplier` from `getServerOptions()`;
 - exposes `PartialSleepSpeedScale` as a double-valued sandbox option;
@@ -336,8 +361,10 @@ The current development build:
 - never calls the global simulation multiplier from the authoritative controller;
 - broadcasts authoritative server `MinutesPerDay` to clients on state changes plus a two-second heartbeat;
 - mirrors that value into local client `GameTime:MinutesPerDay` without setting `TimeOfDay` or a multiplier;
-- records one-second server/client GameTime telemetry;
-- records per-player sleep counters while sleep is active.
+- fixes v0.0.6's multi-return `tonumber` verification/disconnect exception;
+- defers population-state synchronization by one observer pass so transition packets reflect the controller's settled day length;
+- records one-second server/client GameTime telemetry for the v0.0.7 confirmation;
+- records client sleep counters while sleep is active.
 
 ## MVP acceptance criteria
 
@@ -346,16 +373,16 @@ Before `v0.1.0`, dedicated-server testing should demonstrate:
 1. changing native day length automatically changes the captured baseline;
 2. changing native `FastForwardMultiplier` automatically changes partial-sleep compression;
 3. `PartialSleepSpeedScale=1.0` is neutral and other values scale proportionally;
-4. one of two players sleeping at baseline 90 / native FF 40 produces approximately `MinutesPerDay=4.5`; **validated server-side in v0.0.4**;
+4. one of two players sleeping at baseline 90 / native FF 40 produces approximately `MinutesPerDay=4.5`; **validated server-side in v0.0.4 and reconfirmed on B42.20.3 in v0.0.6**;
 5. with baseline 120 / native FF 40 / four players, 1/4, 2/4, and 3/4 sleeping produce approximately 12, 6, and 4 MinutesPerDay;
-6. awake gameplay simulation remains normal during partial sleep;
+6. awake gameplay simulation remains normal during partial sleep; **validated in the v0.0.6 B42.20.3 two-player test**;
 7. calendar time and `WorldAgeHours` follow the calculated compression factor;
-8. waking the last partial sleeper restores the exact baseline immediately; **observed in v0.0.4**;
-9. all living players asleep restores baseline before vanilla takes over, with no intentional stacking; **observed in v0.0.4**;
+8. waking the last partial sleeper restores the exact baseline immediately; **validated in v0.0.4 and reconfirmed in v0.0.6**;
+9. all living players asleep restores baseline before vanilla takes over, with no intentional stacking; **validated in v0.0.4 and reconfirmed in v0.0.6**;
 10. disabling the mod or hitting a recoverable error restores native time;
-11. connected clients use the same effective `MinutesPerDay` as the server during partial compression;
-12. sleeping and awake client clocks visually track compressed world time without large periodic snaps;
-13. vanilla sleep duration remains sensible in world-time terms, including when sleeping pills or other native modifiers are present.
+11. connected clients use the same effective `MinutesPerDay` as the server during partial compression; **validated behaviorally in v0.0.6; clean error-free confirmation pending v0.0.7**;
+12. sleeping and awake client clocks visually track compressed world time without large periodic snaps; **validated behaviorally in v0.0.6; clean error-free confirmation pending v0.0.7**;
+13. vanilla sleep duration remains sensible in world-time terms, including when sleeping pills or other native modifiers are present; **v0.0.6 evidence strongly supports this once client pacing is synchronized; confirmation pending v0.0.7**.
 
 ## Explicitly out of scope for MVP
 
