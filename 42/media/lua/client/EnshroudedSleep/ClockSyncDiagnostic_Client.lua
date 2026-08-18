@@ -1,16 +1,18 @@
 -- Enshrouded Sleep - client clock and sleep synchronization diagnostic
--- v0.0.6 diagnostic instrumentation for Project Zomboid Build 42.20+
+-- v0.0.7 verification instrumentation for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
 -- Record the multiplayer client's view of GameTime and local sleep state once
 -- per real second. v0.0.5 established that runtime server MinutesPerDay changes
--- were not automatically replicated to clients. v0.0.6 keeps this diagnostic
--- active while the ClockState synchronization experiment is tested and adds
--- sleep-duration telemetry for the long-sleep investigation.
+-- were not automatically replicated to clients. v0.0.6 proved that explicit
+-- ClockState replication fixes the client pacing mismatch, smooths both visible
+-- clock paths, and restores sensible sleep-duration behavior.
 --
--- This file is observational only. The separate ClockStateSync_Client.lua file
--- is the only v0.0.6 client component that mutates local MinutesPerDay.
+-- v0.0.7 keeps this diagnostic active for one clean regression after fixing the
+-- v0.0.6 post-apply logging exception. This file is observational only. The
+-- separate ClockStateSync_Client.lua file is the only client component that
+-- mutates local MinutesPerDay.
 
 if not isClient() then return end
 
@@ -91,10 +93,9 @@ local function readPlayerState()
 end
 
 ---Capture one real-time client clock/sleep sample.
----The key v0.0.6 clock test is whether local MinutesPerDay now follows the
----server's 90 -> 4.5 -> 90 state transitions and eliminates large TimeOfDay
----corrections. Sleep fields diagnose whether vanilla wake/recovery counters use
----a different time domain than compressed world/calendar time.
+---The v0.0.7 confirmation checks that local MinutesPerDay continues to follow
+---server 90 -> compressed -> 90 transitions without large TimeOfDay corrections
+---or client-side synchronization exceptions.
 ---@return nil
 local function sampleClock()
     local now = os.time()
@@ -155,4 +156,4 @@ else
     Events.OnTick.Add(sampleClock)
 end
 
-log("Loaded v0.0.6 client clock/sleep diagnostic.")
+log("Loaded v0.0.7 client clock/sleep diagnostic.")
