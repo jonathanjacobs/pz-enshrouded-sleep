@@ -1,25 +1,40 @@
 # Spikes
 
-Exploratory investigations and proof-of-concept work belong in this directory.
+Focused exploratory investigations and proof-of-concept work live in this directory.
 
-The early Enshrouded Sleep development builds (`v0.0.1` through `v0.0.7`) functioned as a sequence of spike-style investigations while the multiplayer time model was being established. Their consolidated results are recorded in [`../VALIDATION_HISTORY.md`](../VALIDATION_HISTORY.md) and the repository [`CHANGELOG.md`](../../CHANGELOG.md).
+The initial directory README was only scaffolding. That was incomplete once the project had already accumulated several material spike-style investigations. The early work has now been formalized retrospectively so future maintainers can trace each evidence question separately from the consolidated validation history.
 
-Future focused investigations should use a durable document such as:
+## Spike index
+
+| Spike | Status | Question |
+|---|---|---|
+| [`SPIKE-001-minutes-per-day-feasibility.md`](SPIKE-001-minutes-per-day-feasibility.md) | Completed / GO | Can `MinutesPerDay` compress world/calendar time without globally speeding active gameplay? |
+| [`SPIKE-002-vanilla-sleep-lifecycle.md`](SPIKE-002-vanilla-sleep-lifecycle.md) | Completed / GO | Can the MVP rely on vanilla instantiated-player/sleep lifecycle and hand all-asleep back to vanilla? |
+| [`SPIKE-003-client-clock-synchronization.md`](SPIKE-003-client-clock-synchronization.md) | Completed / GO | Why do client clocks jump, and can client pacing be corrected without changing server authority? |
+| [`SPIKE-004-health-time-domains.md`](SPIKE-004-health-time-domains.md) | **In progress / Public Alpha blocker** | Which health/survival systems accelerate with compressed calendar time, and is any effect unsafe for awake players? |
+
+## Required spike structure
+
+Future spikes should use stable numbered filenames:
 
 ```text
-SPIKE-001-short-title.md
-SPIKE-002-short-title.md
+SPIKE-005-short-title.md
+SPIKE-006-short-title.md
 ```
 
-A spike document should capture:
+Each spike should capture:
 
+- status;
 - question/hypothesis;
+- why the question matters;
 - scope and non-goals;
-- test environment;
+- instrumentation/test environment;
 - procedure;
 - evidence/results;
 - conclusion;
-- go/no-go or follow-up decision;
-- links to any resulting issues, ADRs, or implementation changes.
+- GO / CONDITIONAL GO / NO-GO or follow-up decision;
+- links to resulting issues, ADRs, requirements, or implementation changes.
 
-Spikes are evidence records, not normative product requirements. Final behavior belongs in [`../REQUIREMENTS.md`](../REQUIREMENTS.md), and architectural decisions should be reflected in [`../ARCHITECTURE.md`](../ARCHITECTURE.md) or a formal ADR when appropriate.
+Spikes are evidence records, not normative product requirements. Final required behavior belongs in [`../REQUIREMENTS.md`](../REQUIREMENTS.md). Durable architectural choices belong in [`../ARCHITECTURE.md`](../ARCHITECTURE.md) and, when significant, an ADR.
+
+The consolidated chronology remains in [`../VALIDATION_HISTORY.md`](../VALIDATION_HISTORY.md).
