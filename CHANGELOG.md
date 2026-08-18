@@ -1,48 +1,77 @@
 # Changelog
 
-Human-readable history of notable Enshrouded Sleep changes. Git remains authoritative for exact diffs. Detailed experimental evidence lives in [`docs/VALIDATION_HISTORY.md`](docs/VALIDATION_HISTORY.md).
+Human-readable history of notable Enshrouded Sleep changes. Git remains authoritative for exact diffs. Detailed experimental evidence lives in [`docs/VALIDATION_HISTORY.md`](docs/VALIDATION_HISTORY.md), while focused investigations and decisions live under [`docs/spikes/`](docs/spikes/) and [`docs/adr/`](docs/adr/).
 
-## [Unreleased / Public Alpha hardening] - 2026-08-17
+## [Unreleased]
 
-### Status
+### Next decision
 
-- Promoted the project from controlled test-server development into **Public Alpha** field testing.
-- Project Zomboid `42.20.3` remains the current behaviorally validated platform baseline.
-- Issues #1, #2, and #3 are closed after the successful v0.0.7 regression.
+- Complete [`SPIKE-004 — Player Health and Survival Time Domains Under Calendar Compression`](docs/spikes/SPIKE-004-health-time-domains.md).
+- Use the resulting evidence to make a **GO / CONDITIONAL GO / NO-GO** decision for WHG Public Alpha deployment.
+- If the health spike passes, run a short v0.0.8 core regression and proceed to larger-population field testing.
 
-### Changed
+## [0.0.8] - 2026-08-17
 
-- Redesigned the top-level README for players/server operators rather than development-history readers.
-- Added a dedicated Public Alpha deployment/rollback guide.
-- Added a roadmap with Public Alpha, Public Beta, and v1.0 exit criteria.
-- Added a standalone architecture overview.
-- Consolidated v0.0.1–v0.0.7 experimental evidence into `docs/VALIDATION_HISTORY.md`.
-- Refactored `docs/REQUIREMENTS.md` into a current normative MVP specification and acceptance matrix.
-- Refactored `docs/TESTING.md` around current smoke/regression/public-alpha testing instead of historical procedures.
-- Added documentation conventions under `docs/spikes/` and `docs/adr/`.
+Pre-Public-Alpha health/time-domain diagnostic build.
 
-### Public-server hardening
+### Why this build exists
 
-- Added sandbox option:
+After v0.0.7 passed the clean two-player clock/sleep regression, pre-deployment review identified a separate safety risk: calendar compression may accelerate some player health/survival systems in real time even though active movement/combat simulation remains normal-speed.
+
+The immediate example is an awake wounded/bleeding player while another player sleeps. If blood loss follows world/calendar time, high compression could make an otherwise survivable injury lethal much faster in real time. The same question applies to hunger, thirst, fatigue, healing, sickness, zombie infection, temperature, and related systems.
+
+Public Alpha deployment is therefore paused until this behavior is measured.
+
+### Added — broad server health/time-domain diagnostic
+
+Added:
 
 ```text
-DiagnosticsEnabled = false
+42/media/lua/server/EnshroudedSleep/HealthTimeDomainDiagnostic_Server.lua
 ```
 
-- One-second `[EnshroudedSleepDiag]` server/client telemetry is now opt-in rather than always active.
-- Low-volume controller and synchronization state-transition logging remains enabled.
-- This change does **not** alter the proportional compression formula, client synchronization behavior, population semantics, or vanilla full-sleep handoff.
+When `DiagnosticsEnabled=true`, the server samples every instantiated living player once per real second and records:
 
-### Public Alpha focus
+- clock/experiment context: phase, living/sleeping counts, sleep fraction, `MinutesPerDay`, observed baseline, compression factor, `TimeOfDay`, `WorldAgeHours`;
+- sleep state: asleep flag, `AsleepTime`, `ForceWakeUpTime`, sleeping-pill count;
+- health/body state: health, overall body health, injury counts and flags;
+- survival stats: hunger, thirst, fatigue, endurance, stress, panic, pain, boredom, sickness, drunkenness, fear, sanity;
+- health modifiers: unhappiness, food sickness, poison, infection/apparent infection/fake infection, temperature, wetness, cold progression;
+- nutrition: weight, calories, carbohydrates, proteins, lipids;
+- detailed injured-body-part telemetry including bleeding, wound timers, cuts, scratches, bites, deep wounds, stitches, fractures, splints, burns, wound infection, bandages, glass/bullets, temperature/wetness, and stiffness.
 
-Field testing now targets:
+The diagnostic is read-only and uses guarded API calls so an unavailable Lua-exposed getter is recorded as `N/A` rather than failing the gameplay session.
 
-- 3–12+ player populations;
-- multiple partial-sleep fractions;
-- joins/disconnects/deaths/respawns during sleep states;
-- long-session stability;
-- real mod-stack interactions;
-- world-time-driven systems such as spoilage, farming, generators, hunger/thirst/fatigue, healing, weather, corpses, and composting.
+### Added — client health/time-domain diagnostic
+
+Added:
+
+```text
+42/media/lua/client/EnshroudedSleep/HealthTimeDomainDiagnostic_Client.lua
+```
+
+The owning client records the corresponding local player metrics. This is deliberate because prior sleep diagnostics established that some useful timing values can be exposed differently or more meaningfully on the owning client than on the server.
+
+### Diagnostic safety
+
+- Both new health diagnostics are dormant unless `DiagnosticsEnabled=true`.
+- Sampling is once per real second, not every simulation tick.
+- Diagnostics do not heal, injure, feed, fatigue, infect, sleep/wake, or otherwise mutate players.
+- Existing low-volume controller/synchronization state logging remains independent of verbose diagnostics.
+- The v0.0.6 Kahlua multi-return `tonumber()` failure pattern is explicitly avoided by converting only a separately captured method return value.
+
+### Documentation / engineering records
+
+- Added formal [`SPIKE-004`](docs/spikes/SPIKE-004-health-time-domains.md) with scope, telemetry, controlled procedure, analysis method, and deployment go/no-go criteria.
+- Retroactively documented the three completed investigations that established the current architecture as SPIKE-001 through SPIKE-003.
+- Added ADR-001 through ADR-003 for the durable decisions to use `MinutesPerDay`, extend vanilla lifecycle/full-sleep semantics, and explicitly mirror authoritative `MinutesPerDay` to clients.
+- Reframed the repository status from active Public Alpha to **Public Alpha candidate / pre-deployment validation** until SPIKE-004 is resolved.
+- Updated README, requirements, testing, architecture, roadmap, deployment guidance, validation history, and documentation indexes accordingly.
+
+### Versioning
+
+- Bumped repository and PZ metadata to `0.0.8` because the diagnostic code surface materially changed after the exact v0.0.7 build had already been validated.
+- The proportional controller and clock-synchronization algorithms remain behaviorally unchanged from v0.0.7.
 
 ## [0.0.7] - 2026-08-17
 
@@ -68,71 +97,29 @@ The v0.0.7 two-player regression on Project Zomboid 42.20.3 confirmed:
 - correct native baseline restoration before vanilla full-sleep fast-forward;
 - correct wake/disconnect denominator recalculation;
 - no stale `mode=partial` + baseline-90 transition packet;
-- vanilla sleep wake behavior remained sensible, including a pill-influenced sleep waking near `ForceWakeUpTime`.
+- vanilla sleep/wake behavior remained sensible, including a pill-influenced sleep waking near `ForceWakeUpTime`.
 
-### Issue resolution
-
-- #1 sleeping black-screen clock jumps — closed/completed.
-- #2 awake HUD/watch clock snaps forward — closed/completed.
-- #3 pathological long world-time sleep — closed/completed; root cause was the same client/server `MinutesPerDay` pacing mismatch.
+Issues #1, #2, and #3 were closed after this regression.
 
 ## [0.0.6] - 2026-08-15
 
 First explicit server-to-client day-length synchronization experiment.
 
-### Added
+Added `ClockStateSync_Server.lua`, `ClockStateSync_Client.lua`, a two-second convergence heartbeat, and sleep telemetry. Two-player testing on PZ 42.20.3 showed both tested clients adopting the server's compressed `MinutesPerDay=4.5`; both visible clocks became smooth and awake gameplay remained normal-speed.
 
-- `ClockStateSync_Server.lua` to broadcast authoritative runtime `MinutesPerDay`.
-- `ClockStateSync_Client.lua` to mirror the server's day-length pacing value locally.
-- Two-second heartbeat so late-loading clients converge after missed transition packets.
-- Client/server sleep telemetry for `AsleepTime`, `ForceWakeUpTime`, fatigue, and sleeping-pill count.
+The run also showed client `AsleepTime` tracking compressed world time and waking near vanilla `ForceWakeUpTime`, explaining the earlier long-sleep symptom.
 
-### Established
-
-Two-player testing on PZ 42.20.3 showed that client synchronization fixed the underlying clock drift:
-
-```text
-SERVER MinutesPerDay = 4.5
-CLIENT A MinutesPerDay = 4.5
-CLIENT B MinutesPerDay = 4.5
-```
-
-Both visible clocks became smooth and awake gameplay remained normal-speed.
-
-The same run showed client `AsleepTime` tracking compressed world time and waking near vanilla `ForceWakeUpTime`, explaining the earlier long-sleep symptom.
-
-### Known defect
-
-The actual client `setMinutesPerDay()` succeeded, but post-apply verification generated repeated exceptions due to the `tonumber(safeMethod(...))` multi-return bridge bug. Fixed in v0.0.7.
+The actual client setter worked, but post-apply verification generated repeated exceptions due to a Kahlua multi-return `tonumber(safeMethod(...))` bug. Fixed in v0.0.7.
 
 ## [0.0.5] - 2026-08-14
 
-Read-only client/server clock diagnosis.
-
-### Established
-
-During one-of-two partial sleep:
-
-```text
-SERVER MinutesPerDay = 4.5
-CLIENT MinutesPerDay = 90
-```
-
-The client advanced at native day length between normal multiplayer corrections, producing recurring visible jumps of roughly 51 in-game minutes. This established that server runtime `MinutesPerDay` changes were not automatically mirrored to client GameTime.
-
-The same test exposed the long-sleep symptom later explained by the same client pacing mismatch.
+Read-only client/server clock diagnosis established that, during one-of-two partial sleep, the server used `MinutesPerDay=4.5` while the client remained at `90`. The client advanced at native day length between multiplayer corrections, causing recurring visible jumps of roughly 51 in-game minutes.
 
 ## [0.0.4] - 2026-08-14
 
 Deployment/naming cleanup and first successful two-player proportional-sleep validation.
 
-### Changed
-
-- Standardized Mod ID to `pz-enshrouded-sleep`.
-- Standardized sandbox namespace to `EnshroudedSleep`.
-- Standardized server controller filename to `EnshroudedSleep_Server.lua`.
-
-### Validated
+Validated:
 
 ```text
 2 living / 0 sleeping -> MinutesPerDay=90
@@ -146,62 +133,24 @@ Wake restoration and disconnect denominator recalculation also passed.
 
 First functional proportional-sleep controller.
 
-### Added
+Added the proportional `SleepFraction` model, runtime baseline capture/restoration, native `FastForwardMultiplier` inheritance, `PartialSleepSpeedScale`, instantiated non-dead player population semantics, per-tick observation with deduplicated writes, and fail-safe restoration toward native baseline.
 
-- Proportional `SleepFraction` model.
-- Runtime baseline capture/restoration.
-- Native `FastForwardMultiplier` inheritance.
-- `PartialSleepSpeedScale` option.
-- Living/sleeping population based on instantiated non-dead `IsoPlayer` objects.
-- Per-tick observation with deduplicated `MinutesPerDay` writes.
-- Fail-safe restoration toward native baseline.
-
-### Architecture
-
-Partial sleep changes `MinutesPerDay` only. It does not call `GameTime:setMultiplier()`.
-
-At 100% living players asleep, the mod restores native `MinutesPerDay` and lets vanilla full-sleep fast-forward take over.
+Partial sleep changes `MinutesPerDay` only; it does not call `GameTime:setMultiplier()`.
 
 ## [0.0.2b] - 2026-08-13
 
-Expanded vanilla full-sleep and connection-state probe.
-
-### Established
-
-- loading clients may exist before an `IsoPlayer` appears;
-- vanilla full sleep leaves `MinutesPerDay` unchanged;
-- vanilla full sleep instead drove `GameTime:getMultiplier()` to roughly 575 on the test configuration;
-- no hard-coded relationship between configured `FastForwardMultiplier` and effective vanilla all-sleep rate was adopted.
+Expanded vanilla full-sleep and connection-state probe. Established that loading clients may exist before an `IsoPlayer` appears and that vanilla full sleep leaves `MinutesPerDay` unchanged while using another multiplier path.
 
 ## [0.0.2] - 2026-08-13
 
-Player lifecycle/sleep-state diagnostic.
-
-### Established
-
-- server-side `isAsleep()` reliably reflects sleep/wake state;
-- dead player objects may remain in `getOnlinePlayers()` during respawn;
-- dead players must be excluded from the proportional denominator;
-- earlier inability to sleep was traced to native server sleep settings, not admin status.
+Player lifecycle/sleep-state diagnostic. Established reliable server-side `isAsleep()`, dead-player persistence during respawn, and the need to exclude dead characters from the proportional denominator.
 
 ## [0.0.1] - 2026-08-13
 
-Initial `MinutesPerDay` proof of concept.
-
-### Established
-
-- baseline `MinutesPerDay=90` could be temporarily changed to `4.5`;
-- this produced approximately 20x world/calendar progression;
-- `TrueMultiplier` remained `1`;
-- active gameplay did not visibly globally accelerate;
-- the exact baseline could be restored.
+Initial `MinutesPerDay` proof of concept. Baseline `90` was temporarily changed to `4.5`, producing approximately 20x world/calendar progression while `TrueMultiplier` remained `1` and active gameplay did not visibly globally accelerate.
 
 This established the project's central premise: **compress world/calendar time during partial sleep rather than globally fast-forward the simulation**.
 
-## Repository initialization - 2026-08-13
-
-- Added basic repository structure, CI placeholder, license, and Build 42 media-scanner directory placeholders.
-
 ---
 
-For detailed test evidence, chronology, and rationale, see [`docs/VALIDATION_HISTORY.md`](docs/VALIDATION_HISTORY.md). For current release goals, see [`docs/ROADMAP.md`](docs/ROADMAP.md).
+For detailed chronology and evidence, see [`docs/VALIDATION_HISTORY.md`](docs/VALIDATION_HISTORY.md). For current test/decision work, see [`docs/spikes/`](docs/spikes/) and [`docs/ROADMAP.md`](docs/ROADMAP.md).
