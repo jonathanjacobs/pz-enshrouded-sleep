@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - client MinutesPerDay synchronization
--- v0.0.6 experimental synchronization for Project Zomboid Build 42.20+
+-- v0.0.7 synchronization cleanup for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -8,9 +8,20 @@
 -- compression (4.5 in the 2-player / 1-sleeper test). Vanilla multiplayer then
 -- corrects TimeOfDay periodically, producing visible ~51-minute clock jumps.
 --
--- This client module listens for the server's EnshroudedSleep/ClockState command
--- and mirrors only the authoritative MinutesPerDay value locally. The server
--- remains authoritative for actual world time and sleep state.
+-- v0.0.6 proved that explicitly mirroring the authoritative server
+-- MinutesPerDay on clients removes those large corrections and produces smooth
+-- sleeping/HUD clock presentation while leaving active gameplay normal-speed.
+--
+-- v0.0.7 preserves that behavior and fixes a Kahlua/Lua multi-return bug in the
+-- post-apply verification and disconnect-restoration reads. In v0.0.6 the
+-- successful setMinutesPerDay() call was followed by tonumber(safeMethod(...));
+-- because safeMethod returns both value and error, Kahlua could select tonumber's
+-- two-argument overload and attempt to cast a Java Double to String. The actual
+-- synchronization succeeded, but every heartbeat could then register an error.
+--
+-- This module listens for the server's EnshroudedSleep/ClockState command and
+-- mirrors only the authoritative MinutesPerDay value locally. The server remains
+-- authoritative for actual world time and sleep state.
 
 if not isClient() then return end
 
@@ -108,8 +119,8 @@ local function onServerCommand(module, command, args)
         return
     end
 
-    local current, readErr = safeMethod(gt, "getMinutesPerDay")
-    current = tonumber(current)
+    local currentValue, readErr = safeMethod(gt, "getMinutesPerDay")
+    local current = tonumber(currentValue)
     if current == nil then
         logErrorOnce("could not read local MinutesPerDay: " .. tostring(readErr))
         return
@@ -127,7 +138,16 @@ local function onServerCommand(module, command, args)
         end
     end
 
-    local after = tonumber(safeMethod(gt, "getMinutesPerDay")) or target
+    -- IMPORTANT: capture safeMethod's first return before calling tonumber().
+    -- Passing the multi-return expression directly into Kahlua's tonumber() can
+    -- select its two-argument overload and cause Double -> String ClassCastException.
+    local afterValue, afterReadErr = safeMethod(gt, "getMinutesPerDay")
+    local after = tonumber(afterValue)
+    if after == nil then
+        logErrorOnce("could not verify local MinutesPerDay after apply: " .. tostring(afterReadErr))
+        return
+    end
+
     local mode = tostring(args.mode or "unknown")
     local signature = table.concat({
         mode,
@@ -168,7 +188,9 @@ local function onDisconnect()
     local gt = getGameTime()
     if not gt then return end
 
-    local current = tonumber(safeMethod(gt, "getMinutesPerDay"))
+    -- As above, isolate the first safeMethod return before numeric conversion.
+    local currentValue = safeMethod(gt, "getMinutesPerDay")
+    local current = tonumber(currentValue)
     if current and math.abs(current - cachedBaselineMinutesPerDay) <= EPSILON then return end
 
     local _, err = safeMethod(gt, "setMinutesPerDay", cachedBaselineMinutesPerDay)
@@ -182,13 +204,13 @@ end
 -- than preventing the rest of the mod from loading.
 if Events.OnServerCommand then
     Events.OnServerCommand.Add(onServerCommand)
-    log("Loaded v0.0.6 client MinutesPerDay synchronization experiment.")
+    log("Loaded v0.0.7 client MinutesPerDay synchronization.")
 else
     log("ERROR | Events.OnServerCommand unavailable; client clock replication disabled")
 end
 
 -- Disconnect restoration is defensive only; absence of the event does not block
--- the synchronization experiment itself.
+-- the synchronization path itself.
 if Events.OnDisconnect then
     Events.OnDisconnect.Add(onDisconnect)
 end
