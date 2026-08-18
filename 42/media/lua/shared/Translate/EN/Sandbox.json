@@ -3,5 +3,7 @@
   "Sandbox_EnshroudedSleep_Enabled": "Enable Enshrouded Sleep",
   "Sandbox_EnshroudedSleep_Enabled_tooltip": "When some but not all living players are asleep, compress world/calendar time by changing MinutesPerDay. Vanilla Project Zomboid still controls sleep eligibility and full-sleep fast-forward.",
   "Sandbox_EnshroudedSleep_PartialSleepSpeedScale": "Partial sleep speed scale",
-  "Sandbox_EnshroudedSleep_PartialSleepSpeedScale_tooltip": "Scales the server FastForwardMultiplier for partial sleep only. 1.0 is neutral, 0.5 halves the partial-sleep compression, and 2.0 doubles it. The mod never changes the global simulation multiplier."
+  "Sandbox_EnshroudedSleep_PartialSleepSpeedScale_tooltip": "Scales the server FastForwardMultiplier for partial sleep only. 1.0 is neutral, 0.5 halves the partial-sleep compression, and 2.0 doubles it. The mod never changes the global simulation multiplier.",
+  "Sandbox_EnshroudedSleep_DiagnosticsEnabled": "Enable verbose diagnostics",
+  "Sandbox_EnshroudedSleep_DiagnosticsEnabled_tooltip": "Development/support option. Logs one-second clock and sleep telemetry on server and clients and can produce very large log files on active multiplayer servers. Leave disabled for normal public-alpha play unless diagnosing a problem."
 }
