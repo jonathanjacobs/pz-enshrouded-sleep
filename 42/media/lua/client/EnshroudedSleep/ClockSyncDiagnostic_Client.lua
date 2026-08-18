@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - client clock and sleep synchronization diagnostic
--- v0.0.7 public-alpha support instrumentation for Project Zomboid Build 42.20+
+-- v0.0.8 pre-Public-Alpha support instrumentation for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -9,9 +9,10 @@
 -- automatically replicated to clients. v0.0.6 proved that explicit ClockState
 -- replication fixes the client pacing mismatch, smooths both visible clock
 -- paths, and restores sensible sleep-duration behavior. v0.0.7 then passed a
--- clean regression.
+-- clean regression. v0.0.8 retains that proven clock/sleep sampler alongside the
+-- new health/time-domain diagnostics.
 --
--- Public-alpha note: verbose diagnostics are now opt-in through
+-- Verbose diagnostics are opt-in through
 -- SandboxVars.EnshroudedSleep.DiagnosticsEnabled. They are disabled by default
 -- to avoid generating large client logs during normal multiplayer play.
 --
@@ -108,12 +109,10 @@ end
 ---explicitly enabled.
 ---@return nil
 local function sampleClock()
-    -- Public-alpha default is OFF. Leave the callback dormant during normal play.
     if not diagnosticsEnabled() then return end
 
     local now = os.time()
 
-    -- OnTickEvenPaused executes many times per second; sample once per wall second.
     if now == lastSampleAt or (lastSampleAt >= 0 and now - lastSampleAt < SAMPLE_INTERVAL_SECONDS) then
         return
     end
@@ -161,12 +160,10 @@ local function sampleClock()
     ))
 end
 
--- Use the same event family as the authoritative controller so diagnostics can
--- continue through the sleeping black-screen state when explicitly enabled.
 if Events.OnTickEvenPaused then
     Events.OnTickEvenPaused.Add(sampleClock)
 else
     Events.OnTick.Add(sampleClock)
 end
 
-log("Loaded v0.0.7 client diagnostic module; verbose telemetry is disabled unless DiagnosticsEnabled=true.")
+log("Loaded v0.0.8 client clock/sleep diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")
