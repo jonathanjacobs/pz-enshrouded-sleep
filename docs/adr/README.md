@@ -8,6 +8,7 @@ The initial directory README was only scaffolding. That was incomplete because t
 
 | ADR | Status | Decision |
 |---|---|---|
+| [`ADR-000-record-format.md`](ADR-000-record-format.md) | Accepted / process | Defines the ADR format, status vocabulary, and numbering convention. |
 | [`ADR-001-use-minutes-per-day-for-partial-sleep.md`](ADR-001-use-minutes-per-day-for-partial-sleep.md) | Accepted | Use `GameTime:MinutesPerDay` for partial-sleep calendar compression rather than global simulation fast-forward. |
 | [`ADR-002-extend-vanilla-sleep-lifecycle.md`](ADR-002-extend-vanilla-sleep-lifecycle.md) | Accepted | Use vanilla instantiated-player/sleep lifecycle semantics and restore baseline before vanilla full-sleep handoff. |
 | [`ADR-003-mirror-authoritative-minutes-per-day-to-clients.md`](ADR-003-mirror-authoritative-minutes-per-day-to-clients.md) | Accepted | Explicitly mirror the authoritative server `MinutesPerDay` to clients for coherent local clock pacing. |
@@ -16,7 +17,7 @@ No ADR-004 exists yet. [`SPIKE-004`](../spikes/SPIKE-004-health-time-domains.md)
 
 ## ADR convention
 
-Future ADRs should use stable numbered filenames:
+Future architectural decisions should use stable numbered filenames:
 
 ```text
 ADR-004-short-title.md
