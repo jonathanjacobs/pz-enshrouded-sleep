@@ -3,4 +3,4 @@ name=Enshrouded Sleep
 description=Build 42 multiplayer sleep mod with proportional partial-sleep calendar compression, client clock-state synchronization, and sleep diagnostics.
 author=Jonathan Jacobs
 pzversion=42
-modversion=0.0.6
+modversion=0.0.7
