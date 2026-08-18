@@ -1,18 +1,22 @@
 -- Enshrouded Sleep - client clock and sleep synchronization diagnostic
--- v0.0.7 verification instrumentation for Project Zomboid Build 42.20+
+-- v0.0.7 public-alpha support instrumentation for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
 -- Record the multiplayer client's view of GameTime and local sleep state once
--- per real second. v0.0.5 established that runtime server MinutesPerDay changes
--- were not automatically replicated to clients. v0.0.6 proved that explicit
--- ClockState replication fixes the client pacing mismatch, smooths both visible
--- clock paths, and restores sensible sleep-duration behavior.
+-- per real second when development/support diagnostics are explicitly enabled.
+-- v0.0.5 established that runtime server MinutesPerDay changes were not
+-- automatically replicated to clients. v0.0.6 proved that explicit ClockState
+-- replication fixes the client pacing mismatch, smooths both visible clock
+-- paths, and restores sensible sleep-duration behavior. v0.0.7 then passed a
+-- clean regression.
 --
--- v0.0.7 keeps this diagnostic active for one clean regression after fixing the
--- v0.0.6 post-apply logging exception. This file is observational only. The
--- separate ClockStateSync_Client.lua file is the only client component that
--- mutates local MinutesPerDay.
+-- Public-alpha note: verbose diagnostics are now opt-in through
+-- SandboxVars.EnshroudedSleep.DiagnosticsEnabled. They are disabled by default
+-- to avoid generating large client logs during normal multiplayer play.
+--
+-- This file is observational only. ClockStateSync_Client.lua is the only client
+-- component that mutates local MinutesPerDay.
 
 if not isClient() then return end
 
@@ -20,6 +24,13 @@ local PREFIX = "[EnshroudedSleepDiag][CLIENT]"
 local SAMPLE_INTERVAL_SECONDS = 1
 local lastSampleAt = -1
 local lastError = nil
+
+---Return whether development/support telemetry is explicitly enabled.
+---@return boolean enabled
+local function diagnosticsEnabled()
+    local vars = SandboxVars and SandboxVars.EnshroudedSleep or nil
+    return vars ~= nil and vars.DiagnosticsEnabled == true
+end
 
 ---Write one namespaced diagnostic message to the client log.
 ---@param message any Value to stringify.
@@ -55,7 +66,8 @@ local function safeMethod(obj, methodName, ...)
     return value
 end
 
----Resolve the local player and read sleep/recovery values relevant to issue #3.
+---Resolve the local player and read sleep/recovery values relevant to support
+---diagnostics. This function never mutates the player.
 ---@return table state
 local function readPlayerState()
     local state = {
@@ -92,12 +104,13 @@ local function readPlayerState()
     return state
 end
 
----Capture one real-time client clock/sleep sample.
----The v0.0.7 confirmation checks that local MinutesPerDay continues to follow
----server 90 -> compressed -> 90 transitions without large TimeOfDay corrections
----or client-side synchronization exceptions.
+---Capture one real-time client clock/sleep sample when verbose diagnostics are
+---explicitly enabled.
 ---@return nil
 local function sampleClock()
+    -- Public-alpha default is OFF. Leave the callback dormant during normal play.
+    if not diagnosticsEnabled() then return end
+
     local now = os.time()
 
     -- OnTickEvenPaused executes many times per second; sample once per wall second.
@@ -148,12 +161,12 @@ local function sampleClock()
     ))
 end
 
--- Use the same event family as the authoritative controller so diagnostics
--- continue through the sleeping black-screen state.
+-- Use the same event family as the authoritative controller so diagnostics can
+-- continue through the sleeping black-screen state when explicitly enabled.
 if Events.OnTickEvenPaused then
     Events.OnTickEvenPaused.Add(sampleClock)
 else
     Events.OnTick.Add(sampleClock)
 end
 
-log("Loaded v0.0.7 client clock/sleep diagnostic.")
+log("Loaded v0.0.7 client diagnostic module; verbose telemetry is disabled unless DiagnosticsEnabled=true.")
