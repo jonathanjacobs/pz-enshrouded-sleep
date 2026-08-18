@@ -1,3 +1,9 @@
+<p align="center">
+  <img src="docs/images/enshrouded-sleep-banner.png"
+       alt="Enshrouded Sleep - Project Zomboid sleep and rest mod"
+       width="100%">
+</p>
+
 # Enshrouded Sleep
 
 **Proportional multiplayer sleeping for Project Zomboid Build 42.**
