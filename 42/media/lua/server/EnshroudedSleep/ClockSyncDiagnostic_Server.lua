@@ -1,12 +1,18 @@
 -- Enshrouded Sleep - server clock and sleep synchronization diagnostic
--- v0.0.6 diagnostic instrumentation for Project Zomboid Build 42.20+
+-- v0.0.7 verification instrumentation for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
 -- Record the authoritative server GameTime state once per real second and, when
 -- at least one player is asleep, record each living player's vanilla sleep
--- counters. This preserves the v0.0.5 clock evidence while adding telemetry for
--- the long-sleep time-domain investigation discovered in the same test series.
+-- counters. v0.0.6 established that explicit client MinutesPerDay replication
+-- fixes the visible clock drift and that client-side sleep counters track
+-- compressed world time sensibly.
+--
+-- v0.0.7 retains this instrumentation for one clean regression after fixing the
+-- client post-apply logging exception. Server-side AsleepTime/ForceWakeUpTime
+-- values may remain unavailable or non-authoritative; the local sleeping-client
+-- values are the useful sleep-duration evidence.
 --
 -- IMPORTANT: this file is observational only. It never changes GameTime,
 -- player state, sleep state, fatigue, pills, or native synchronization behavior.
@@ -172,9 +178,8 @@ local function sampleClock()
         formatNumber(serverMultiplier, 4)
     ))
 
-    -- When anyone is asleep, record every living player's sleep counters so we
-    -- can determine whether AsleepTime/fatigue/wake scheduling follow compressed
-    -- world time or ordinary simulation time.
+    -- Keep server-side sleep values for correlation even though the v0.0.6 run
+    -- showed that local client sleep counters provide the meaningful wake data.
     if sleeping and sleeping > 0 then
         for _, state in ipairs(playerStates) do
             log(string.format(
@@ -198,4 +203,4 @@ else
     Events.OnTick.Add(sampleClock)
 end
 
-log("Loaded v0.0.6 server clock/sleep diagnostic.")
+log("Loaded v0.0.7 server clock/sleep diagnostic.")
