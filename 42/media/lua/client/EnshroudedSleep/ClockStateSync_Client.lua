@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - client MinutesPerDay synchronization
--- v0.0.7 synchronization cleanup for Project Zomboid Build 42.20+
+-- v0.0.8 package; synchronization behavior remains the validated v0.0.7 design
 --
 -- PURPOSE
 -- -------
@@ -12,12 +12,10 @@
 -- MinutesPerDay on clients removes those large corrections and produces smooth
 -- sleeping/HUD clock presentation while leaving active gameplay normal-speed.
 --
--- v0.0.7 preserves that behavior and fixes a Kahlua/Lua multi-return bug in the
--- post-apply verification and disconnect-restoration reads. In v0.0.6 the
--- successful setMinutesPerDay() call was followed by tonumber(safeMethod(...));
--- because safeMethod returns both value and error, Kahlua could select tonumber's
--- two-argument overload and attempt to cast a Java Double to String. The actual
--- synchronization succeeded, but every heartbeat could then register an error.
+-- v0.0.7 preserved that behavior and fixed a Kahlua/Lua multi-return bug in the
+-- post-apply verification and disconnect-restoration reads. v0.0.8 does not
+-- change this synchronization algorithm; the package update adds health/time-
+-- domain diagnostics and associated pre-Public-Alpha documentation.
 --
 -- This module listens for the server's EnshroudedSleep/ClockState command and
 -- mirrors only the authoritative MinutesPerDay value locally. The server remains
@@ -85,12 +83,8 @@ end
 ---@param args any Command arguments supplied by Project Zomboid.
 ---@return nil
 local function onServerCommand(module, command, args)
-    -- Ignore all unrelated server commands; this listener is deliberately narrow.
     if module ~= MODULE or command ~= COMMAND then return end
 
-    -- Kahlua command arguments behave table-like but may not always report the
-    -- stock Lua type string, so only nil is rejected here; field access below is
-    -- protected by the surrounding event dispatch/runtime.
     if not args then
         logErrorOnce("ClockState packet missing arguments")
         return
@@ -128,8 +122,6 @@ local function onServerCommand(module, command, args)
 
     local changed = math.abs(current - target) > EPSILON
 
-    -- Mirror only the server's day-length pacing value. Do not set TimeOfDay or
-    -- any multiplier; normal PZ multiplayer synchronization remains authoritative.
     if changed then
         local _, setErr = safeMethod(gt, "setMinutesPerDay", target)
         if setErr then
@@ -138,9 +130,6 @@ local function onServerCommand(module, command, args)
         end
     end
 
-    -- IMPORTANT: capture safeMethod's first return before calling tonumber().
-    -- Passing the multi-return expression directly into Kahlua's tonumber() can
-    -- select its two-argument overload and cause Double -> String ClassCastException.
     local afterValue, afterReadErr = safeMethod(gt, "getMinutesPerDay")
     local after = tonumber(afterValue)
     if after == nil then
@@ -158,8 +147,6 @@ local function onServerCommand(module, command, args)
 
     clearError()
 
-    -- Log state changes and any actual local correction. Routine heartbeat
-    -- packets that find the client already synchronized remain silent.
     if changed or signature ~= lastStateSignature then
         log(string.format(
             "APPLY | mode=%s | living=%s | sleeping=%s | beforeMinutesPerDay=%.4f | targetMinutesPerDay=%.4f | afterMinutesPerDay=%.4f | baselineMinutesPerDay=%s | serverEpoch=%s",
@@ -177,10 +164,7 @@ local function onServerCommand(module, command, args)
     lastStateSignature = signature
 end
 
----Restore the last server-advertised baseline when the client disconnects while
----partial compression is active. A subsequent world load should reset GameTime
----anyway, but explicit restoration prevents a compressed local value from
----lingering across disconnect-state UI transitions.
+---Restore the last server-advertised baseline on disconnect when practical.
 ---@return nil
 local function onDisconnect()
     if not cachedBaselineMinutesPerDay then return end
@@ -188,7 +172,6 @@ local function onDisconnect()
     local gt = getGameTime()
     if not gt then return end
 
-    -- As above, isolate the first safeMethod return before numeric conversion.
     local currentValue = safeMethod(gt, "getMinutesPerDay")
     local current = tonumber(currentValue)
     if current and math.abs(current - cachedBaselineMinutesPerDay) <= EPSILON then return end
@@ -199,18 +182,13 @@ local function onDisconnect()
     end
 end
 
--- OnServerCommand is the normal Lua event for server-to-client mod commands.
--- Guard registration so an API mismatch is visible in the client log rather
--- than preventing the rest of the mod from loading.
 if Events.OnServerCommand then
     Events.OnServerCommand.Add(onServerCommand)
-    log("Loaded v0.0.7 client MinutesPerDay synchronization.")
+    log("Loaded v0.0.8 client MinutesPerDay synchronization (validated v0.0.7 behavior unchanged).")
 else
     log("ERROR | Events.OnServerCommand unavailable; client clock replication disabled")
 end
 
--- Disconnect restoration is defensive only; absence of the event does not block
--- the synchronization path itself.
 if Events.OnDisconnect then
     Events.OnDisconnect.Add(onDisconnect)
 end
