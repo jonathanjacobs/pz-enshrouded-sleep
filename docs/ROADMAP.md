@@ -6,7 +6,7 @@ This roadmap is evidence-driven. Findings from controlled spikes and Public Alph
 
 Status: **Public Alpha candidate; deployment paused pending health/time-domain characterization**
 
-Current development version: `v0.0.8`
+Current development version: `v0.0.9`
 
 Current behaviorally validated platform baseline: Project Zomboid `42.20.3`
 
@@ -29,16 +29,26 @@ Priority variables include:
 - body temperature/wetness/cold progression;
 - pain and related injury timers.
 
+### Evidence accumulated so far
+
+The v0.0.8 solo integration run successfully exercised the health/injury telemetry. It also established a useful vanilla reference: a character with four active bleeding injuries died within roughly five real seconds after entering solo **vanilla full sleep**, while Enshrouded Sleep had restored baseline `MinutesPerDay` and stepped aside. A later healing sleep showed strong recovery/timer acceleration.
+
+That evidence demonstrates why the safety question matters, but it does not classify Enshrouded Sleep partial compression because the monitored character was asleep and vanilla multiplier-driven fast-forward owned the state.
+
+The same run found that many raw `Stats` getters are unavailable through the tested Lua/Kahlua bridge. v0.0.9 adds guarded public-field fallbacks, Moodle-level telemetry, and multiplier/delta context before the decisive multiplayer comparison.
+
 ### Pre-alpha exit criteria
 
 Move to Public Alpha when:
 
-- v0.0.8 diagnostics load without errors;
-- controlled baseline/partial/baseline health telemetry is collected;
-- high-severity player-state variables are classified by time domain;
-- no unacceptable rapid awake-player bleed-out, starvation/dehydration, infection progression, or comparable safety problem is observed, **or** a validated mitigation is in place;
+- v0.0.9 diagnostics load without errors;
+- controlled baseline/partial/restored-baseline health telemetry is collected with an **awake** monitored player;
+- high-severity player-state variables are classified by time domain where measurable;
+- no unacceptable rapid awake-player bleed-out, starvation/dehydration, infection progression, or comparable safety problem is observed, **or** a validated mitigation/configuration bound is in place;
 - the normal core two-player regression still passes after the diagnostic additions;
 - a formal GO / CONDITIONAL GO / NO-GO decision is recorded in SPIKE-004.
+
+The recommended first safety run uses native `FastForwardMultiplier=10`, which should produce approximately factor `5` / `MinutesPerDay=18` with two living players and one sleeper on the 90-minute-day test server. This remains a strong experimental signal while giving the operator more reaction time than factor 20.
 
 ## Public Alpha — next
 
