@@ -2,7 +2,7 @@
 
 Status: **Public Alpha candidate / pre-deployment validation**
 
-Current development version: `v0.0.8`
+Current development version: `v0.0.9`
 
 Current behaviorally validated Project Zomboid baseline: `42.20.3`
 
@@ -127,11 +127,13 @@ At minimum, [`SPIKE-004`](spikes/SPIKE-004-health-time-domains.md) must characte
 - hunger/thirst;
 - fatigue/endurance;
 - wound/injury healing timers;
-- sickness/food sickness/poison;
+- sickness/food sickness/poison where observable;
 - zombie infection variables where practical;
-- temperature/cold progression.
+- temperature/cold progression where observable.
 
 Public deployment is blocked if partial sleep can unexpectedly cause rapid bleed-out, starvation/dehydration, infection death, or a comparable high-severity player-state failure without a validated mitigation or acceptable configuration bound.
+
+The v0.0.8 solo reference demonstrated that vanilla all-players-asleep fast-forward can accelerate bleeding/recovery dramatically; that result does not satisfy this requirement because the subject was sleeping and Enshrouded partial compression was not active.
 
 ### R13 — All living players asleep hands off to vanilla
 
@@ -203,30 +205,45 @@ Low-volume startup/configuration/state-transition logging may remain active.
 
 With `DiagnosticsEnabled=true`, support instrumentation may sample once per real second and must remain observational.
 
-v0.0.8 diagnostics should capture, where APIs are exposed:
+The v0.0.9 diagnostics should capture, where exposed:
 
-- server/client clock context;
+- server/client clock context including `MinutesPerDay`, `WorldAgeHours`, `DeltaMinutesPerDay` and multiplier values;
 - all instantiated living-player general health/survival metrics on the server;
 - owning-client equivalent metrics;
 - sleep counters;
 - nutrition state;
-- detailed state/timers for injured body parts.
+- detailed state/timers for injured body parts;
+- relevant Moodle levels as an ordinal fallback/secondary signal.
 
-Unavailable getters must degrade to `N/A` rather than breaking gameplay. Diagnostics must not heal, damage, feed, fatigue, infect, wake, sleep, or otherwise mutate player state.
+Diagnostics must not heal, damage, feed, fatigue, infect, wake, sleep, change Moodles, change time, or otherwise mutate player state.
 
-### R27 — Diagnostic implementation must avoid known Kahlua multi-return conversion failure
+### R27 — Diagnostic access must tolerate Java/Lua bridge differences
+
+A public Java method or field documented by PZ is not assumed to be exposed identically through Lua/Kahlua.
+
+For selected v0.0.9 health/survival values, diagnostics may:
+
+1. attempt the normal getter;
+2. attempt a guarded public-field fallback;
+3. report `N/A` when neither is available.
+
+Moodle levels may be recorded as discrete corroborating/fallback evidence, but must not be presented as continuous raw-stat equivalents.
+
+Unavailable getters/fields/Moodles must degrade safely rather than breaking gameplay.
+
+### R28 — Diagnostic implementation must avoid known Kahlua multi-return conversion failure
 
 Numeric conversion must not use the unsafe `tonumber(safeMethod(...))` pattern that caused the v0.0.6 `Double` -> `String` exception. The first method return value must be captured separately before conversion.
 
 ## 7. Operational requirements
 
-### R28 — Rollback is straightforward
+### R29 — Rollback is straightforward
 
 The mod must not require a custom persistent database or sleep-state migration to disable. Administrators must be able to stop the server, remove/disable the mod, restart, and return future time/sleep behavior to vanilla. Pre-deployment backups remain required during alpha because elapsed world time cannot be undone by removing the mod.
 
-## 8. Validated reference example
+## 8. Validated reference examples
 
-With baseline `90`, native FF `40`, scale `1.0`, two living and one sleeping:
+Validated historical example with baseline `90`, native FF `40`, scale `1.0`, two living and one sleeping:
 
 ```text
 SleepFraction = 0.5
@@ -235,6 +252,16 @@ EffectiveMinutesPerDay = 4.5
 ```
 
 This server/client behavior is validated on PZ 42.20.3.
+
+Current SPIKE-004 safety-test target with baseline `90`, native FF `10`, scale `1.0`, two living and one sleeping:
+
+```text
+SleepFraction = 0.5
+CalendarCompressionFactor = 5
+EffectiveMinutesPerDay = 18
+```
+
+This is intentionally a lower-risk test target and remains pending validation.
 
 Four-player acceptance example with baseline `120`, FF `40`, scale `1.0`:
 
@@ -249,7 +276,7 @@ Four-player acceptance example with baseline `120`, FF `40`, scale `1.0`:
 ## 9. MVP acceptance matrix
 
 1. **Baseline inheritance** — alternate native day length captured automatically. `PENDING`
-2. **Fast-forward inheritance** — alternate native FF changes proportional behavior automatically. `PENDING`
+2. **Fast-forward inheritance** — alternate native FF changes proportional behavior automatically. `PENDING; v0.0.9 SPIKE-004 FF=10 run will exercise this`
 3. **Neutral scale 1.0**. `VALIDATED`
 4. **Scale tuning** — non-default scale changes compression proportionally. `PENDING`
 5. **Two-player partial sleep 90/40 -> 4.5**. `VALIDATED`
@@ -268,7 +295,7 @@ Four-player acceptance example with baseline `120`, FF `40`, scale `1.0`:
 18. **Heartbeat/client handler error-free**. `VALIDATED v0.0.7`
 19. **Transition packets reflect settled state**. `VALIDATED v0.0.7`
 20. **Health/survival time-domain safety gate**. `CURRENT PRE-ALPHA BLOCKER — SPIKE-004`
-21. **v0.0.8 diagnostic modules load/read without gameplay mutation**. `PENDING TEST`
+21. **Broad health/body diagnostic integration**. `VALIDATED v0.0.8 solo; v0.0.9 fallback coverage pending`
 22. **Public-server stability at larger population**. `PUBLIC ALPHA TARGET AFTER #20`
 23. **Non-health world-time side effects characterized**. `PUBLIC ALPHA TARGET`
 
