@@ -4,9 +4,10 @@ The repository root is intentionally concise for players and server administrato
 
 ## Current project state
 
-- Development version: `v0.0.8`
+- Development version: `v0.0.9`
 - Core sleep/clock architecture: validated on Project Zomboid 42.20.3
-- WHG Public Alpha deployment: **paused pending SPIKE-004 health/time-domain validation**
+- v0.0.8 broad health/injury diagnostic integration: validated in a solo reference run
+- WHG Public Alpha deployment: **paused pending the two-player SPIKE-004 partial-sleep health/time-domain comparison**
 
 ## Start here
 
@@ -17,20 +18,21 @@ The repository root is intentionally concise for players and server administrato
 ## Specification and testing
 
 - [`REQUIREMENTS.md`](REQUIREMENTS.md) — canonical MVP requirements and acceptance matrix.
-- [`TESTING.md`](TESTING.md) — current smoke/regression procedures and the detailed SPIKE-004 health/time-domain test.
-- [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md) — consolidated evidence from v0.0.1 onward.
+- [`TESTING.md`](TESTING.md) — current smoke/regression procedures and the detailed v0.0.9 SPIKE-004 health/time-domain test.
+- [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md) — consolidated evidence from v0.0.1 onward, including the v0.0.8 solo vanilla-full-sleep reference.
 
 ## Formal spike investigations
 
 - [`spikes/SPIKE-001-minutes-per-day-feasibility.md`](spikes/SPIKE-001-minutes-per-day-feasibility.md) — proved `MinutesPerDay` calendar compression without global active-simulation acceleration.
 - [`spikes/SPIKE-002-vanilla-sleep-lifecycle.md`](spikes/SPIKE-002-vanilla-sleep-lifecycle.md) — established vanilla population/sleep/full-sleep semantics.
 - [`spikes/SPIKE-003-client-clock-synchronization.md`](spikes/SPIKE-003-client-clock-synchronization.md) — diagnosed/fixed client day-length pacing mismatch.
-- [`spikes/SPIKE-004-health-time-domains.md`](spikes/SPIKE-004-health-time-domains.md) — **current Public Alpha blocker**; maps health/survival systems under calendar compression.
+- [`spikes/SPIKE-004-health-time-domains.md`](spikes/SPIKE-004-health-time-domains.md) — **current Public Alpha blocker**; maps awake-player health/survival behavior under partial calendar compression.
 
 See [`spikes/README.md`](spikes/README.md) for the spike convention.
 
 ## Architecture Decision Records
 
+- [`adr/ADR-000-record-format.md`](adr/ADR-000-record-format.md) — ADR process/format convention.
 - [`adr/ADR-001-use-minutes-per-day-for-partial-sleep.md`](adr/ADR-001-use-minutes-per-day-for-partial-sleep.md) — use `MinutesPerDay`, not global simulation fast-forward.
 - [`adr/ADR-002-extend-vanilla-sleep-lifecycle.md`](adr/ADR-002-extend-vanilla-sleep-lifecycle.md) — extend vanilla lifecycle and hand full sleep back to vanilla.
 - [`adr/ADR-003-mirror-authoritative-minutes-per-day-to-clients.md`](adr/ADR-003-mirror-authoritative-minutes-per-day-to-clients.md) — explicitly mirror authoritative day-length pacing to clients.
@@ -41,6 +43,7 @@ See [`adr/README.md`](adr/README.md) for the ADR convention.
 
 - [`../README.md`](../README.md) — public project overview/status/roadmap.
 - [`../CHANGELOG.md`](../CHANGELOG.md) — human-readable version/change history.
+- [`../COMPLIANCE.md`](../COMPLIANCE.md) — Project Zomboid mod-policy/compliance entry point.
 - [`../LICENSE`](../LICENSE) — project license.
 - [`../NOTICE`](../NOTICE) — project notices.
 
