@@ -2,7 +2,7 @@
 
 This document describes the current Enshrouded Sleep architecture without test-by-test history. For empirical evidence, see [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md). For normative behavior, see [`REQUIREMENTS.md`](REQUIREMENTS.md). Durable decisions are recorded under [`adr/`](adr/).
 
-Current development version: `v0.0.8`
+Current development version: `v0.0.9`
 
 ## Design goal
 
@@ -79,6 +79,8 @@ EffectiveMinutesPerDay = 4.5
 
 At `MinutesPerDay=4.5`, world time advances roughly 5.33 in-game minutes per real second.
 
+The current lower-risk SPIKE-004 test configuration uses native FF `10`, giving expected factor `5` and `MinutesPerDay=18` for one sleeper among two living players.
+
 ## Native settings remain authoritative
 
 The controller reads:
@@ -129,7 +131,9 @@ ADR-003 records this client-pacing decision.
 
 ## Full-sleep handoff
 
-When all instantiated living players are asleep, Enshrouded Sleep restores the exact baseline `MinutesPerDay` and steps aside. Vanilla then performs its own full-sleep acceleration using a mechanism distinct from `MinutesPerDay`.
+When all instantiated living players are asleep, Enshrouded Sleep restores the exact baseline `MinutesPerDay` and steps aside. Vanilla then performs its own full-sleep acceleration using a mechanism distinct from the mod's partial `MinutesPerDay` compression.
+
+The v0.0.8 solo health reference reinforces why these states must remain analytically separate: a heavily bleeding sleeping character died within only a few real seconds while `MinutesPerDay` remained at baseline and vanilla full-sleep acceleration owned the state. That result says nothing by itself about an **awake** injured character under partial `MinutesPerDay` compression.
 
 ## Fail-safe behavior
 
@@ -162,7 +166,7 @@ Normal operation retains transition/startup logging:
 [EnshroudedSleepDiag][CLIENT]
 ```
 
-### v0.0.8 health/time-domain diagnostics
+### v0.0.9 health/time-domain diagnostics
 
 ```text
 [EnshroudedSleepHealthDiag][SERVER]
@@ -175,13 +179,48 @@ All verbose samplers are gated by:
 DiagnosticsEnabled = false
 ```
 
-by default.
+by default. When enabled, sampling occurs once per real second rather than every simulation tick.
 
-When enabled, sampling occurs once per real second rather than every simulation tick.
+The server health diagnostic records every instantiated living player. The client health diagnostic records the owning local player. This dual-sided design is intentional: previous sleep telemetry showed that some useful player timing/state values are exposed differently on server and client.
 
-The new server health diagnostic records every instantiated living player. The client health diagnostic records the owning local player. This dual-sided design is intentional: previous sleep telemetry showed that some useful player timing/state values are exposed differently on server and client.
+### Health probe layering
 
-The health diagnostics are strictly observational and use guarded method calls. Missing Lua-exposed getters become `N/A` rather than failing the gameplay session.
+The v0.0.8 integration run established an important PZ Lua boundary: a Java getter documented by the public API may still be unavailable through the tested Kahlua context. v0.0.9 therefore treats observability as a layered probe rather than assuming one access path:
+
+```text
+1. guarded getter
+2. guarded documented public-field fallback, where applicable
+3. N/A if neither path is exposed
+```
+
+For selected survival states, Project Zomboid Moodle levels are also sampled as an ordinal fallback/secondary signal. A Moodle level is not treated as numerically equivalent to a continuous raw stat.
+
+All field/method access is guarded. The diagnostic must remain observational even when APIs are unavailable.
+
+### Time-domain correlation fields
+
+Health samples include their own:
+
+- `MinutesPerDay` / observed baseline / calendar compression factor;
+- `TimeOfDay` and `WorldAgeHours`;
+- `DeltaMinutesPerDay`;
+- game multiplier;
+- true multiplier;
+- server multiplier.
+
+This allows analysis to distinguish the two relevant acceleration mechanisms directly in the same sample stream:
+
+```text
+PARTIAL SLEEP
+MinutesPerDay decreases
+active/global multiplier remains ordinary
+monitored awake player remains awake
+
+VANILLA FULL SLEEP
+MinutesPerDay restored to baseline
+vanilla multiplier-driven acceleration owns the state
+all living players are asleep
+```
 
 ## Architectural boundary — multiple PZ time domains
 
