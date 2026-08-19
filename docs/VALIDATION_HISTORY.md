@@ -155,7 +155,7 @@ The existing evidence proves that active movement/combat simulation remains norm
 
 ### Added instrumentation
 
-v0.0.8 adds:
+v0.0.8 added:
 
 ```text
 HealthTimeDomainDiagnostic_Server.lua
@@ -171,20 +171,99 @@ When `DiagnosticsEnabled=true`:
 
 The diagnostic is read-only and deliberately avoids the Kahlua multi-return conversion pattern that caused the v0.0.6 error flood.
 
-### Current validation status
+### First integration run — solo, 2026-08-19
 
-The v0.0.8 diagnostic code is implemented but **not yet integration-tested in Project Zomboid**.
+The v0.0.8 health diagnostic successfully loaded and sampled on PZ 42.20.3. The reviewed logs contained hundreds of server/client player samples and thousands of detailed body-part samples with no recurring Enshrouded Sleep diagnostic exception.
 
-The next controlled test must establish:
+Useful telemetry included:
 
-- whether the new APIs are exposed in the tested Lua runtime;
-- baseline versus factor-20 real-time rates for bleeding/health loss and other changing metrics;
-- which systems are world-time, real/simulation-time, mixed, event-driven, or unavailable;
-- whether any result creates a Public Alpha safety blocker.
+- overall health / overall body health;
+- injury counts and detailed body-part state;
+- bleeding, scratch, deep-wound and related timers;
+- sleep state/counters;
+- nutrition/weight values;
+- cold-related values;
+- apparent infection and several wound-infection values.
 
-### Current decision
+Server and owning-client overall health values generally agreed closely during the run.
 
-**WHG Public Alpha deployment is paused pending SPIKE-004.**
+### Vanilla full-sleep reference from the solo run
+
+The solo experiment included a deliberately injured character entering sleep. Because there was only one living player, Enshrouded Sleep correctly restored native `MinutesPerDay=90`; **vanilla full-sleep fast-forward owned the sleep interval**.
+
+Immediately before the first sleep, the client diagnostic reported approximately:
+
+```text
+Health = 81.16
+NumBleeding = 4
+NumScratched = 4
+MinutesPerDay = 90
+asleep = false
+```
+
+After vanilla sleep began, successive approximately one-second health samples were:
+
+```text
+69.68
+47.74
+25.83
+6.03
+0.00
+```
+
+The character therefore died within about five real seconds of entering vanilla full sleep while four active bleeds remained.
+
+A later controlled sleep with bleeding no longer driving health loss showed rapid health recovery and accelerated wound/healing timer progression.
+
+Nutrition stores such as carbohydrates, proteins and lipids also accelerated strongly during vanilla sleep relative to awake baseline. Calories did not behave like a simple single-clock metric, consistent with additional metabolic/activity inputs.
+
+This is important reference evidence: Project Zomboid health and recovery systems can react very strongly to **vanilla multiplier-driven full sleep**.
+
+It does **not** answer the SPIKE-004 safety question. Enshrouded Sleep partial sleep does not engage vanilla full-sleep fast-forward; it changes `MinutesPerDay` while at least one living player remains awake.
+
+### v0.0.8 Lua/Kahlua exposure boundary
+
+The getter-only diagnostic returned `N/A` for many desired continuous values on both server/client, including hunger, thirst, fatigue, endurance, stress, panic, general pain, boredom, unhappiness, sickness, drunkenness, fear, sanity, food sickness, poison and several aggregate infection/temperature/wetness values.
+
+This did not crash the diagnostic. It showed that public Java API documentation cannot be assumed to map one-for-one to Lua/Kahlua method exposure.
+
+## v0.0.9 — enhanced health-state probes
+
+v0.0.9 is the follow-up diagnostic build for the decisive two-player SPIKE-004 test.
+
+Changes are observational only:
+
+- selected raw values now attempt the normal getter and then a guarded documented public Java field fallback;
+- relevant Project Zomboid Moodles are sampled by index as a discrete fallback/secondary signal;
+- a compact full Moodle summary is included per health sample;
+- `DeltaMinutesPerDay`, game multiplier, true multiplier and server multiplier are logged directly with health samples;
+- the client diagnostic labels a local sleeping-at-baseline state as vanilla full sleep rather than generic baseline, making solo/full-sleep reference data easier to separate from partial compression.
+
+No health compensation, proportional formula change, sleep-policy change, or global multiplier manipulation was introduced.
+
+### Next required test
+
+The decisive test uses:
+
+```text
+Player A: awake, monitored, deliberately injured/stressed
+Player B: asleep
+```
+
+The recommended first run lowers native `FastForwardMultiplier` to `10`. With two living players and one sleeper at baseline `MinutesPerDay=90`, expected partial behavior is approximately:
+
+```text
+CalendarCompressionFactor = 5
+MinutesPerDay = 18
+```
+
+This gives a large enough signal to classify time-domain behavior while providing more operator reaction time than the earlier factor-20 configuration.
+
+The result must classify actual awake-player bleeding/health loss first, then hunger/thirst/fatigue/healing/sickness/infection/temperature where measurable, and produce a GO / CONDITIONAL GO / NO-GO decision for WHG Public Alpha.
+
+## Current decision
+
+**WHG Public Alpha deployment remains paused pending the two-player SPIKE-004 partial-compression comparison.**
 
 This is a new evidence boundary, not a reversal of the validated v0.0.7 clock architecture.
 
@@ -199,11 +278,13 @@ Well supported:
 - baseline restoration;
 - vanilla full-sleep handoff;
 - wake/disconnect recalculation;
-- sensible vanilla sleep duration when client pacing is synchronized.
+- sensible vanilla sleep duration when client pacing is synchronized;
+- v0.0.8 broad health/body diagnostic integration;
+- strong vanilla full-sleep effects on bleeding/recovery/nutrition as reference behavior.
 
 Current pre-alpha blocker:
 
-- player health/survival time-domain safety under partial compression.
+- **awake-player** health/survival time-domain safety under **partial** `MinutesPerDay` compression.
 
 Public Alpha targets after that gate:
 
