@@ -2,7 +2,7 @@
 
 Current status: **Public Alpha candidate / pre-deployment validation**
 
-Current development version: `v0.0.8`
+Current development version: `v0.0.9`
 
 Current behaviorally validated Project Zomboid baseline: `42.20.3`
 
@@ -19,7 +19,7 @@ Minimum checks:
 1. Server starts without Enshrouded Sleep Lua errors.
 2. Client starts/connects without Enshrouded Sleep Lua errors.
 3. Core controller and clock-state synchronization modules load.
-4. The new health diagnostic modules load without exceptions.
+4. Health diagnostic modules load without exceptions.
 5. With all players awake, server/client `MinutesPerDay` remains at native baseline.
 6. With `DiagnosticsEnabled=false`, there is no continuous one-second diagnostic output.
 
@@ -60,13 +60,27 @@ EffectiveMinutesPerDay=4.5
 12. Wake all; confirm baseline `90`.
 13. If practical, disconnect one player and confirm denominator/state recalculation.
 
-The exact v0.0.7 build passed this sequence on PZ 42.20.3. v0.0.8 must reconfirm it after the diagnostic additions before public deployment.
+The exact v0.0.7 build passed this sequence on PZ 42.20.3. The v0.0.8 solo run did not expose a core regression, but a short two-player core check remains appropriate after SPIKE-004 diagnostic work.
 
 ## 2. SPIKE-004 — health/survival time-domain test (CURRENT BLOCKER)
 
 ### Objective
 
 Determine which player health/survival systems follow compressed world/calendar time and whether partial sleep creates an unacceptable hazard for an awake player.
+
+### v0.0.8 preliminary solo result
+
+The first health diagnostic integration run was successful:
+
+- health and detailed injury telemetry worked on server and owning client;
+- no Enshrouded Sleep diagnostic exception flood occurred;
+- a solo character with four active bleeding injuries died within roughly five real seconds after entering **vanilla full sleep**;
+- a later healing sleep showed strongly accelerated recovery/timer progression;
+- many raw `Stats` getters remained `N/A` in the tested Lua/Kahlua context.
+
+This is useful reference evidence, but it does **not** classify Enshrouded Sleep partial sleep because solo full sleep restores native `MinutesPerDay` and uses vanilla multiplier-driven fast-forward.
+
+v0.0.9 adds public-field fallbacks, Moodle telemetry and direct multiplier/delta context so the decisive two-player run has better observability.
 
 ### Required configuration
 
@@ -80,7 +94,24 @@ EnshroudedSleep = {
 }
 ```
 
-Use the same v0.0.8 snapshot on server and both clients.
+Use the same v0.0.9 snapshot on server and both clients.
+
+For the first safety run, set native server:
+
+```text
+FastForwardMultiplier = 10
+```
+
+With two living players and one sleeper, expected partial behavior is approximately:
+
+```text
+SleepFraction = 0.5
+CalendarCompressionFactor = 5
+Baseline MinutesPerDay = 90
+Effective MinutesPerDay = 18
+```
+
+A 5x signal is large enough to distinguish a world-time-bound process while giving the operator more real time to switch machines and respond to an unsafe test character. Higher FF values can be tested later if needed.
 
 Debug Mode is recommended so repeatable starting conditions can be created deliberately.
 
@@ -95,7 +126,7 @@ Debug Mode is recommended so repeatable starting conditions can be created delib
 
 The health diagnostic emits one broad `PLAYER` sample per living player per real second. It also emits `BODY` lines for injured/non-pristine body parts.
 
-### Metrics captured
+### Metrics captured in v0.0.9
 
 The diagnostic attempts to record, where exposed by the Lua bridge:
 
@@ -106,6 +137,10 @@ observed baseline
 CalendarCompressionFactor
 TimeOfDay
 WorldAgeHours
+DeltaMinutesPerDay
+GameMultiplier
+TrueMultiplier
+ServerMultiplier
 living/sleeping counts and SleepFraction (server)
 
 sleep
@@ -114,7 +149,7 @@ AsleepTime
 ForceWakeUpTime
 SleepingPillsTaken
 
-health / survival
+raw health / survival
 Health
 OverallBodyHealth
 Hunger
@@ -142,6 +177,27 @@ CatchACold
 ColdStrength
 ColdDamageStage
 
+Moodle fallback / secondary state
+MoodleHungry
+MoodleThirst
+MoodleTired
+MoodleEndurance
+MoodleStress
+MoodlePanic
+MoodlePain
+MoodleBored
+MoodleUnhappy
+MoodleSick
+MoodleDrunk
+MoodleBleeding
+MoodleInjured
+MoodleWet
+MoodleHasACold
+MoodleHyperthermia
+MoodleHypothermia
+MoodleZombie
+Moodles (compact observed set)
+
 nutrition
 Weight
 Calories
@@ -167,7 +223,9 @@ Glass / Bullet
 body-part Wetness / SkinTemperature / InnerTemperature / Stiffness
 ```
 
-`N/A` is acceptable for methods not exposed in the tested Lua context. One missing getter is not itself a test failure.
+For selected raw `Stats` and `BodyDamage` values, v0.0.9 tries the normal getter first and then a guarded documented public-field fallback. `N/A` remains acceptable when neither path is exposed.
+
+Moodle levels are discrete severity states, not substitutes for continuous raw values. Use them as corroborating/fallback evidence.
 
 ### Controlled experiment
 
@@ -178,30 +236,32 @@ Player A = awake monitored subject
 Player B = sleeper used to trigger partial compression
 ```
 
-For the first run, avoid sleeping pills unless required to make Player B sleep. We want the cleanest possible time-domain comparison.
+Avoid sleeping pills on Player A. Use them on Player B only if needed to enter sleep reliably.
 
 #### Phase A — native baseline (minimum 60 real seconds)
 
 1. Both players awake.
-2. Confirm `MinutesPerDay=90` and `phase=baseline`.
+2. Confirm `MinutesPerDay=90` and server health `phase=baseline`.
 3. Use Debug Mode to create controlled nonzero states on Player A.
 4. **At minimum create one active bleeding injury.**
 5. Also create/adjust several slower variables if practical: hunger, thirst, fatigue, pain, an injury/healing state, sickness/food sickness, temperature/cold, etc.
 6. Do not change those variables manually during the measurement window.
 7. Hold for at least 60 real seconds.
 
-Goal: obtain baseline change-per-real-second rates.
+Goal: obtain baseline change-per-real-second rates and confirm which v0.0.9 raw/Moodle probes are actually populated.
 
 #### Phase B — partial sleep (minimum 60 real seconds, unless unsafe)
 
 1. Player A remains awake with the same monitored conditions.
 2. Player B enters normal vanilla sleep.
-3. Confirm server reaches `2 living / 1 sleeping`, factor ~20, `MinutesPerDay=4.5`.
-4. Hold the state for at least 60 real seconds **unless Player A's health becomes unsafe**.
-5. Player A may stand still to reduce confounding activity/endurance effects unless a particular metric requires movement.
-6. Do not heal, eat, drink, bandage, medicate, or otherwise reset monitored variables during the comparison interval unless needed to prevent test-character death.
+3. Confirm server reaches `2 living / 1 sleeping`.
+4. With native FF=10 and scale=1.0, confirm approximately `CalendarCompressionFactor=5` and `MinutesPerDay=18`.
+5. Confirm `GameMultiplier`/`TrueMultiplier` remain consistent with ordinary active gameplay rather than vanilla full-sleep acceleration.
+6. Hold the state for at least 60 real seconds **unless Player A's health becomes unsafe**.
+7. Player A may stand still to reduce activity/endurance confounding.
+8. Do not heal, eat, drink, bandage, medicate, or otherwise reset monitored variables during the comparison interval unless needed to prevent test-character death.
 
-Goal: compare each metric's rate against Phase A.
+Goal: compare each metric's rate against Phase A while the monitored character remains awake.
 
 #### Phase C — restored baseline (minimum 60 real seconds)
 
@@ -213,7 +273,7 @@ Goal: determine whether rates return toward baseline after compression ends.
 
 #### Optional Phase D — vanilla full sleep
 
-Both players may sleep briefly to characterize native all-asleep behavior separately. Do not use this phase to classify Enshrouded Sleep partial-compression effects.
+The v0.0.8 solo run already provides a strong vanilla full-sleep reference. Additional all-asleep testing is optional and must not be used to classify partial-compression effects.
 
 ### Safety rules
 
@@ -232,16 +292,16 @@ partial rate  = delta(metric) / real seconds during Phase B
 rate ratio    = partial rate / baseline rate
 ```
 
-Then classify:
+Then compare the rate ratio to the **observed** compression factor, not an assumed constant:
 
 ```text
 ~1x       -> simulation/real-time bound
-~compression factor -> world/calendar-time bound
+~observed CalendarCompressionFactor -> world/calendar-time bound
 other     -> mixed/nonlinear/event-driven; investigate further
 no useful change -> insufficient data
 ```
 
-Use both server and owning-client telemetry where available. Do not assume server exposure is always the most meaningful value.
+Use both server and owning-client telemetry where available. Use Moodle transitions only as ordinal/discrete evidence.
 
 ### Minimum go/no-go questions
 
@@ -253,7 +313,7 @@ Before Public Alpha deployment, answer:
 4. Do wound healing/injury timers scale with compressed calendar time?
 5. Do sickness/poison/zombie infection variables accelerate materially?
 6. Do temperature/cold effects accelerate materially?
-7. Is any observed acceleration severe enough to require a lower initial `PartialSleepSpeedScale` or code mitigation?
+7. Is any observed acceleration severe enough to require a lower initial `PartialSleepSpeedScale`, a lower server FF policy, or code mitigation?
 
 ### Decision rule
 
@@ -314,7 +374,9 @@ Controlled-server targets:
 - `Enabled=false` restoration;
 - practical recoverable fail-safe restoration.
 
-All must preserve exact baseline restoration and vanilla full-sleep handoff.
+The SPIKE-004 FF=10 run will also provide evidence that partial compression inherits an alternate native `FastForwardMultiplier` correctly.
+
+All tests must preserve exact baseline restoration and vanilla full-sleep handoff.
 
 ## 6. Verbose diagnostics policy
 
@@ -330,7 +392,7 @@ Controlled investigation:
 DiagnosticsEnabled=true
 ```
 
-With v0.0.8 this now activates both clock/sleep and broad health/injury telemetry. Log volume can be substantial, so keep diagnostic sessions short and purposeful.
+With v0.0.9 this activates clock/sleep telemetry plus broad raw-stat, Moodle, nutrition and injury telemetry. Log volume can be substantial, so keep diagnostic sessions short and purposeful.
 
 Collect:
 
