@@ -9,7 +9,7 @@
 **Proportional multiplayer sleeping for Project Zomboid Build 42.**
 
 Status: **Public Alpha candidate — pre-deployment health/time-domain validation in progress**  
-Current development version: **v0.0.8**  
+Current development version: **v0.0.9**  
 Current behaviorally validated PZ baseline: **42.20.3**
 
 Enshrouded Sleep lets some players sleep without requiring every survivor on a multiplayer server to go to bed at the same time.
@@ -66,13 +66,17 @@ The original clock-jump and pathological-long-sleep bugs are closed.
 
 Pre-deployment review identified a separate safety question: **world/calendar time really is passing faster**, so player health and survival systems may not all progress on the same time domain.
 
-For example, if one awake player is bleeding while another player sleeps, we need to know whether blood loss remains tied to normal active-simulation time or accelerates with compressed world time. The same question applies to hunger, thirst, fatigue, healing, sickness, infection, temperature, and related systems.
+If one awake player is bleeding while another sleeps, we need to know whether blood loss remains tied to normal active-simulation time or accelerates with compressed world time. The same question applies to hunger, thirst, fatigue, healing, sickness, infection, temperature, and related systems.
 
-v0.0.8 therefore adds a broad, read-only health/time-domain diagnostic and formalizes [`SPIKE-004`](docs/spikes/SPIKE-004-health-time-domains.md). Public Alpha deployment is a **GO candidate**, but remains blocked until that controlled test establishes that partial sleep does not create an unacceptable awake-player health hazard.
+A solo v0.0.8 diagnostic run successfully validated the new broad health/injury telemetry and produced a useful vanilla full-sleep reference. In that run, vanilla full sleep accelerated world progression and health/wound processes dramatically; a character with four active bleeding injuries died within only a few real seconds after falling asleep. That was **vanilla all-players-asleep fast-forward**, not Enshrouded Sleep partial compression, so it does not answer the awake-player safety question by itself.
 
-## v0.0.8 health/time-domain diagnostics
+The same run also showed that several raw `Stats` values were not exposed through their getters in the tested Lua/Kahlua context. v0.0.9 improves the diagnostic with guarded public-field fallbacks, Moodle-level telemetry, and direct multiplier/delta context.
 
-When verbose diagnostics are explicitly enabled, v0.0.8 samples all instantiated living players on the server once per real second and records a broad set of metrics including:
+Public Alpha deployment remains a **GO candidate**, blocked only until [`SPIKE-004`](docs/spikes/SPIKE-004-health-time-domains.md) compares an awake injured player at baseline versus partial compression.
+
+## v0.0.9 health/time-domain diagnostics
+
+When verbose diagnostics are explicitly enabled, v0.0.9 samples every instantiated living player on the server once per real second and records a broad set of metrics including:
 
 - health and overall body health;
 - hunger, thirst, fatigue, endurance;
@@ -81,11 +85,15 @@ When verbose diagnostics are explicitly enabled, v0.0.8 samples all instantiated
 - temperature, wetness and cold progression;
 - nutrition/weight metrics;
 - vanilla sleep counters;
-- detailed timers and state for injured body parts, including bleeding, cuts, scratches, bites, deep wounds, fractures, burns, bandages and wound infection.
+- detailed timers and state for injured body parts, including bleeding, cuts, scratches, bites, deep wounds, fractures, burns, bandages and wound infection;
+- Project Zomboid Moodle levels as a fallback/secondary health-state signal;
+- `DeltaMinutesPerDay`, game multiplier, true multiplier and server multiplier alongside the health sample.
+
+For raw survival stats, the diagnostic first attempts the normal getter and then safely probes documented public fields where available. Missing APIs remain `N/A`; the diagnostic must not fail the gameplay session because a value is unavailable.
 
 The owning client records the corresponding local state because previous sleep diagnostics showed that some useful player timing values can be exposed differently on client and server.
 
-This instrumentation is observational only. It does not alter health, injuries, sleep, fatigue, or time behavior.
+This instrumentation is observational only. It does not alter health, injuries, sleep, fatigue, Moodles, or time behavior.
 
 ## Important design caveat: world time really is passing faster
 
@@ -157,7 +165,7 @@ EnshroudedSleep = {
 
 ```text
 false -> normal operation; low-volume state-transition logs only
-true  -> one-second clock, sleep, health, survival and injury telemetry
+true  -> one-second clock, sleep, health, survival, Moodle and injury telemetry
 ```
 
 Leave diagnostics off except during controlled testing or focused troubleshooting; the expanded health diagnostic can generate large logs.
@@ -190,9 +198,10 @@ For the technical design and rationale, see [`docs/ARCHITECTURE.md`](docs/ARCHIT
 
 ### Pre-Public-Alpha — current
 
-- complete SPIKE-004 health/survival time-domain characterization;
+- run the v0.0.9 SPIKE-004 baseline/partial/restored-baseline comparison;
+- classify bleeding/health loss and the available survival metrics by time domain;
 - make a GO / CONDITIONAL GO / NO-GO decision for live WHG deployment;
-- run a short v0.0.8 startup/core regression after the diagnostic additions.
+- run a short core sleep regression after the diagnostic work.
 
 ### Public Alpha — next, if SPIKE-004 passes
 
