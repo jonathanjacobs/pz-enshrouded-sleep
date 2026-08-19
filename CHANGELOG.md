@@ -6,9 +6,75 @@ Human-readable history of notable Enshrouded Sleep changes. Git remains authorit
 
 ### Next decision
 
-- Complete [`SPIKE-004 — Player Health and Survival Time Domains Under Calendar Compression`](docs/spikes/SPIKE-004-health-time-domains.md).
+- Complete the v0.0.9 two-player baseline/partial/restored-baseline run for [`SPIKE-004 — Player Health and Survival Time Domains Under Calendar Compression`](docs/spikes/SPIKE-004-health-time-domains.md).
 - Use the resulting evidence to make a **GO / CONDITIONAL GO / NO-GO** decision for WHG Public Alpha deployment.
-- If the health spike passes, run a short v0.0.8 core regression and proceed to larger-population field testing.
+- If the health spike passes, run a short core sleep regression and proceed to larger-population field testing.
+
+## [0.0.9] - 2026-08-19
+
+Follow-up SPIKE-004 diagnostic build after the first successful solo health/injury telemetry run.
+
+### What the v0.0.8 solo run established
+
+The v0.0.8 health/time-domain diagnostic loaded cleanly on Project Zomboid 42.20.3 and produced substantial usable telemetry on both server and owning client. The run included awake injury monitoring and solo vanilla full sleep.
+
+Important observations:
+
+- overall health, injury counts, detailed body-part state/timers, nutrition values, sleep counters, cold variables and several infection values were successfully observable;
+- server/client health values agreed closely in the sampled run;
+- a character with four active bleeding injuries fell from roughly 81 health immediately before sleep to death within about five real seconds after entering solo full sleep;
+- that lethal acceleration occurred while Enshrouded Sleep had restored native `MinutesPerDay=90` and vanilla all-players-asleep fast-forward owned the state;
+- a later non-bleeding/healing sleep showed similarly strong acceleration of recovery/timer progression;
+- carbohydrate/protein/lipid progression closely tracked accelerated world time during vanilla full sleep, while calories behaved more like a mixed metric;
+- this provides a valuable vanilla reference but **does not answer** whether an *awake* injured player accelerates when another player triggers Enshrouded Sleep partial compression.
+
+### Lua/Kahlua exposure gap found
+
+In the v0.0.8 run, many raw `Stats`-style getters remained `N/A` on both server and client despite the underlying Java API exposing corresponding values. Affected observations included hunger, thirst, fatigue, endurance, stress, panic, general pain, boredom, sickness, drunkenness, fear and sanity. Several BodyDamage getters were similarly unavailable even though other BodyDamage methods worked.
+
+### Improved raw-stat probing
+
+Both health diagnostic modules now:
+
+1. try the normal getter first;
+2. if unavailable, safely probe documented public Java fields where appropriate;
+3. leave the value `N/A` if neither path is exposed.
+
+Examples include direct-field fallback for `Stats.hunger`, `Stats.thirst`, `Stats.fatigue`, `Stats.endurance`, `Stats.stress`, `Stats.Panic`, `Stats.Pain`, `Stats.boredom/Boredom`, `Stats.Sickness`, `Stats.Drunkenness`, `Stats.Fear`, `Stats.Sanity`, plus selected documented BodyDamage fields such as `OverallBodyHealth`, `UnhappynessLevel`, `InfectionLevel`, `FakeInfectionLevel`, `Wetness`, `CatchACold`, `ColdStrength` and `ColdDamageStage`.
+
+All probes remain inside `pcall`; unavailable Java/Lua exposure cannot intentionally fail gameplay.
+
+### Added Moodle telemetry
+
+The diagnostic now scans the player's `Moodles` collection by numeric index and records both a compact full Moodle summary and dedicated levels for relevant states including:
+
+- Hungry / Thirst / Tired / Endurance;
+- Stress / Panic / Pain / Bored / Unhappy;
+- Sick / Drunk;
+- Bleeding / Injured;
+- Wet / HasACold / Hyperthermia / Hypothermia;
+- Zombie.
+
+This gives SPIKE-004 a discrete fallback signal even when a raw continuous stat remains unavailable through Kahlua.
+
+### Added time-domain context directly to health samples
+
+Health `PLAYER` records now include:
+
+- `DeltaMinutesPerDay`;
+- `GameMultiplier`;
+- `TrueMultiplier`;
+- `ServerMultiplier`.
+
+The client diagnostic also distinguishes local vanilla full sleep from ordinary baseline when the player is asleep while `MinutesPerDay` remains at baseline. This makes it easier to separate vanilla multiplier-driven acceleration from Enshrouded Sleep `MinutesPerDay` compression during analysis.
+
+### Scope
+
+- No proportional-sleep formula change.
+- No player health/survival compensation.
+- No sleep eligibility or wake-policy change.
+- No global multiplier change by Enshrouded Sleep.
+- New code remains read-only and active only when `DiagnosticsEnabled=true`.
 
 ## [0.0.8] - 2026-08-17
 
@@ -30,15 +96,7 @@ Added:
 42/media/lua/server/EnshroudedSleep/HealthTimeDomainDiagnostic_Server.lua
 ```
 
-When `DiagnosticsEnabled=true`, the server samples every instantiated living player once per real second and records:
-
-- clock/experiment context: phase, living/sleeping counts, sleep fraction, `MinutesPerDay`, observed baseline, compression factor, `TimeOfDay`, `WorldAgeHours`;
-- sleep state: asleep flag, `AsleepTime`, `ForceWakeUpTime`, sleeping-pill count;
-- health/body state: health, overall body health, injury counts and flags;
-- survival stats: hunger, thirst, fatigue, endurance, stress, panic, pain, boredom, sickness, drunkenness, fear, sanity;
-- health modifiers: unhappiness, food sickness, poison, infection/apparent infection/fake infection, temperature, wetness, cold progression;
-- nutrition: weight, calories, carbohydrates, proteins, lipids;
-- detailed injured-body-part telemetry including bleeding, wound timers, cuts, scratches, bites, deep wounds, stitches, fractures, splints, burns, wound infection, bandages, glass/bullets, temperature/wetness, and stiffness.
+When `DiagnosticsEnabled=true`, the server samples every instantiated living player once per real second and records clock/experiment context, sleep state, health/body state, survival stats, health modifiers, nutrition, and detailed injured-body-part telemetry.
 
 The diagnostic is read-only and uses guarded API calls so an unavailable Lua-exposed getter is recorded as `N/A` rather than failing the gameplay session.
 
@@ -50,28 +108,27 @@ Added:
 42/media/lua/client/EnshroudedSleep/HealthTimeDomainDiagnostic_Client.lua
 ```
 
-The owning client records the corresponding local player metrics. This is deliberate because prior sleep diagnostics established that some useful timing values can be exposed differently or more meaningfully on the owning client than on the server.
+The owning client records corresponding local player metrics because prior sleep diagnostics established that some useful timing values can be exposed differently or more meaningfully on the owning client than on the server.
 
 ### Diagnostic safety
 
-- Both new health diagnostics are dormant unless `DiagnosticsEnabled=true`.
+- Both health diagnostics are dormant unless `DiagnosticsEnabled=true`.
 - Sampling is once per real second, not every simulation tick.
 - Diagnostics do not heal, injure, feed, fatigue, infect, sleep/wake, or otherwise mutate players.
 - Existing low-volume controller/synchronization state logging remains independent of verbose diagnostics.
-- The v0.0.6 Kahlua multi-return `tonumber()` failure pattern is explicitly avoided by converting only a separately captured method return value.
+- The v0.0.6 Kahlua multi-return `tonumber()` failure pattern is explicitly avoided.
 
 ### Documentation / engineering records
 
 - Added formal [`SPIKE-004`](docs/spikes/SPIKE-004-health-time-domains.md) with scope, telemetry, controlled procedure, analysis method, and deployment go/no-go criteria.
 - Retroactively documented the three completed investigations that established the current architecture as SPIKE-001 through SPIKE-003.
 - Added ADR-001 through ADR-003 for the durable decisions to use `MinutesPerDay`, extend vanilla lifecycle/full-sleep semantics, and explicitly mirror authoritative `MinutesPerDay` to clients.
-- Reframed the repository status from active Public Alpha to **Public Alpha candidate / pre-deployment validation** until SPIKE-004 is resolved.
-- Updated README, requirements, testing, architecture, roadmap, deployment guidance, validation history, and documentation indexes accordingly.
+- Reframed repository status from active Public Alpha to **Public Alpha candidate / pre-deployment validation** until SPIKE-004 is resolved.
 
 ### Versioning
 
 - Bumped repository and PZ metadata to `0.0.8` because the diagnostic code surface materially changed after the exact v0.0.7 build had already been validated.
-- The proportional controller and clock-synchronization algorithms remain behaviorally unchanged from v0.0.7.
+- The proportional controller and clock-synchronization algorithms remained behaviorally unchanged from v0.0.7.
 
 ## [0.0.7] - 2026-08-17
 
