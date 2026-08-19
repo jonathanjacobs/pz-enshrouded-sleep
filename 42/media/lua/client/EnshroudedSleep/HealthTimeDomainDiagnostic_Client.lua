@@ -1,15 +1,17 @@
 -- Enshrouded Sleep - client health/time-domain diagnostic
--- v0.0.8 pre-Public-Alpha instrumentation for Project Zomboid Build 42.20+
+-- v0.0.9 pre-Public-Alpha instrumentation for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
--- Sample the local player's health, survival-stat, nutrition, sleep, and injury
--- state once per real second while diagnostics are enabled. This complements the
--- all-player server sampler because prior sleep testing showed that some useful
--- player timing values are more meaningful on the owning client.
+-- Sample the local player's health, survival-stat, Moodle, nutrition, sleep, and
+-- injury state once per real second while diagnostics are enabled. This is
+-- intentionally read-only support instrumentation for SPIKE-004.
 --
--- This module is READ-ONLY and dormant unless the server administrator enables
--- EnshroudedSleep.DiagnosticsEnabled.
+-- v0.0.8 established that many useful BodyDamage/Nutrition values are exposed to
+-- Lua, while a number of Stats getters return unavailable/N/A in the tested
+-- Build 42.20.3 Kahlua context. v0.0.9 therefore adds guarded public-field
+-- fallbacks plus Moodle-level telemetry. Missing probes remain N/A and must never
+-- fail the gameplay session.
 
 if not isClient() then return end
 
@@ -18,6 +20,27 @@ local SAMPLE_INTERVAL_SECONDS = 1
 local EPSILON = 0.0001
 local lastSampleAt = -1
 local observedBaselineMinutesPerDay = nil
+
+local TRACKED_MOODLES = {
+    Hungry = true,
+    Thirst = true,
+    Tired = true,
+    Endurance = true,
+    Stress = true,
+    Panic = true,
+    Pain = true,
+    Bored = true,
+    Unhappy = true,
+    Sick = true,
+    Drunk = true,
+    Bleeding = true,
+    Injured = true,
+    Wet = true,
+    HasACold = true,
+    Hyperthermia = true,
+    Hypothermia = true,
+    Zombie = true,
+}
 
 local function diagnosticsEnabled()
     local vars = SandboxVars and SandboxVars.EnshroudedSleep or nil
@@ -37,9 +60,45 @@ local function safeMethod(obj, methodName, ...)
     return value
 end
 
+-- Public Java fields are sometimes exposed to Kahlua even when the corresponding
+-- getter is not. Every access is guarded because exposure varies by runtime.
+local function safeField(obj, fieldName)
+    if not obj then return nil end
+    local ok, value = pcall(function() return obj[fieldName] end)
+    if not ok then return nil end
+    return value
+end
+
 local function safeNumber(obj, methodName, ...)
     local value = safeMethod(obj, methodName, ...)
     return tonumber(value)
+end
+
+local function safeNumberProbe(obj, methodName, fieldNames)
+    local value = safeNumber(obj, methodName)
+    if value ~= nil then return value end
+    if not fieldNames then return nil end
+
+    for _, fieldName in ipairs(fieldNames) do
+        local fieldValue = safeField(obj, fieldName)
+        local numberValue = tonumber(fieldValue)
+        if numberValue ~= nil then return numberValue end
+    end
+
+    return nil
+end
+
+local function safeValueProbe(obj, methodName, fieldNames)
+    local value = safeMethod(obj, methodName)
+    if value ~= nil then return value end
+    if not fieldNames then return nil end
+
+    for _, fieldName in ipairs(fieldNames) do
+        local fieldValue = safeField(obj, fieldName)
+        if fieldValue ~= nil then return fieldValue end
+    end
+
+    return nil
 end
 
 local function formatValue(value, decimals)
@@ -62,6 +121,45 @@ local function observeBaseline(current)
         end
     end
     return observedBaselineMinutesPerDay
+end
+
+local function canonicalMoodleName(moodleType)
+    if not moodleType then return nil end
+
+    local name = safeMethod(moodleType, "name")
+    if name == nil then name = tostring(moodleType) end
+    if name == nil then return nil end
+
+    name = tostring(name)
+    local tail = string.match(name, "([%w_]+)$")
+    return tail or name
+end
+
+-- Scan Moodles by index rather than depending on a Lua-visible MoodleType enum.
+-- This provides a stable fallback even when raw Stats values remain unavailable.
+local function readMoodles(player)
+    local tracked = {}
+    local compact = {}
+    local moodles = safeMethod(player, "getMoodles")
+    if not moodles then return tracked, "N/A" end
+
+    local count = safeNumber(moodles, "getNumMoodles")
+    if count == nil then return tracked, "N/A" end
+
+    for i = 0, count - 1 do
+        local moodleType = safeMethod(moodles, "getMoodleType", i)
+        local level = safeNumber(moodles, "getMoodleLevel", i)
+        local name = canonicalMoodleName(moodleType)
+
+        if name and level ~= nil then
+            compact[#compact + 1] = sanitize(name) .. ":" .. formatValue(level, 0)
+            if TRACKED_MOODLES[name] then tracked[name] = level end
+        end
+    end
+
+    table.sort(compact)
+    if #compact <= 0 then return tracked, "N/A" end
+    return tracked, table.concat(compact, ",")
 end
 
 local function bodyPartIsInteresting(part)
@@ -167,9 +265,12 @@ local function sampleHealthTimeDomains()
         compression = baseline / minutesPerDay
     end
 
-    local phase = "baseline-or-vanilla"
+    local asleep = safeMethod(player, "isAsleep")
+    local phase = "baseline"
     if baseline and minutesPerDay and minutesPerDay < baseline - EPSILON then
         phase = "partial"
+    elseif asleep == true then
+        phase = "vanilla-full-sleep-local"
     end
 
     local playerName = safeMethod(player, "getUsername") or safeMethod(player, "getDisplayName") or "N/A"
@@ -177,9 +278,24 @@ local function sampleHealthTimeDomains()
     local stats = safeMethod(player, "getStats")
     local bodyDamage = safeMethod(player, "getBodyDamage")
     local nutrition = safeMethod(player, "getNutrition")
+    local moodles, moodleSummary = readMoodles(player)
+
+    local hunger = safeNumberProbe(stats, "getHunger", { "hunger" })
+    local thirst = safeNumberProbe(stats, "getThirst", { "thirst" })
+    local fatigue = safeNumberProbe(stats, "getFatigue", { "fatigue" })
+    local endurance = safeNumberProbe(stats, "getEndurance", { "endurance" })
+    local stress = safeNumberProbe(stats, "getStress", { "stress" })
+    local panic = safeNumberProbe(stats, "getPanic", { "Panic" })
+    local pain = safeNumberProbe(stats, "getPain", { "Pain" })
+    local boredom = safeNumberProbe(stats, "getBoredom", { "boredom", "Boredom" })
+    if boredom == nil then boredom = safeNumberProbe(bodyDamage, "getBoredomLevel", { "BoredomLevel" }) end
+    local sickness = safeNumberProbe(stats, "getSickness", { "Sickness" })
+    local drunkenness = safeNumberProbe(stats, "getDrunkenness", { "Drunkenness" })
+    local fear = safeNumberProbe(stats, "getFear", { "Fear" })
+    local sanity = safeNumberProbe(stats, "getSanity", { "Sanity" })
 
     log(string.format(
-        "PLAYER | epoch=%d | phase=%s | MinutesPerDay=%s | BaselineMinutesPerDay=%s | CalendarCompressionFactor=%s | TimeOfDay=%s | WorldAgeHours=%s | player=%s | onlineID=%s | asleep=%s | AsleepTime=%s | ForceWakeUpTime=%s | SleepingPillsTaken=%s | Health=%s | OverallBodyHealth=%s | HasInjury=%s | NumBleeding=%s | NumScratched=%s | NumBitten=%s | Hunger=%s | Thirst=%s | Fatigue=%s | Endurance=%s | Stress=%s | Panic=%s | Pain=%s | Boredom=%s | Unhappiness=%s | Sickness=%s | Drunkenness=%s | Fear=%s | Sanity=%s | FoodSickness=%s | Poison=%s | InfectionLevel=%s | ApparentInfectionLevel=%s | FakeInfectionLevel=%s | Infected=%s | Temperature=%s | Wetness=%s | CatchACold=%s | ColdStrength=%s | ColdDamageStage=%s | Weight=%s | Calories=%s | Carbohydrates=%s | Proteins=%s | Lipids=%s",
+        "PLAYER | epoch=%d | phase=%s | MinutesPerDay=%s | BaselineMinutesPerDay=%s | CalendarCompressionFactor=%s | TimeOfDay=%s | WorldAgeHours=%s | DeltaMinutesPerDay=%s | GameMultiplier=%s | TrueMultiplier=%s | ServerMultiplier=%s | player=%s | onlineID=%s | asleep=%s | AsleepTime=%s | ForceWakeUpTime=%s | SleepingPillsTaken=%s | Health=%s | OverallBodyHealth=%s | HasInjury=%s | NumBleeding=%s | NumScratched=%s | NumBitten=%s | Hunger=%s | Thirst=%s | Fatigue=%s | Endurance=%s | Stress=%s | Panic=%s | Pain=%s | Boredom=%s | Unhappiness=%s | Sickness=%s | Drunkenness=%s | Fear=%s | Sanity=%s | FoodSickness=%s | Poison=%s | InfectionLevel=%s | ApparentInfectionLevel=%s | FakeInfectionLevel=%s | Infected=%s | Temperature=%s | Wetness=%s | CatchACold=%s | ColdStrength=%s | ColdDamageStage=%s | MoodleHungry=%s | MoodleThirst=%s | MoodleTired=%s | MoodleEndurance=%s | MoodleStress=%s | MoodlePanic=%s | MoodlePain=%s | MoodleBored=%s | MoodleUnhappy=%s | MoodleSick=%s | MoodleDrunk=%s | MoodleBleeding=%s | MoodleInjured=%s | MoodleWet=%s | MoodleHasACold=%s | MoodleHyperthermia=%s | MoodleHypothermia=%s | MoodleZombie=%s | Moodles=%s | Weight=%s | Calories=%s | Carbohydrates=%s | Proteins=%s | Lipids=%s",
         now,
         phase,
         formatValue(minutesPerDay),
@@ -187,42 +303,65 @@ local function sampleHealthTimeDomains()
         formatValue(compression),
         formatValue(safeNumber(gt, "getTimeOfDay")),
         formatValue(safeNumber(gt, "getWorldAgeHours")),
+        formatValue(safeNumber(gt, "getDeltaMinutesPerDay")),
+        formatValue(safeNumber(gt, "getMultiplier")),
+        formatValue(safeNumber(gt, "getTrueMultiplier")),
+        formatValue(safeNumber(gt, "getServerMultiplier")),
         sanitize(playerName),
         formatValue(onlineID, 0),
-        formatValue(safeMethod(player, "isAsleep")),
+        formatValue(asleep),
         formatValue(safeNumber(player, "getAsleepTime")),
         formatValue(safeNumber(player, "getForceWakeUpTime")),
         formatValue(safeNumber(player, "getSleepingPillsTaken"), 0),
-        formatValue(safeNumber(bodyDamage, "getHealth")),
-        formatValue(safeNumber(bodyDamage, "getOverallBodyHealth")),
+        formatValue(safeNumberProbe(bodyDamage, "getHealth", { "OverallBodyHealth" })),
+        formatValue(safeNumberProbe(bodyDamage, "getOverallBodyHealth", { "OverallBodyHealth" })),
         formatValue(safeMethod(bodyDamage, "HasInjury")),
         formatValue(safeNumber(bodyDamage, "getNumPartsBleeding"), 0),
         formatValue(safeNumber(bodyDamage, "getNumPartsScratched"), 0),
         formatValue(safeNumber(bodyDamage, "getNumPartsBitten"), 0),
-        formatValue(safeNumber(stats, "getHunger")),
-        formatValue(safeNumber(stats, "getThirst")),
-        formatValue(safeNumber(stats, "getFatigue")),
-        formatValue(safeNumber(stats, "getEndurance")),
-        formatValue(safeNumber(stats, "getStress")),
-        formatValue(safeNumber(stats, "getPanic")),
-        formatValue(safeNumber(stats, "getPain")),
-        formatValue(safeNumber(stats, "getBoredom")),
-        formatValue(safeNumber(bodyDamage, "getUnhappynessLevel")),
-        formatValue(safeNumber(stats, "getSickness")),
-        formatValue(safeNumber(stats, "getDrunkenness")),
-        formatValue(safeNumber(stats, "getFear")),
-        formatValue(safeNumber(stats, "getSanity")),
+        formatValue(hunger),
+        formatValue(thirst),
+        formatValue(fatigue),
+        formatValue(endurance),
+        formatValue(stress),
+        formatValue(panic),
+        formatValue(pain),
+        formatValue(boredom),
+        formatValue(safeNumberProbe(bodyDamage, "getUnhappynessLevel", { "UnhappynessLevel" })),
+        formatValue(sickness),
+        formatValue(drunkenness),
+        formatValue(fear),
+        formatValue(sanity),
         formatValue(safeNumber(bodyDamage, "getFoodSicknessLevel")),
         formatValue(safeNumber(bodyDamage, "getPoisonLevel")),
-        formatValue(safeNumber(bodyDamage, "getInfectionLevel")),
+        formatValue(safeNumberProbe(bodyDamage, "getInfectionLevel", { "InfectionLevel" })),
         formatValue(safeNumber(bodyDamage, "getApparentInfectionLevel")),
-        formatValue(safeNumber(bodyDamage, "getFakeInfectionLevel")),
-        formatValue(safeMethod(bodyDamage, "isInfected")),
+        formatValue(safeNumberProbe(bodyDamage, "getFakeInfectionLevel", { "FakeInfectionLevel" })),
+        formatValue(safeValueProbe(bodyDamage, "isInfected", { "IsInfected" })),
         formatValue(safeNumber(bodyDamage, "getTemperature")),
-        formatValue(safeNumber(bodyDamage, "getWetness")),
-        formatValue(safeNumber(bodyDamage, "getCatchACold")),
-        formatValue(safeNumber(bodyDamage, "getColdStrength")),
-        formatValue(safeNumber(bodyDamage, "getColdDamageStage")),
+        formatValue(safeNumberProbe(bodyDamage, "getWetness", { "Wetness" })),
+        formatValue(safeNumberProbe(bodyDamage, "getCatchACold", { "CatchACold" })),
+        formatValue(safeNumberProbe(bodyDamage, "getColdStrength", { "ColdStrength" })),
+        formatValue(safeNumberProbe(bodyDamage, "getColdDamageStage", { "ColdDamageStage" })),
+        formatValue(moodles.Hungry, 0),
+        formatValue(moodles.Thirst, 0),
+        formatValue(moodles.Tired, 0),
+        formatValue(moodles.Endurance, 0),
+        formatValue(moodles.Stress, 0),
+        formatValue(moodles.Panic, 0),
+        formatValue(moodles.Pain, 0),
+        formatValue(moodles.Bored, 0),
+        formatValue(moodles.Unhappy, 0),
+        formatValue(moodles.Sick, 0),
+        formatValue(moodles.Drunk, 0),
+        formatValue(moodles.Bleeding, 0),
+        formatValue(moodles.Injured, 0),
+        formatValue(moodles.Wet, 0),
+        formatValue(moodles.HasACold, 0),
+        formatValue(moodles.Hyperthermia, 0),
+        formatValue(moodles.Hypothermia, 0),
+        formatValue(moodles.Zombie, 0),
+        sanitize(moodleSummary),
         formatValue(safeNumber(nutrition, "getWeight")),
         formatValue(safeNumber(nutrition, "getCalories")),
         formatValue(safeNumber(nutrition, "getCarbohydrates")),
@@ -239,4 +378,4 @@ else
     Events.OnTick.Add(sampleHealthTimeDomains)
 end
 
-log("Loaded v0.0.8 client health/time-domain diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")
+log("Loaded v0.0.9 client health/time-domain diagnostic; method/public-field/Moodle fallbacks active when DiagnosticsEnabled=true.")
