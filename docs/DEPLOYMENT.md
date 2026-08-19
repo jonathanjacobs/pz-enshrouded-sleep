@@ -2,11 +2,11 @@
 
 Current deployment status: **PAUSED pending SPIKE-004 health/time-domain validation**
 
-Current development version: `v0.0.8`
+Current development version: `v0.0.9`
 
 The core two-player sleep/clock architecture passed dedicated-server regression testing on Project Zomboid 42.20.3. However, pre-deployment review identified a separate player-safety question: some health/survival systems may progress faster in real time when `MinutesPerDay` is compressed.
 
-Do **not** deploy v0.0.8 to the WHG public server until [`SPIKE-004`](spikes/SPIKE-004-health-time-domains.md) records a GO or acceptable CONDITIONAL GO decision.
+Do **not** deploy the current development build to the WHG public server until [`SPIKE-004`](spikes/SPIKE-004-health-time-domains.md) records a GO or acceptable CONDITIONAL GO decision.
 
 ## Why deployment is gated
 
@@ -22,20 +22,28 @@ The blocking questions include whether partial sleep materially accelerates:
 - zombie infection progression;
 - temperature/cold effects.
 
-v0.0.8 adds broad read-only telemetry to answer these questions on the controlled test server.
+### Preliminary solo reference
+
+The v0.0.8 diagnostic successfully captured broad health/injury telemetry. During a solo sleep test, a character with four active bleeding injuries died within roughly five real seconds after sleep began. In that state Enshrouded Sleep had restored baseline `MinutesPerDay=90` and **vanilla full-sleep fast-forward** owned the acceleration.
+
+This is not evidence that Enshrouded Sleep partial compression causes rapid bleed-out. It is evidence that sleep/time-domain effects can be severe enough that the awake-player partial-sleep case must be measured before public deployment.
+
+v0.0.9 improves the read-only diagnostic with guarded raw public-field fallbacks, Moodle levels, and direct multiplier/delta telemetry.
 
 ## Pre-deployment gate
 
 Before WHG Public Alpha deployment:
 
-1. Complete the v0.0.8 startup smoke test.
-2. Complete SPIKE-004 baseline/partial/baseline health monitoring.
-3. Record a per-metric time-domain classification.
+1. Confirm v0.0.9 server/client diagnostics load without Enshrouded Sleep errors.
+2. Complete SPIKE-004 baseline/partial/restored-baseline health monitoring with Player A awake and Player B sleeping during the partial phase.
+3. Record a per-metric time-domain classification where measurable.
 4. Confirm no unacceptable high-severity awake-player health hazard, or validate a mitigation/configuration bound.
 5. Record GO / CONDITIONAL GO / NO-GO in SPIKE-004.
-6. Run the short core two-player regression to ensure the diagnostic additions did not disturb the validated sleep/clock behavior.
+6. Run the short core two-player regression to ensure the diagnostic additions did not disturb validated sleep/clock behavior.
 
-Only then proceed with the deployment steps below.
+The recommended first safety run uses native `FastForwardMultiplier=10`. With a 90-minute baseline, two living players and one sleeper should produce approximately factor `5` / `MinutesPerDay=18`, giving a strong experimental signal with more operator reaction time than factor 20.
+
+Only after the gate passes should the deployment steps below be used.
 
 ## Intended Public Alpha configuration
 
@@ -49,7 +57,7 @@ EnshroudedSleep = {
 },
 ```
 
-`DiagnosticsEnabled=true` now produces one-second clock, sleep, health, survival-stat, nutrition, and injury telemetry. It can generate very large logs and should only be used for controlled diagnostics, not normal Public Alpha play.
+`DiagnosticsEnabled=true` produces one-second clock, sleep, health, raw-stat/Moodle, nutrition, injury and multiplier-context telemetry. It can generate very large logs and should only be used for controlled diagnostics, not normal Public Alpha play.
 
 ## Server installation
 
