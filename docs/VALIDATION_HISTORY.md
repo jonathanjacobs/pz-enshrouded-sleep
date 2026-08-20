@@ -1,58 +1,41 @@
 # Validation History
 
-This document preserves the technical evidence behind the current Enshrouded Sleep architecture. It is intentionally separate from the top-level README.
-
-For current procedures, see [`TESTING.md`](TESTING.md). For focused investigations, see [`spikes/`](spikes/). For durable design decisions, see [`adr/`](adr/).
+This document preserves the technical evidence behind the current Enshrouded Sleep architecture. For current procedures, see [`TESTING.md`](TESTING.md); for focused investigations, see [`spikes/`](spikes/); for durable design decisions, see [`adr/`](adr/).
 
 ## Summary
 
-The project progressed through four major evidence questions:
+The project has progressed through four major evidence questions:
 
 1. can `MinutesPerDay` compress world/calendar time without globally accelerating active simulation? — **yes**;
 2. can the MVP rely on vanilla-instantiated player/sleep lifecycle and hand full sleep back to vanilla? — **yes**;
 3. can clients be paced coherently with the authoritative compressed day length? — **yes**;
-4. do health/survival subsystems create unsafe awake-player effects under calendar compression? — **currently under investigation in SPIKE-004**.
+4. do health/survival subsystems create unsafe awake-player effects under calendar compression? — **partially classified; final survival-state test pending**.
 
-The core sleep/clock architecture is behaviorally validated on Project Zomboid 42.20.3 with two players. WHG Public Alpha deployment is paused only for the fourth safety question, not because the earlier clock architecture regressed.
+The core sleep/clock architecture is behaviorally validated on Project Zomboid 42.20.3 with two players. Public Alpha is paused only for completion of SPIKE-004.
 
 ## v0.0.1 — calendar-compression feasibility
 
-Goal: determine whether world/calendar time can be accelerated without globally accelerating active simulation.
-
-Result:
-
-- live baseline `MinutesPerDay=90`;
+- baseline `MinutesPerDay=90`;
 - temporary `4.5` produced approximately 20x world/calendar progression;
 - `TrueMultiplier` remained `1`;
 - awake gameplay did not visibly accelerate;
 - exact baseline restoration worked.
 
-Decision: use `MinutesPerDay` as the partial-sleep primitive. See [`spikes/SPIKE-001-minutes-per-day-feasibility.md`](spikes/SPIKE-001-minutes-per-day-feasibility.md) and ADR-001.
+Decision: use `MinutesPerDay` as the partial-sleep primitive. See SPIKE-001 and ADR-001.
 
-## v0.0.2 — player lifecycle/sleep-state investigation
+## v0.0.2 / v0.0.2b — lifecycle and vanilla full sleep
 
-Results:
+Established:
 
-- server-side `IsoPlayer:isAsleep()` reliably reflected actual sleep/wake state;
-- dead player objects can remain in `getOnlinePlayers()` during respawn;
-- dead characters must be excluded from the living denominator;
-- clients may authenticate/load before an `IsoPlayer` appears;
-- MVP should use instantiated living players rather than a custom readiness registry.
+- server `IsoPlayer:isAsleep()` reflects sleep/wake state;
+- dead player objects may remain during respawn and must be excluded from the denominator;
+- loading clients may exist before an `IsoPlayer` appears;
+- MVP should use instantiated living players rather than a custom readiness registry;
+- vanilla full sleep leaves `MinutesPerDay` at baseline and uses another acceleration path.
 
-## v0.0.2b — vanilla full-sleep probe
+Decision: restore baseline and step aside when all living players sleep. See SPIKE-002 and ADR-002.
 
-With baseline `MinutesPerDay=90` and configured `FastForwardMultiplier=40`:
-
-```text
-MinutesPerDay -> remains 90
-GameTime multiplier -> roughly 4.8 to roughly 575
-TrueMultiplier -> remains 1
-observed calendar rate -> roughly 120x baseline
-```
-
-Conclusion: vanilla full sleep uses a mechanism distinct from `MinutesPerDay`; restore baseline and step aside rather than stacking mechanisms. See [`spikes/SPIKE-002-vanilla-sleep-lifecycle.md`](spikes/SPIKE-002-vanilla-sleep-lifecycle.md) and ADR-002.
-
-## v0.0.3 — functional proportional controller
+## v0.0.3 / v0.0.4 — proportional controller
 
 Introduced:
 
@@ -64,11 +47,7 @@ CalendarCompressionFactor = max(1.0,
 EffectiveMinutesPerDay = BaselineMinutesPerDay / CalendarCompressionFactor
 ```
 
-The controller captures the live baseline, excludes dead players, applies compression only during partial sleep, restores baseline otherwise, never uses `GameTime:setMultiplier()` for partial sleep, and fails toward baseline.
-
-## v0.0.4 — first successful two-player proportional test
-
-Validated on B42.20.2:
+First successful two-player test:
 
 ```text
 2 living / 0 sleeping -> MinutesPerDay=90
@@ -76,28 +55,24 @@ Validated on B42.20.2:
 2 living / 2 sleeping -> restore 90 -> vanilla full-sleep takeover
 ```
 
-Wake restoration and disconnect denominator recalculation also passed.
+Wake restoration and disconnect denominator recalculation passed.
 
-A client presentation problem remained: both sleeping and awake clocks visibly jumped.
+## v0.0.5 — client clock mismatch diagnosed
 
-## v0.0.5 — client clock diagnosis
-
-Read-only server/client diagnostics showed:
+Read-only diagnostics showed:
 
 ```text
 SERVER MinutesPerDay = 4.5
 CLIENT MinutesPerDay = 90
 ```
 
-The client advanced using native day length and periodically received large multiplayer corrections, typically about 51 in-game minutes. This established that runtime server `MinutesPerDay` changes were not automatically mirrored to the tested client.
+Clients advanced at native day length between server corrections, producing large visible clock jumps and contributing to pathological sleep-duration behavior.
 
-The same test exposed a character remaining asleep across more than 30 authoritative world-hours.
+## v0.0.6 / v0.0.7 — explicit client pacing and clean regression
 
-## v0.0.6 — explicit client day-length synchronization
+Added explicit server-to-client `MinutesPerDay` synchronization plus a low-frequency convergence heartbeat.
 
-Added server `ClockState` publication and client local `MinutesPerDay` mirroring.
-
-Two-player testing on PZ 42.20.3 showed:
+Validated on PZ 42.20.3:
 
 ```text
 SERVER MinutesPerDay = 4.5
@@ -107,165 +82,151 @@ CLIENT B MinutesPerDay = 4.5
 
 Results:
 
-- client clock rate approximately 5.33 game-minutes per real second;
-- prior ~51-minute sawtooth corrections disappeared;
-- sleeping and awake clocks were visually smooth;
+- smooth sleeping black-screen and awake HUD/watch clocks;
 - awake movement/actions remained normal-speed;
 - baseline/full-sleep handoff remained correct;
-- client `AsleepTime` tracked compressed world time and wake occurred near vanilla `ForceWakeUpTime`.
+- client `AsleepTime` tracked compressed world time and wake occurred near vanilla `ForceWakeUpTime`;
+- v0.0.7 fixed a diagnostic-only Kahlua multi-return numeric conversion error;
+- synchronization publication was settled after the controller applied its target;
+- issues #1, #2 and #3 were closed.
 
-A post-apply diagnostic expression still produced repeated Kahlua `Double` -> `String` exceptions after the setter had succeeded.
+See SPIKE-003 and ADR-003.
 
-## v0.0.7 — clean regression
+## v0.0.8 — broad health/time-domain instrumentation
 
-v0.0.7 fixed the multi-return numeric-conversion error and added one-observer-pass synchronization settling.
+Before Public Alpha, review raised a separate question: what happens to an awake wounded or physiologically stressed player when another player triggers calendar compression?
 
-The clean PZ 42.20.3 regression confirmed:
+v0.0.8 added read-only server/client health diagnostics with:
 
-- no recurrence of the exception flood;
-- correct server/client `90 <-> 4.5` transitions;
-- no stale partial-state packet paired with baseline 90;
-- client clock rate remained approximately theoretical;
-- sleeping and awake clocks remained smooth;
-- awake gameplay remained normal-speed;
-- full-sleep handoff and disconnect recalculation remained correct;
-- pill-influenced sleep woke within a few game minutes of vanilla `ForceWakeUpTime`.
+- overall health/body health;
+- detailed injured-body-part state and timers;
+- nutrition/weight;
+- sleep context;
+- clock/compression context.
 
-Issues #1, #2, and #3 were closed.
+### Solo vanilla-full-sleep reference — 2026-08-19
 
-See [`spikes/SPIKE-003-client-clock-synchronization.md`](spikes/SPIKE-003-client-clock-synchronization.md) and ADR-003.
+A deliberately injured character entered solo sleep. Because it was the only living player, Enshrouded Sleep restored native `MinutesPerDay=90` and vanilla full-sleep fast-forward owned the interval.
 
-## Public Alpha hardening after v0.0.7
-
-The one-second clock/sleep samplers were gated behind:
+Immediately before sleep, health was approximately `81.16` with four active bleeds. Successive roughly one-second samples fell approximately:
 
 ```text
-DiagnosticsEnabled = false
+69.68 -> 47.74 -> 25.83 -> 6.03 -> 0
 ```
 
-by default to keep live-server log volume manageable. This did not change the controller or synchronization policy.
+The character died within about five real seconds. A later healing sleep also showed strong recovery/timer acceleration.
 
-## v0.0.8 — health/survival time-domain diagnostic stage
+This established that vanilla full-sleep acceleration can strongly affect health/recovery, but it did **not** classify Enshrouded Sleep partial compression because the monitored player was asleep and vanilla owned acceleration.
 
-### Trigger
+The run also showed that many legacy named `Stats` getters were unavailable through the tested Lua/Kahlua path.
 
-Before WHG Public Alpha deployment, review raised a critical question: what happens to an awake wounded or physiologically stressed player when another player triggers calendar compression?
+## v0.0.9 — decisive two-player partial-compression run
 
-The existing evidence proves that active movement/combat simulation remains normal-speed, but it does **not** prove that bleeding, hunger, thirst, healing, infection, or other health systems use the same time domain.
+The controlled run used two players and contained baseline, partial compression, restored baseline, and later higher-compression intervals.
 
-### Added instrumentation
-
-v0.0.8 added:
+Observed transitions included:
 
 ```text
-HealthTimeDomainDiagnostic_Server.lua
-HealthTimeDomainDiagnostic_Client.lua
+90 -> 18 -> 90
+90 -> 18 -> 90
+90 -> 9 -> 90
 ```
 
-When `DiagnosticsEnabled=true`:
+The `18` state represented approximately 5x calendar compression with two living / one sleeping. The later `9` state represented approximately 10x after the native fast-forward setting was increased. `TrueMultiplier` remained `1.0` during partial compression.
 
-- server records a broad health/survival/nutrition snapshot for every instantiated living player once per real second;
-- owning client records corresponding local values;
-- detailed `BODY` lines are emitted for injured/non-pristine body parts;
-- each sample is correlated with `MinutesPerDay`, observed baseline, compression factor, `TimeOfDay`, `WorldAgeHours`, population and sleep phase.
+### Awake bleeding / injury result
 
-The diagnostic is read-only and deliberately avoids the Kahlua multi-return conversion pattern that caused the v0.0.6 error flood.
-
-### First integration run — solo, 2026-08-19
-
-The v0.0.8 health diagnostic successfully loaded and sampled on PZ 42.20.3. The reviewed logs contained hundreds of server/client player samples and thousands of detailed body-part samples with no recurring Enshrouded Sleep diagnostic exception.
-
-Useful telemetry included:
-
-- overall health / overall body health;
-- injury counts and detailed body-part state;
-- bleeding, scratch, deep-wound and related timers;
-- sleep state/counters;
-- nutrition/weight values;
-- cold-related values;
-- apparent infection and several wound-infection values.
-
-Server and owning-client overall health values generally agreed closely during the run.
-
-### Vanilla full-sleep reference from the solo run
-
-The solo experiment included a deliberately injured character entering sleep. Because there was only one living player, Enshrouded Sleep correctly restored native `MinutesPerDay=90`; **vanilla full-sleep fast-forward owned the sleep interval**.
-
-Immediately before the first sleep, the client diagnostic reported approximately:
+For the monitored awake injured player during the clean comparable interval:
 
 ```text
-Health = 81.16
-NumBleeding = 4
-NumScratched = 4
-MinutesPerDay = 90
-asleep = false
+Overall health loss
+baseline:   ~-0.07869 health / real second
+5x partial: ~-0.07810 health / real second
+ratio:      ~0.993x
 ```
 
-After vanilla sleep began, successive approximately one-second health samples were:
+Detailed timers corroborated this:
 
 ```text
-69.68
-47.74
-25.83
-6.03
-0.00
+BleedingTime
+baseline:   ~-0.000959 / sec
+5x partial: ~-0.000960 / sec
+
+ScratchTime
+baseline:   ~-0.000477 / sec
+5x partial: ~-0.000477 / sec
 ```
 
-The character therefore died within about five real seconds of entering vanilla full sleep while four active bleeds remained.
+Classification: **simulation/real-time bound under tested conditions**.
 
-A later controlled sleep with bleeding no longer driving health loss showed rapid health recovery and accelerated wound/healing timer progression.
+Safety interpretation: the feared rapid awake-player bleed-out proportional to calendar compression was not observed.
 
-Nutrition stores such as carbohydrates, proteins and lipids also accelerated strongly during vanilla sleep relative to awake baseline. Calories did not behave like a simple single-clock metric, consistent with additional metabolic/activity inputs.
+### Nutrition result
 
-This is important reference evidence: Project Zomboid health and recovery systems can react very strongly to **vanilla multiplier-driven full sleep**.
+Nutrition stores scaled almost exactly with observed calendar compression:
 
-It does **not** answer the SPIKE-004 safety question. Enshrouded Sleep partial sleep does not engage vanilla full-sleep fast-forward; it changes `MinutesPerDay` while at least one living player remains awake.
+| Metric | Baseline rate | ~5x partial | Ratio | ~10x partial | Ratio |
+|---|---:|---:|---:|---:|---:|
+| Calories | -0.2583/s | -1.2928/s | 5.01x | -2.5886/s | 10.00x |
+| Carbohydrates | -0.05597/s | -0.27987/s | 5.00x | -0.55972/s | 10.00x |
+| Proteins | -0.01374/s | -0.06877/s | 5.00x | -0.13753/s | 10.01x |
+| Lipids | -0.01807/s | -0.09036/s | 5.00x | -0.18071/s | 10.00x |
 
-### v0.0.8 Lua/Kahlua exposure boundary
+Classification: **world/calendar-time bound**.
 
-The getter-only diagnostic returned `N/A` for many desired continuous values on both server/client, including hunger, thirst, fatigue, endurance, stress, panic, general pain, boredom, unhappiness, sickness, drunkenness, fear, sanity, food sickness, poison and several aggregate infection/temperature/wetness values.
+This is consistent with the decompiled 42.20.3 `Nutrition.update()` implementation, which updates carbohydrates, lipids, proteins, calories and weight using `GameTime.getInstance().getGameWorldSecondsSinceLastUpdate()`.
 
-This did not crash the diagnostic. It showed that public Java API documentation cannot be assumed to map one-for-one to Lua/Kahlua method exposure.
+### Synchronization regression result
 
-## v0.0.9 — enhanced health-state probes
+The v0.0.9 health experiment also reconfirmed:
 
-v0.0.9 is the follow-up diagnostic build for the decisive two-player SPIKE-004 test.
+- server/client `MinutesPerDay` convergence;
+- baseline restoration;
+- alternate native fast-forward inheritance;
+- no global `TrueMultiplier` acceleration during partial sleep;
+- no Enshrouded Sleep exception flood in the reviewed logs.
 
-Changes are observational only:
+### Remaining observability failure
 
-- selected raw values now attempt the normal getter and then a guarded documented public Java field fallback;
-- relevant Project Zomboid Moodles are sampled by index as a discrete fallback/secondary signal;
-- a compact full Moodle summary is included per health sample;
-- `DeltaMinutesPerDay`, game multiplier, true multiplier and server multiplier are logged directly with health samples;
-- the client diagnostic labels a local sleeping-at-baseline state as vanilla full sleep rather than generic baseline, making solo/full-sleep reference data easier to separate from partial compression.
+Hunger, thirst, fatigue, endurance, stress, panic, general pain, sickness and related continuous values remained `N/A`. The attempted Moodle fallback also remained `N/A`.
 
-No health compensation, proportional formula change, sleep-policy change, or global multiplier manipulation was introduced.
+Post-run source review established that this was not simply an unknowable bridge limitation: v0.0.9 was using stale API assumptions.
 
-### Next required test
+Current Build 42.20.3 vanilla Lua uses:
 
-The decisive test uses:
+```lua
+player:getStats():get(CharacterStat.HUNGER)
+```
+
+and Build 42.20.3 Moodles are keyed by `MoodleType`:
+
+```lua
+player:getMoodles():getMoodleLevel(MoodleType.HUNGRY)
+```
+
+The current `Moodles` class does not expose the numeric enumeration pattern assumed by v0.0.9.
+
+## v0.0.10 — corrected survival-state diagnostic stage
+
+v0.0.10 adds:
 
 ```text
-Player A: awake, monitored, deliberately injured/stressed
-Player B: asleep
+42/media/lua/shared/EnshroudedSleep/SurvivalStatProbe.lua
+42/media/lua/server/EnshroudedSleep/SurvivalStatDiagnostic_Server.lua
+42/media/lua/client/EnshroudedSleep/SurvivalStatDiagnostic_Client.lua
 ```
 
-The recommended first run lowers native `FastForwardMultiplier` to `10`. With two living players and one sleeper at baseline `MinutesPerDay=90`, expected partial behavior is approximately:
+The shared probe:
 
-```text
-CalendarCompressionFactor = 5
-MinutesPerDay = 18
-```
+- reads continuous survival state through `Stats:get(CharacterStat.*)`;
+- reads Moodles through `getMoodleLevel(MoodleType.*)`;
+- retains direct Nutrition getters;
+- records selected BodyDamage context;
+- emits capability diagnostics to distinguish missing globals/enums/objects/methods;
+- remains guarded/read-only;
+- avoids the known Kahlua multi-return `tonumber()` failure pattern.
 
-This gives a large enough signal to classify time-domain behavior while providing more operator reaction time than the earlier factor-20 configuration.
-
-The result must classify actual awake-player bleeding/health loss first, then hunger/thirst/fatigue/healing/sickness/infection/temperature where measurable, and produce a GO / CONDITIONAL GO / NO-GO decision for WHG Public Alpha.
-
-## Current decision
-
-**WHG Public Alpha deployment remains paused pending the two-player SPIKE-004 partial-compression comparison.**
-
-This is a new evidence boundary, not a reversal of the validated v0.0.7 clock architecture.
+No proportional-sleep/controller behavior changed.
 
 ## Current evidence boundary
 
@@ -275,16 +236,19 @@ Well supported:
 - client/server `MinutesPerDay` synchronization;
 - smooth sleeping/awake clock presentation;
 - normal-speed awake active simulation;
-- baseline restoration;
-- vanilla full-sleep handoff;
+- baseline restoration and vanilla full-sleep handoff;
 - wake/disconnect recalculation;
 - sensible vanilla sleep duration when client pacing is synchronized;
-- v0.0.8 broad health/body diagnostic integration;
-- strong vanilla full-sleep effects on bleeding/recovery/nutrition as reference behavior.
+- broad health/body diagnostic integration;
+- awake bleeding/health-loss behavior approximately real-time bound under partial compression;
+- calories/carbohydrates/proteins/lipids world/calendar-time bound under partial compression;
+- alternate native fast-forward inheritance in the SPIKE-004 run.
 
 Current pre-alpha blocker:
 
-- **awake-player** health/survival time-domain safety under **partial** `MinutesPerDay` compression.
+- runtime validation of the corrected v0.0.10 `CharacterStat`/`MoodleType` probes;
+- classification of hunger/thirst/fatigue/endurance and other practical high-severity survival variables;
+- final SPIKE-004 GO / CONDITIONAL GO / NO-GO decision.
 
 Public Alpha targets after that gate:
 
