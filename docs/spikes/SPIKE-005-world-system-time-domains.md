@@ -74,6 +74,36 @@ No gameplay compensation is part of this spike unless needed in an isolated deve
 
 The spike is not required to make every Tier 2/3 subsystem compensable. It is required to document what is known and avoid unsupported claims.
 
+## Initial source review — before runtime measurement
+
+These are implementation clues, **not runtime classifications**. Measurements remain required.
+
+### Farming
+
+Current Build 42 vanilla Lua strongly suggests farming is calendar/hour-event driven. `SFarmingSystem:EveryTenMinutes()` derives the current hour from `getGameTime():getTimeOfDay()`, increments the global `hoursElapsed` counter when that hour changes, advances water/disease bookkeeping from that counter, and checks crop `nextGrowing` against `hoursElapsed`.
+
+Working hypothesis: crop maturation and several plant-care systems will scale with accelerated world time. Because the farming global object system stores `hoursElapsed`, `nextGrowing`, water, disease and other state persistently, compensation may be more complex than simply multiplying one transient delta. Runtime tests must also include loaded/unloaded behavior.
+
+### Vehicles
+
+Current vanilla `Vehicles.lua` updates fuel, battery, engine temperature, headlights, heater and related systems using an `elapsedMinutes` parameter. Fuel consumption subtracts a quantity proportional to `elapsedMinutes`; battery charge/drain and multiple thermal/electrical paths also multiply by it.
+
+Working hypothesis: vehicle resource behavior depends on the time source used by the caller to produce `elapsedMinutes`, so reading the update function alone does **not** establish whether vehicle fuel is world-time- or simulation-time-bound. Runtime measurement is required before compensation design.
+
+This also means vehicle compensation may need to distinguish active-driving mechanics from passive resource clocks rather than treating the whole vehicle subsystem as one policy.
+
+### Food
+
+The exposed `Food` API provides age/rot state and explicit `updateAge()` / freezing update paths. This gives us observable state for characterization, but the API surface alone does not establish the time basis used internally.
+
+Working hypothesis: food aging is world/calendar-time driven, with refrigeration/freezing adding a second environmental modifier. Tests should therefore compare identical foods in ambient, refrigerated and frozen conditions rather than measuring one item only.
+
+### Generators
+
+`IsoGenerator` exposes fuel, condition, activation, connectivity, total power usage and update/sync methods. This is sufficient for non-mutating observation of an existing generator's state.
+
+Working hypothesis: generator fuel is likely straightforward to measure, but no classification is assigned until the actual update delta under 1x/5x/10x is captured.
+
 ## Experimental control
 
 Use the existing server-only diagnostic forced-compression mode with one connected, awake player:
@@ -184,12 +214,12 @@ Correct implementation may instead require delaying updates, adjusting accumulat
 | System | Baseline | 5x | 10x | 20x | Classification | Authority | Grade | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Food aging/spoilage | pending | pending | pending | optional | pending | pending | ? | Include fresh/refrigerated/frozen cases |
-| Crop maturation | pending | pending | pending | optional | pending | pending | ? | Use known planted/growth state |
-| Crop water/disease/pests | pending | pending | pending | optional | pending | pending | ? | Separate from maturation if needed |
-| Generator fuel | pending | pending | pending | optional | pending | pending | ? | Known load and initial fuel |
-| Generator wear | pending | pending | pending | optional | pending | pending | ? | If condition state is exposed/reliably changing |
-| Vehicle fuel | pending | pending | pending | optional | pending | pending | ? | Engine running, stationary controlled test |
-| Vehicle battery | pending | pending | pending | optional | pending | pending | ? | Controlled electrical load if practical |
+| Crop maturation | pending | pending | pending | optional | pending | likely server | ? | Source review: `SFarmingSystem` is hour/calendar driven |
+| Crop water/disease/pests | pending | pending | pending | optional | pending | likely server | ? | Persistent farming counters/state involved |
+| Generator fuel | pending | pending | pending | optional | pending | pending | ? | `IsoGenerator` exposes fuel/load/condition state |
+| Generator wear | pending | pending | pending | optional | pending | pending | ? | If condition state is reliably changing |
+| Vehicle fuel | pending | pending | pending | optional | pending | pending | ? | Vanilla update consumes `elapsedMinutes`; caller time basis unresolved |
+| Vehicle battery | pending | pending | pending | optional | pending | pending | ? | Same `elapsedMinutes` ambiguity as fuel |
 | Corpse decay/removal | pending | pending | pending | optional | pending | pending | ? | May require longer intervals |
 | Compost | pending | pending | pending | optional | pending | pending | ? | May be chunk/catch-up driven |
 | Cooking/fire | pending | pending | pending | optional | pending | pending | ? | Distinguish active heat process from calendar aging |
