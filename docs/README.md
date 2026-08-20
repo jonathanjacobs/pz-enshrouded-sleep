@@ -1,25 +1,26 @@
 # Enshrouded Sleep Documentation
 
-The repository root is intentionally concise for players and server administrators. Detailed design, testing, deployment, validation evidence, spikes, and architecture decisions live here.
+Detailed design, testing, deployment, validation evidence, spikes, and architecture decisions live under `docs/`. The top-level README remains a player/server-admin landing page.
 
 ## Current project state
 
-- Development version: `v0.0.9`
-- Core sleep/clock architecture: validated on Project Zomboid 42.20.3
-- v0.0.8 broad health/injury diagnostic integration: validated in a solo reference run
-- WHG Public Alpha deployment: **paused pending the two-player SPIKE-004 partial-sleep health/time-domain comparison**
+- Development version: `v0.0.10`
+- Core sleep/clock architecture: validated on Project Zomboid `42.20.3`
+- v0.0.9 two-player health result: awake bleeding/injury progression approximately real-time bound; core nutrition stores approximately proportional to calendar compression
+- Current blocker: corrected CharacterStat/Moodle observation and final classification of hunger/thirst/fatigue/endurance and related high-severity survival state
+- WHG Public Alpha deployment: **paused pending completion of SPIKE-004**
 
 ## Start here
 
 - [`DEPLOYMENT.md`](DEPLOYMENT.md) — deployment gate, installation, monitoring, diagnostics, and rollback guidance.
-- [`ROADMAP.md`](ROADMAP.md) — current pre-alpha health gate, Public Alpha goals, Public Beta criteria, and longer-term direction.
+- [`ROADMAP.md`](ROADMAP.md) — **single canonical project roadmap** and release-stage criteria.
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — proportional compression, vanilla handoff, client synchronization, diagnostics, and time-domain boundaries.
 
 ## Specification and testing
 
 - [`REQUIREMENTS.md`](REQUIREMENTS.md) — canonical MVP requirements and acceptance matrix.
-- [`TESTING.md`](TESTING.md) — current smoke/regression procedures and the detailed v0.0.9 SPIKE-004 health/time-domain test.
-- [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md) — consolidated evidence from v0.0.1 onward, including the v0.0.8 solo vanilla-full-sleep reference.
+- [`TESTING.md`](TESTING.md) — current smoke/regression procedures and focused v0.0.10 SPIKE-004 survival-state test.
+- [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md) — consolidated evidence from v0.0.1 onward.
 
 ## Formal spike investigations
 
@@ -41,12 +42,12 @@ See [`adr/README.md`](adr/README.md) for the ADR convention.
 
 ## Repository-level files
 
-- [`../README.md`](../README.md) — public project overview/status/roadmap.
+- [`../README.md`](../README.md) — public project overview/status; intentionally does not duplicate the roadmap.
 - [`../CHANGELOG.md`](../CHANGELOG.md) — human-readable version/change history.
 - [`../COMPLIANCE.md`](../COMPLIANCE.md) — Project Zomboid mod-policy/compliance entry point.
-- [`../LICENSE`](../LICENSE) — project license.
+- [`../LICENSE`](../LICENSE) — Apache License 2.0 source-code license.
 - [`../NOTICE`](../NOTICE) — project notices.
 
 ## Documentation policy
 
-New investigations, ADRs, compatibility notes, and detailed evidence should be added under `docs/` rather than expanding the top-level README. The landing README should remain understandable to a new visitor who mainly wants to know what the mod does, its maturity, how to install it, and where it is going.
+New investigations, ADRs, compatibility notes, detailed evidence, and roadmap changes belong under `docs/`. The top-level README should remain understandable to a new visitor who mainly wants to know what the mod does, its maturity, installation/configuration, and where to find the canonical engineering documents.
