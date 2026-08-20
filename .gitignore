@@ -1,0 +1,22 @@
+# Local Project Zomboid diagnostics / test artifacts
+Logs/
+logs/
+DebugLog*/
+server-console*.txt
+*.log
+
+# Local archives and scratch output
+*.zip
+*.7z
+*.tmp
+*.bak
+
+# Platform/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Source-control metadata is never part of the Workshop payload.
+# (.git/ itself is inherently excluded from Git tracking; do not copy it into
+# the Project Zomboid Workshop authoring directory when publishing.)
