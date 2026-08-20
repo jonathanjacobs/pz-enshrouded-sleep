@@ -1,0 +1,9 @@
+version=1
+id=
+title=Enshrouded Sleep — Public Alpha
+description=Proportional multiplayer sleeping for Project Zomboid Build 42 servers.
+description=When some but not all living players sleep, Enshrouded Sleep proportionally compresses world/calendar time while awake active gameplay remains at normal simulation speed.
+description=Public Alpha v0.0.10. Tested on Project Zomboid 42.20.3. Back up your server before installing or updating.
+description=Unofficial community mod. Not developed by, affiliated with, or endorsed by The Indie Stone or Keen Games.
+tags=Build 42;Multiplayer
+visibility=public
