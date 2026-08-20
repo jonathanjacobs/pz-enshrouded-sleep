@@ -23,36 +23,32 @@ The acute bleeding concern therefore passed. The remaining questions are hunger,
 
 ## Why v0.0.10 requires one more controlled test
 
-v0.0.9 still returned `N/A` for many continuous survival values and for Moodle fallback telemetry. Source review showed that Build 42.20.3 uses:
+v0.0.10 corrects survival-state observability using current Build 42 `CharacterStat`, `MoodleType` and Nutrition APIs.
 
-```lua
-player:getStats():get(CharacterStat.HUNGER)
-player:getMoodles():getMoodleLevel(MoodleType.HUNGRY)
+It also adds a diagnostics-only single-player forced-compression path so the remaining causal question can be tested on one **awake** character without requiring a second sleeper.
+
+Test-only activation requires:
+
+```text
+DiagnosticsEnabled = true
+DiagnosticForcedCompressionFactor > 1
 ```
 
-rather than the legacy named Stats getter/public-field and numeric Moodle enumeration assumptions used by v0.0.9.
+With a 90-minute baseline and factor `5`, expected `MinutesPerDay` is approximately `18`.
 
-v0.0.10 adds corrected, read-only CharacterStat/MoodleType/Nutrition diagnostics plus one-time capability records.
+The test override does not call the global simulation multiplier. If any observed living player sleeps, the override is suspended and baseline `MinutesPerDay` is restored before vanilla sleep acceleration proceeds.
 
 ## Pre-deployment gate
 
 Before WHG Public Alpha deployment:
 
-1. Confirm v0.0.10 server/client diagnostics load without new Enshrouded Sleep errors.
-2. Confirm `CAPABILITIES` records show corrected CharacterStat/Moodle access, or explicitly characterize any remaining side-specific exposure gap.
-3. Run the focused 60–90 s baseline / 60–90 s ~5x partial / 60–90 s restored-baseline test.
+1. Confirm v0.0.10 loads cleanly in standalone single-player/debug mode.
+2. Confirm `CAPABILITIES` records show corrected CharacterStat/Moodle access, or explicitly characterize any remaining exposure gap.
+3. Run the one-character baseline / forced factor-5 / restored-baseline test for 60–90 seconds per phase.
 4. Classify hunger/thirst/fatigue/endurance and other practical high-severity variables.
 5. Confirm no unacceptable rapid starvation/dehydration, infection, temperature or comparable awake-player hazard, or validate a mitigation/configuration bound.
 6. Record GO / CONDITIONAL GO / NO-GO in SPIKE-004.
-7. Run a short core two-player sleep regression after the diagnostic test.
-
-Recommended focused-test native setting:
-
-```text
-FastForwardMultiplier = 10
-Baseline MinutesPerDay = 90
-2 living / 1 sleeping -> expected factor ~5 -> MinutesPerDay ~18
-```
+7. Run a short core two-player sleep regression before public deployment.
 
 The bleeding experiment does not need to be deliberately repeated unless a regression appears.
 
@@ -65,10 +61,13 @@ EnshroudedSleep = {
     Enabled = true,
     PartialSleepSpeedScale = 1.0,
     DiagnosticsEnabled = false,
+    DiagnosticForcedCompressionFactor = 1.0,
 }
 ```
 
-`DiagnosticsEnabled=true` now produces clock/sleep, broad health/body, CharacterStat, Moodle, nutrition and multiplier-context telemetry. It can generate large logs and should be restricted to controlled diagnostics.
+`DiagnosticForcedCompressionFactor` is **test-only**. Public Alpha must run at `1.0` except during an explicitly controlled diagnostic session.
+
+`DiagnosticsEnabled=true` produces clock/sleep, broad health/body, CharacterStat, Moodle, nutrition and multiplier-context telemetry. It can generate large logs and should be restricted to controlled diagnostics.
 
 ## Server installation
 
@@ -102,7 +101,7 @@ GitHub **Download ZIP** normally extracts `pz-enshrouded-sleep-main`; rename the
 4. Preserve the previous known-good mod package.
 5. Install the exact approved Enshrouded Sleep snapshot on server and clients.
 6. Configure `Mods=pz-enshrouded-sleep`.
-7. Keep verbose diagnostics disabled for normal play.
+7. Verify `DiagnosticsEnabled=false` and `DiagnosticForcedCompressionFactor=1.0`.
 8. Start the server and confirm no Enshrouded Sleep Lua exception.
 9. Perform a brief two-player live smoke check before opening normal play.
 
@@ -114,7 +113,7 @@ Expected low-volume prefixes include:
 [EnshroudedSleepSync][CLIENT]
 ```
 
-The survival diagnostic modules may print a startup line, but continuous one-second output must not appear with `DiagnosticsEnabled=false`.
+The diagnostic modules may print startup lines, but continuous one-second output must not appear with diagnostics disabled.
 
 ## Public Alpha monitoring priorities
 
@@ -136,18 +135,22 @@ For a reproducible issue, temporarily set:
 
 ```lua
 DiagnosticsEnabled = true
+DiagnosticForcedCompressionFactor = 1.0
 ```
 
-Relevant v0.0.10 prefixes include:
+Only raise the forced factor above `1.0` when deliberately reproducing a time-domain condition with an awake test character.
+
+Relevant prefixes include:
 
 ```text
 [EnshroudedSleepHealthDiag][SERVER]
 [EnshroudedSleepHealthDiag][CLIENT]
 [EnshroudedSleepSurvivalDiag][SERVER]
 [EnshroudedSleepSurvivalDiag][CLIENT]
+[EnshroudedSleepStandaloneHealthDiag][SERVER]
 ```
 
-Collect server console/DebugLog and affected client logs, then disable diagnostics after the shortest practical reproduction.
+Collect server/game console, DebugLog/log ZIP and affected client logs as applicable, then disable diagnostics after the shortest practical reproduction.
 
 ## Rollback
 
