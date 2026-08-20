@@ -1,22 +1,22 @@
--- Enshrouded Sleep - server clock and sleep synchronization diagnostic
--- v0.0.8 pre-Public-Alpha support instrumentation for Project Zomboid Build 42.20+
+-- Enshrouded Sleep - server clock/sleep diagnostic
+-- Public Alpha v0.0.10 for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
 -- Record authoritative server GameTime state once per real second and, when at
--- least one player is asleep, record each living player's vanilla sleep counters.
--- v0.0.6 established that explicit client MinutesPerDay replication fixes the
--- visible clock drift; v0.0.7 then passed a clean regression. v0.0.8 retains
--- this proven clock/sleep sampler alongside the new health/time-domain diagnostic.
+-- least one living player is asleep, record each living player's vanilla sleep
+-- counters. This diagnostic is retained for support/regression work after the
+-- Public Alpha clock-synchronization and sleep-duration investigations.
 --
 -- Verbose diagnostics are opt-in through
--- SandboxVars.EnshroudedSleep.DiagnosticsEnabled. They are disabled by default
--- because a busy multiplayer server can otherwise produce very large logs.
--- Low-volume controller/synchronization state-transition logging remains active
--- independently of this diagnostic module.
+-- SandboxVars.EnshroudedSleep.DiagnosticsEnabled and are disabled by default.
+-- Low-volume controller/synchronization transition logs remain active
+-- independently of this module.
 --
--- IMPORTANT: this file is observational only. It never changes GameTime,
--- player state, sleep state, fatigue, pills, or native synchronization behavior.
+-- MUTATION BOUNDARY
+-- -----------------
+-- Read-only. This file never changes GameTime, player state, sleep state,
+-- fatigue, medication state, or native synchronization behavior.
 
 if isClient() then return end
 
@@ -65,8 +65,9 @@ local function safeMethod(obj, methodName, ...)
     return value
 end
 
----Collect instantiated living players and aggregate sleep counts without mutating
----their state. Player objects are returned for per-player sleep telemetry.
+---Collect instantiated living server players and aggregate sleep counts without
+---mutating their state. Returned player records are used only for optional
+---per-player sleep telemetry.
 ---@return integer|nil living
 ---@return integer|nil sleeping
 ---@return table playerStates
@@ -110,6 +111,8 @@ local function collectPlayers()
                 dead = dead,
                 asleepTime = tonumber(safeMethod(player, "getAsleepTime")),
                 forceWakeUpTime = tonumber(safeMethod(player, "getForceWakeUpTime")),
+                -- Historical broad probe retained for log continuity. Current
+                -- Build 42 survival analysis uses SurvivalStatProbe/CharacterStat.
                 fatigue = tonumber(safeMethod(stats, "getFatigue")),
                 sleepingPillsTaken = tonumber(safeMethod(player, "getSleepingPillsTaken")),
             }
@@ -119,6 +122,10 @@ local function collectPlayers()
     return living, sleeping, playerStates
 end
 
+---Derive a human-readable normal sleep phase for diagnostic output only.
+---@param living integer|nil
+---@param sleeping integer|nil
+---@return string mode
 local function deriveMode(living, sleeping)
     if living == nil or sleeping == nil then return "unknown" end
     if living <= 0 or sleeping <= 0 then return "baseline" end
@@ -126,10 +133,14 @@ local function deriveMode(living, sleeping)
     return "partial"
 end
 
+---Capture one authoritative server clock/sleep sample using a wall-clock gate.
+---@return nil
 local function sampleClock()
     if not diagnosticsEnabled() then return end
 
     local now = os.time()
+    -- Use real wall-clock seconds so the sampler does not itself accelerate when
+    -- world/calendar time is compressed.
     if now == lastSampleAt or (lastSampleAt >= 0 and now - lastSampleAt < SAMPLE_INTERVAL_SECONDS) then
         return
     end
@@ -176,6 +187,8 @@ local function sampleClock()
         formatNumber(serverMultiplier, 4)
     ))
 
+    -- Per-player sleep counters are most useful while at least one player is
+    -- actually asleep, so avoid the extra log volume during ordinary awake play.
     if sleeping and sleeping > 0 then
         for _, state in ipairs(playerStates) do
             log(string.format(
@@ -193,10 +206,12 @@ local function sampleClock()
     end
 end
 
+-- Prefer the even-while-paused hook so sleep/full-fast-forward transitions remain
+-- observable; fall back to ordinary OnTick if necessary.
 if Events.OnTickEvenPaused then
     Events.OnTickEvenPaused.Add(sampleClock)
 else
     Events.OnTick.Add(sampleClock)
 end
 
-log("Loaded v0.0.8 server clock/sleep diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")
+log("Loaded Public Alpha v0.0.10 server clock/sleep diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")
