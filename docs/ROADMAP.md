@@ -6,13 +6,31 @@ Enshrouded Sleep is a **multiplayer-server mod**. Local/standalone single-player
 
 ## Current phase — Public Alpha
 
-Status: **Public Alpha / field validation**  
+Status: **Public Alpha / preparing first Steam Workshop publication and field validation**  
 Current version: `v0.0.10`  
 Behaviorally validated platform baseline: Project Zomboid `42.20.3`
 
 The pre-alpha technical gates are complete. [`SPIKE-004`](spikes/SPIKE-004-health-time-domains.md) returned **GO** after controlled v0.0.9/v0.0.10 health/survival testing.
 
-### Evidence established before Public Alpha
+The repository is now structured as a Workshop item with one authoritative deployable mod tree:
+
+```text
+Contents/mods/pz-enshrouded-sleep/
+```
+
+The permanent Steam Workshop ID and publication artwork remain pending the first upload. See [`STEAM_WORKSHOP.md`](STEAM_WORKSHOP.md).
+
+## Immediate Public Alpha publication steps
+
+1. Validate `preview.png` (and any `poster.png`/`icon.png` used) against the current Build 42 game-generated `ModTemplate`.
+2. Complete [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md), including current Indie Stone policy/terms review and provenance checks.
+3. Upload v0.0.10 through Project Zomboid `Workshop -> Create and Update Items`.
+4. Record and preserve the permanent Steam Workshop ID.
+5. Prefer an unlisted/private dress rehearsal if available and inspect the subscribed payload.
+6. Run a dedicated-server smoke test using the Workshop-distributed copy.
+7. Make the Public Alpha Workshop item public/broadly announced after the packaged deployment path is verified.
+
+## Evidence established before Public Alpha
 
 Validated behavior includes:
 
@@ -40,7 +58,7 @@ PartialSleepSpeedScale=1.0
 
 The diagnostic machinery remains available for controlled support/regression work but is dormant during normal play.
 
-## Public Alpha goals
+## Public Alpha field goals
 
 Primary goals:
 
@@ -52,7 +70,8 @@ Primary goals:
 - characterize non-health world-time systems such as spoilage, crops, generators, corpse decay, composting and weather;
 - characterize pathological survival states not exercised in SPIKE-004 where safe/practical: sickness, poisoning, zombie infection/fever, and extreme thermal injury;
 - identify compatibility problems with other sleep/recovery or world-time-driven mods;
-- observe client pacing during admin/sandbox changes without the aggressive repeated factor changes used in SPIKE-004.
+- observe client pacing during admin/sandbox changes without the aggressive repeated factor changes used in SPIKE-004;
+- validate install/update/rollback through the permanent Steam Workshop item rather than development copies.
 
 ### Public Alpha exit criteria
 
@@ -67,7 +86,8 @@ Move toward Public Beta when field evidence supports:
 - configuration inheritance validated across alternate native settings;
 - operationally acceptable log/error volume;
 - major world-time side effects documented, accepted, or addressed;
-- WHG mod-stack interaction is stable enough for routine operation.
+- representative live mod-stack interaction is stable enough for routine operation;
+- Workshop install/update/rollback procedure is repeatable and documented.
 
 ## Public Beta / v0.1.x
 
