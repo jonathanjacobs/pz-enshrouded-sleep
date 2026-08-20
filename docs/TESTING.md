@@ -8,6 +8,12 @@ Enshrouded Sleep is a **multiplayer-server mod**. Local/standalone single-player
 
 Historical procedures/results are consolidated in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md). The completed pre-alpha health/survival investigation is [`SPIKE-004`](spikes/SPIKE-004-health-time-domains.md).
 
+The authoritative runtime mod tree is:
+
+```text
+Contents/mods/pz-enshrouded-sleep/
+```
+
 ## 1. Tier 1 — startup smoke test
 
 Run after any source/configuration change or Project Zomboid update.
@@ -16,7 +22,7 @@ Minimum checks:
 
 1. Server starts without Enshrouded Sleep Lua errors.
 2. Client(s) connect without Enshrouded Sleep Lua errors.
-3. Core controller and client clock synchronization load.
+3. Core controller and client clock synchronization load as Public Alpha `v0.0.10`.
 4. With all connected players awake, `MinutesPerDay` remains at native baseline.
 5. With `DiagnosticsEnabled=false`, no one-second diagnostic stream is emitted.
 6. `DiagnosticForcedCompressionFactor=1.0` remains inert.
@@ -61,7 +67,26 @@ Controlled v0.0.9/v0.0.10 testing established:
 
 SPIKE-004 decision: **GO for Public Alpha**.
 
-## 4. Public Alpha field testing
+Detailed measurements remain in [`spikes/SPIKE-004-health-time-domains.md`](spikes/SPIKE-004-health-time-domains.md).
+
+## 4. Steam Workshop package smoke test
+
+Run this before broad publication and after any change to Workshop/package structure.
+
+1. Confirm the clean Workshop authoring directory contains `workshop.txt`, the required valid `preview.png`, and `Contents/mods/pz-enshrouded-sleep/`.
+2. Confirm source-control metadata (`.git/`), private logs, credentials, local test artifacts, ZIPs/backups, and scratch files are absent.
+3. Upload/update through Project Zomboid `Workshop -> Create and Update Items`.
+4. Subscribe/download the resulting Steam item rather than testing the authoring copy directly.
+5. Confirm the downloaded Workshop package contains the expected Public Alpha documentation plus exactly one runtime mod tree.
+6. Confirm the inner runtime `mod.info`/`42/mod.info` identify `pz-enshrouded-sleep` and version `0.0.10`.
+7. Configure a dedicated test server with the real Workshop ID plus `Mods=pz-enshrouded-sleep`.
+8. Run Tier 1 against the Workshop-distributed copy.
+9. Run a short Tier 2 two-player partial-sleep transition before broad announcement if practical.
+10. Verify uninstall/disable returns future sleep/time behavior to vanilla as documented.
+
+See [`STEAM_WORKSHOP.md`](STEAM_WORKSHOP.md) for authoring and permanent-ID handling.
+
+## 5. Public Alpha field testing
 
 Normal live configuration:
 
@@ -81,12 +106,13 @@ Primary field targets:
 - joins/disconnects/deaths/respawns;
 - repeated sleep/wake cycles;
 - long-session stability;
-- normal WHG mod-stack interaction;
+- normal live mod-stack interaction;
 - spoilage, generators, crops, corpses, composting and weather;
 - pathological survival states not activated during SPIKE-004 where safe/practical;
-- client pacing during ordinary administration and sandbox changes.
+- client pacing during ordinary administration and sandbox changes;
+- Steam Workshop install/update behavior on server and clients.
 
-## 5. Focused diagnostic regression
+## 6. Focused diagnostic regression
 
 The v0.0.10 one-connected-player forced-compression mode is retained for controlled support/regression work only.
 
@@ -118,7 +144,7 @@ factor returns to 1  -> normal server policy resumes
 
 For ordinary support diagnostics, keep the forced factor at `1.0`.
 
-## 6. Diagnostics collection
+## 7. Diagnostics collection
 
 When needed, collect:
 
@@ -134,6 +160,8 @@ Relevant prefixes:
 [EnshroudedSleep]
 [EnshroudedSleepSync][SERVER]
 [EnshroudedSleepSync][CLIENT]
+[EnshroudedSleepDiag][SERVER]
+[EnshroudedSleepDiag][CLIENT]
 [EnshroudedSleepHealthDiag][SERVER]
 [EnshroudedSleepHealthDiag][CLIENT]
 [EnshroudedSleepSurvivalDiag][SERVER]
@@ -142,7 +170,7 @@ Relevant prefixes:
 
 Disable verbose diagnostics after the shortest useful reproduction.
 
-## 7. Project Zomboid update regression
+## 8. Project Zomboid update regression
 
 For a new B42 build, review relevant `GameTime`, sleep/lifecycle, `CharacterStat`, `MoodleType`, `Nutrition` and BodyDamage changes; run Tier 1; run Tier 2 if engine behavior changed; and re-run focused survival testing only when relevant.
 
