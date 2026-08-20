@@ -1,13 +1,10 @@
 -- Enshrouded Sleep - focused owning-client survival-stat diagnostic
 -- v0.0.10 pre-Public-Alpha instrumentation for Project Zomboid Build 42.20+
 --
--- PURPOSE
--- -------
--- Record the owning player's Build 42 CharacterStat, MoodleType, Nutrition, and
--- related health values once per real second. Server and client streams can then
--- be compared for exposure/synchronization differences during SPIKE-004.
---
--- This module is READ-ONLY and dormant unless DiagnosticsEnabled=true.
+-- Record the connected player's Build 42 CharacterStat, MoodleType, Nutrition,
+-- and related health values once per real second. This is client-side telemetry
+-- for multiplayer-server testing only; it is read-only and dormant unless
+-- DiagnosticsEnabled=true.
 
 if not isClient() then return end
 
@@ -15,6 +12,7 @@ local SurvivalStatProbe = require "EnshroudedSleep/SurvivalStatProbe"
 
 local PREFIX = "[EnshroudedSleepSurvivalDiag][CLIENT]"
 local SAMPLE_INTERVAL_SECONDS = 1
+local EPSILON = 0.0001
 local lastSampleAt = -1
 local observedBaselineMinutesPerDay = nil
 local capabilityLogged = false
@@ -24,17 +22,32 @@ local function diagnosticsEnabled()
     return vars ~= nil and vars.DiagnosticsEnabled == true
 end
 
+local function diagnosticForcedConfigured()
+    local vars = SandboxVars and SandboxVars.EnshroudedSleep or nil
+    local factor = tonumber(vars and vars.DiagnosticForcedCompressionFactor) or 1.0
+    return vars ~= nil and vars.DiagnosticsEnabled == true and factor > 1.0 + EPSILON
+end
+
 local function log(message)
     print(PREFIX .. " " .. tostring(message))
 end
 
 local function derivePhase(player, minutesPerDay, baseline)
     if not player then return "no-player" end
-    if SurvivalStatProbe.safeMethod(player, "isAsleep") == true
-        and minutesPerDay and baseline and math.abs(minutesPerDay - baseline) < 0.0001 then
+
+    local asleep = SurvivalStatProbe.safeMethod(player, "isAsleep") == true
+    if asleep and minutesPerDay and baseline and math.abs(minutesPerDay - baseline) < EPSILON then
         return "sleeping-at-baseline"
     end
-    if minutesPerDay and baseline and minutesPerDay < baseline - 0.0001 then return "partial" end
+
+    if not asleep
+        and diagnosticForcedConfigured()
+        and minutesPerDay and baseline
+        and minutesPerDay < baseline - EPSILON then
+        return "diagnostic-forced"
+    end
+
+    if minutesPerDay and baseline and minutesPerDay < baseline - EPSILON then return "partial" end
     return "baseline"
 end
 
@@ -100,4 +113,4 @@ end
 
 Events.OnTick.Add(sample)
 
-log("loaded; dormant unless DiagnosticsEnabled=true")
+log("Loaded v0.0.10 owning-client survival-stat diagnostic for multiplayer-server testing; dormant unless DiagnosticsEnabled=true.")
