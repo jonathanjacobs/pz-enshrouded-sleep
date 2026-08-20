@@ -6,7 +6,7 @@ Authoritative policy:
 
 - https://projectzomboid.com/blog/modding-policy/
 
-Last reviewed for this repository: **2026-08-17**.
+Last reviewed for this repository: **2026-08-20**, during preparation for the first Steam Workshop Public Alpha publication.
 
 This document is an engineering and release-control policy for this repository. It does not replace the authoritative Indie Stone policy.
 
@@ -34,6 +34,7 @@ This document is an engineering and release-control policy for this repository. 
 5. **No prohibited commercialization**
    - Access to the mod or in-mod functionality must not be sold or restricted to donors unless an arrangement with The Indie Stone expressly permits it.
    - Donations may not unlock exclusive mod content or functionality.
+   - This repository intentionally carries no GitHub funding/sponsorship hook for the mod during Public Alpha Workshop publication, avoiding ambiguity between project distribution and monetization.
 
 6. **No malicious or circumvention behavior**
    - The mod must not intentionally damage users' devices, remove or bypass Project Zomboid login/licensing controls, facilitate playing without purchasing the game, or use invasive security/sandbox bypass techniques merely to obtain functionality.
