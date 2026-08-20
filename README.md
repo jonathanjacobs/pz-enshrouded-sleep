@@ -26,7 +26,8 @@
 
 Status: **Public Alpha**  
 Current version: **v0.0.10**  
-Validated Project Zomboid baseline: **42.20.3**
+Validated Project Zomboid baseline: **42.20.3**  
+Steam Workshop ID: **3786842301**
 
 ## Overview
 
@@ -57,6 +58,12 @@ Stable Project Zomboid Mod ID:
 pz-enshrouded-sleep
 ```
 
+Steam Workshop ID:
+
+```text
+3786842301
+```
+
 Enshrouded Sleep is intended for multiplayer servers. Mods that independently alter multiplayer sleep policy, `GameTime:MinutesPerDay`, clock synchronization, or sleep fast-forward may conflict and should be tested carefully before use together.
 
 Compatibility claims are intentionally limited to configurations that have actually been tested. See [`docs/VALIDATION_HISTORY.md`](docs/VALIDATION_HISTORY.md) and [`docs/ROADMAP.md`](docs/ROADMAP.md) for the current evidence boundary and Public Alpha targets.
@@ -65,16 +72,22 @@ Compatibility claims are intentionally limited to configurations that have actua
 
 ### Steam Workshop
 
-The first Steam Workshop publication has not yet been assigned a Workshop ID. After publication, server administrators will configure both the Steam Workshop item and the Project Zomboid Mod ID:
+The Public Alpha Workshop item is published at:
+
+https://steamcommunity.com/sharedfiles/filedetails/?id=3786842301
+
+For a Workshop-backed dedicated server, configure both identifiers:
 
 ```text
-WorkshopItems=<Steam Workshop ID assigned at publication>
+WorkshopItems=3786842301
 Mods=pz-enshrouded-sleep
 ```
 
+The Workshop ID tells Steam which package to download. `pz-enshrouded-sleep` remains the stable Project Zomboid Mod ID loaded by the game.
+
 Players joining a Workshop-configured server should use the Workshop-distributed copy rather than maintaining a separate manual copy of the same mod.
 
-See [`docs/STEAM_WORKSHOP.md`](docs/STEAM_WORKSHOP.md) for first-publication and update procedures.
+See [`docs/STEAM_WORKSHOP.md`](docs/STEAM_WORKSHOP.md) for publication and update procedures.
 
 ### Manual client installation
 
@@ -140,7 +153,7 @@ There is only one authoritative runtime tree: `Contents/mods/pz-enshrouded-sleep
 
 The Workshop publication artwork is checked into the repository: root `preview.png` is `256x256`; Build 42 `poster.png` is `256x256`; and Build 42 `icon.png` is `32x32`. The versioned `42/mod.info` references the poster and icon directly.
 
-For publication, place a clean copy of the repository contents under the Project Zomboid Workshop authoring directory shown by the game client (normally under `Zomboid\Workshop`). Do not include source-control metadata such as `.git/`, local logs, credentials, or private test artifacts.
+For Workshop updates, place a clean copy of the repository contents under the Project Zomboid Workshop authoring directory shown by the game client (normally under `Zomboid\Workshop`). Do not include source-control metadata such as `.git/`, local logs, credentials, or private test artifacts. Preserve Workshop ID `3786842301` when updating the existing item.
 
 ## Configuration
 
@@ -265,7 +278,7 @@ See [`docs/TESTING.md`](docs/TESTING.md) and [`docs/DEPLOYMENT.md`](docs/DEPLOYM
 ## Documentation
 
 - [`docs/README.md`](docs/README.md) — documentation index
-- [`docs/STEAM_WORKSHOP.md`](docs/STEAM_WORKSHOP.md) — Steam Workshop package, first-publication, update, and permanent-ID procedure
+- [`docs/STEAM_WORKSHOP.md`](docs/STEAM_WORKSHOP.md) — Steam Workshop package, publication, update, and permanent-ID procedure
 - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — Public Alpha deployment, monitoring, diagnostics, and rollback
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — canonical roadmap and release-stage criteria
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — technical architecture
