@@ -96,13 +96,7 @@ See SPIKE-003 and ADR-003.
 
 Before Public Alpha, review raised a separate question: what happens to an awake wounded or physiologically stressed player when another player triggers calendar compression?
 
-v0.0.8 added read-only server/client health diagnostics with:
-
-- overall health/body health;
-- detailed injured-body-part state and timers;
-- nutrition/weight;
-- sleep context;
-- clock/compression context.
+v0.0.8 added read-only server/client health diagnostics with overall health/body health, detailed injured-body-part state and timers, nutrition/weight, sleep context, and clock/compression context.
 
 ### Solo vanilla-full-sleep reference — 2026-08-19
 
@@ -178,42 +172,28 @@ This is consistent with the decompiled 42.20.3 `Nutrition.update()` implementati
 
 ### Synchronization regression result
 
-The v0.0.9 health experiment also reconfirmed:
-
-- server/client `MinutesPerDay` convergence;
-- baseline restoration;
-- alternate native fast-forward inheritance;
-- no global `TrueMultiplier` acceleration during partial sleep;
-- no Enshrouded Sleep exception flood in the reviewed logs.
+The v0.0.9 health experiment also reconfirmed server/client `MinutesPerDay` convergence, baseline restoration, alternate native fast-forward inheritance, no global `TrueMultiplier` acceleration during partial sleep, and no Enshrouded Sleep exception flood in the reviewed logs.
 
 ### Remaining observability failure
 
 Hunger, thirst, fatigue, endurance, stress, panic, general pain, sickness and related continuous values remained `N/A`. The attempted Moodle fallback also remained `N/A`.
 
-Post-run source review established that this was not simply an unknowable bridge limitation: v0.0.9 was using stale API assumptions.
-
-Current Build 42.20.3 vanilla Lua uses:
+Post-run source review established that v0.0.9 was using stale API assumptions. Current Build 42.20.3 vanilla Lua uses:
 
 ```lua
 player:getStats():get(CharacterStat.HUNGER)
-```
-
-and Build 42.20.3 Moodles are keyed by `MoodleType`:
-
-```lua
 player:getMoodles():getMoodleLevel(MoodleType.HUNGRY)
 ```
 
-The current `Moodles` class does not expose the numeric enumeration pattern assumed by v0.0.9.
+## v0.0.10 — corrected survival-state and standalone test stage
 
-## v0.0.10 — corrected survival-state diagnostic stage
-
-v0.0.10 adds:
+v0.0.10 adds the focused survival-state probe and diagnostic streams:
 
 ```text
 42/media/lua/shared/EnshroudedSleep/SurvivalStatProbe.lua
 42/media/lua/server/EnshroudedSleep/SurvivalStatDiagnostic_Server.lua
 42/media/lua/client/EnshroudedSleep/SurvivalStatDiagnostic_Client.lua
+42/media/lua/server/EnshroudedSleep/StandaloneHealthDiagnostic_Server.lua
 ```
 
 The shared probe:
@@ -226,7 +206,49 @@ The shared probe:
 - remains guarded/read-only;
 - avoids the known Kahlua multi-return `tonumber()` failure pattern.
 
-No proportional-sleep/controller behavior changed.
+### Diagnostics-only forced compression
+
+v0.0.10 also adds `DiagnosticForcedCompressionFactor`, default `1.0`, so the remaining causal test can be run with one awake character.
+
+Activation requires:
+
+```text
+DiagnosticsEnabled = true
+DiagnosticForcedCompressionFactor > 1
+```
+
+For a 90-minute baseline and factor `5`, the intended test state is:
+
+```text
+player awake
+MinutesPerDay = 18
+CalendarCompressionFactor = 5
+no intentional global simulation multiplier change
+```
+
+This reproduces the same clock primitive used during multiplayer partial sleep without requiring a second sleeping client.
+
+Safety behavior is intentionally conservative: if any observed living player sleeps, the test override is suspended and the captured baseline is restored before vanilla sleep acceleration can own the sleeping state. Returning the factor to `1.0`, disabling diagnostics, disabling the mod, or a recoverable failure also restores baseline.
+
+### Standalone integration support
+
+The focused server survival diagnostic falls back to `getPlayer()` when no populated online-player collection is available. The standalone health bridge provides matching overall-health/bleeding/body-part telemetry in that case.
+
+At diagnostic factor `1.0`, a standalone session that lacks multiplayer `ServerOptions` is treated as a normal diagnostic baseline rather than a controller error: baseline `MinutesPerDay` is retained and the multiplayer policy path is simply not evaluated.
+
+### Runtime status
+
+The v0.0.10 single-player path is **implemented but not yet runtime-validated in Project Zomboid**. The next run should confirm:
+
+- clean standalone load;
+- CharacterStat/Moodle `CAPABILITIES` readability;
+- baseline factor `1` telemetry;
+- forced factor `5` / expected `MinutesPerDay≈18` while awake;
+- ordinary multiplier context during the forced phase;
+- exact restoration after returning factor to `1`;
+- hunger/thirst/fatigue/endurance and other practical survival-rate classifications.
+
+No health compensation has been implemented.
 
 ## Current evidence boundary
 
@@ -246,7 +268,7 @@ Well supported:
 
 Current pre-alpha blocker:
 
-- runtime validation of the corrected v0.0.10 `CharacterStat`/`MoodleType` probes;
+- runtime validation of the corrected v0.0.10 `CharacterStat`/`MoodleType` probes and standalone forced-compression path;
 - classification of hunger/thirst/fatigue/endurance and other practical high-severity survival variables;
 - final SPIKE-004 GO / CONDITIONAL GO / NO-GO decision.
 
