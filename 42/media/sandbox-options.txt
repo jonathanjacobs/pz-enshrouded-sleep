@@ -19,3 +19,11 @@ option EnshroudedSleep.DiagnosticsEnabled = {
     default = false,
     page = EnshroudedSleep,
 }
+
+option EnshroudedSleep.DiagnosticForcedCompressionFactor = {
+    type = double,
+    min = 1.0,
+    max = 20.0,
+    default = 1.0,
+    page = EnshroudedSleep,
+}
