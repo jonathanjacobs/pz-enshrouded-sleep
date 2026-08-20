@@ -2,11 +2,15 @@
 
 Current deployment status: **GO for Public Alpha**  
 Current version: `v0.0.10`  
-Validated core platform: Project Zomboid `42.20.3`
+Validated core platform: Project Zomboid `42.20.3`  
+Project Zomboid Mod ID: `pz-enshrouded-sleep`  
+Steam Workshop ID: **pending first publication**
 
 Enshrouded Sleep is a **multiplayer-server mod**. Local/standalone single-player is outside project scope.
 
-[`SPIKE-004`](spikes/SPIKE-004-health-time-domains.md) is complete and returned **GO**. Controlled testing found no evidence that partial calendar compression multiplies acute awake-player health damage. Hunger, thirst, fatigue and nutrition do advance with elapsed world/calendar time and are documented as expected behavior.
+[`SPIKE-004`](spikes/SPIKE-004-health-time-domains.md) is complete and returned **GO**. Detailed test evidence remains in the spike/validation documentation rather than the public README.
+
+For first Workshop publication and update mechanics, see [`STEAM_WORKSHOP.md`](STEAM_WORKSHOP.md).
 
 ## Public Alpha configuration
 
@@ -23,48 +27,92 @@ EnshroudedSleep = {
 
 `DiagnosticsEnabled=true` produces high-volume clock/sleep, health/body, CharacterStat, Moodle, nutrition and multiplier-context telemetry. Enable it only for controlled troubleshooting/regression sessions.
 
-## Known Public Alpha behavior
+## Authoritative runtime tree
 
-World/calendar time genuinely advances faster during partial sleep. As a result, measured hunger, thirst, fatigue, calories and macronutrient stores progressed approximately in proportion to calendar compression.
-
-Measured acute bleeding/body-health loss and resting endurance recovery did not scale with calendar compression under the tested conditions.
-
-Pathological states not directly exercised in SPIKE-004 — active sickness/food poisoning, poison, zombie infection/fever and extreme thermal injury — remain field-characterization targets.
-
-## Server installation
-
-Preferred server folder:
+The repository itself is intentionally structured as a Project Zomboid Workshop package. There is one authoritative deployable mod tree:
 
 ```text
-mods/pz-enshrouded-sleep/
+Contents/mods/pz-enshrouded-sleep/
 ```
 
-Server Mod ID:
+Do not create or maintain a second root-level `42/`, `common/`, or `mod.info` runtime copy.
+
+The repository/Workshop wrapper may also contain public engineering documentation such as `README.md`, `docs/`, licensing/notices, and the changelog. Source-control metadata (`.git/`), private logs, credentials, local test artifacts, and other non-public material must not be copied into the local Workshop authoring directory.
+
+## Steam Workshop installation — after first publication
+
+Once Steam assigns the permanent Workshop Published File ID, a Workshop-backed server will use both identifiers:
 
 ```text
+WorkshopItems=<Steam Workshop ID>
 Mods=pz-enshrouded-sleep
 ```
 
-If the server does not distribute the mod automatically, every participating player must have the same snapshot.
+The Workshop ID identifies the Steam package to download. `pz-enshrouded-sleep` is the stable Project Zomboid Mod ID loaded by the game.
 
-Typical Windows client location:
+After the first upload, record the real Workshop ID in this file, the top-level README, [`STEAM_WORKSHOP.md`](STEAM_WORKSHOP.md), and any host-specific deployment configuration.
+
+Players should use the Workshop-distributed copy when joining a Workshop-configured server rather than maintaining a separate manual copy of the same mod.
+
+## Manual installation
+
+For manual installation from the Git repository, copy only the **inner deployable mod directory**:
+
+```text
+Contents/mods/pz-enshrouded-sleep/
+```
+
+### Client
+
+Copy it so the resulting path is:
 
 ```text
 C:\Users\<user>\Zomboid\mods\pz-enshrouded-sleep\
 ```
 
-GitHub **Download ZIP** normally extracts `pz-enshrouded-sleep-main`; rename the outer folder to `pz-enshrouded-sleep`.
+### Dedicated server
+
+Copy it into the server's normal mod directory so the resulting path is equivalent to:
+
+```text
+mods/pz-enshrouded-sleep/
+```
+
+Then configure:
+
+```text
+Mods=pz-enshrouded-sleep
+```
+
+Do **not** rename a GitHub Download ZIP wrapper such as `pz-enshrouded-sleep-main` and place the whole repository into `Zomboid\mods`; the repository root is now the Workshop item/project wrapper, not the runtime mod root.
+
+## First Steam Workshop publication
+
+Before publication:
+
+1. Complete [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md).
+2. Recheck the current Indie Stone Project Zomboid Modding Policy and applicable terms.
+3. Confirm `VERSION` and both deployable `mod.info` files report `0.0.10`.
+4. Confirm normal Public Alpha configuration has diagnostics disabled and forced factor `1.0`.
+5. Add/validate the required root `preview.png` using the current Build 42 `ModTemplate` from the installed Project Zomboid client.
+6. Add/validate versioned `poster.png`/`icon.png` only if they are referenced/used by the current Build 42 mod metadata.
+7. Make a clean Workshop-authoring copy of the repository without `.git/` or private/local artifacts.
+8. Upload through Project Zomboid `Workshop -> Create and Update Items`.
+9. Preserve the permanent Workshop ID assigned by Steam.
+10. Prefer an unlisted/private dress rehearsal if available, inspect the subscribed payload, and run a dedicated-server smoke test using the Workshop-distributed copy before broad announcement.
 
 ## Public Alpha deployment procedure
+
+Once a Workshop item exists and its downloaded copy has passed the dress-rehearsal smoke test:
 
 1. Announce the deployment/restart.
 2. Stop the server cleanly.
 3. Back up world/save and server configuration.
-4. Preserve the previous known-good mod package.
-5. Install the exact approved v0.0.10 snapshot on server and clients.
-6. Configure `Mods=pz-enshrouded-sleep`.
-7. Verify `DiagnosticsEnabled=false` and `DiagnosticForcedCompressionFactor=1.0`.
-8. Start the server and confirm no Enshrouded Sleep Lua exception.
+4. Preserve the previous known-good mod package/configuration.
+5. Configure the exact permanent `WorkshopItems=<id>` and `Mods=pz-enshrouded-sleep` values.
+6. Verify `DiagnosticsEnabled=false` and `DiagnosticForcedCompressionFactor=1.0`.
+7. Start the server and confirm no Enshrouded Sleep Lua exception.
+8. Confirm server/client package/version consistency.
 9. Perform a brief two-player live smoke check before opening normal play if practical.
 10. Confirm baseline `MinutesPerDay` is restored when all players are awake.
 
@@ -75,6 +123,16 @@ Expected low-volume prefixes include:
 [EnshroudedSleepSync][SERVER]
 [EnshroudedSleepSync][CLIENT]
 ```
+
+## Known Public Alpha behavior
+
+World/calendar time genuinely advances faster during partial sleep. Measured hunger, thirst, fatigue, calories and macronutrient stores therefore progressed with elapsed world/calendar time during controlled validation.
+
+Measured acute bleeding/body-health loss and resting endurance recovery did not scale with calendar compression under the tested conditions.
+
+Pathological states not directly exercised in SPIKE-004 — active sickness/food poisoning, poison, zombie infection/fever and extreme thermal injury — remain field-characterization targets.
+
+See [`spikes/SPIKE-004-health-time-domains.md`](spikes/SPIKE-004-health-time-domains.md) for the evidence and exact measured ratios.
 
 ## Public Alpha monitoring priorities
 
@@ -88,7 +146,7 @@ Pay particular attention to:
 - unexpected health/survival progression beyond documented world-time behavior;
 - client errors or repeated day-length pacing resets;
 - non-health world-time systems such as spoilage, crops, generators, corpses, composting and weather;
-- interaction with the live WHG mod stack.
+- interaction with the live server mod stack.
 
 A few isolated client `MinutesPerDay` resets were seen during aggressive live sandbox/debug factor changes in SPIKE-004. The authoritative server remained correct and the normal heartbeat restored the client value within roughly a second. Treat repeated occurrences during ordinary play as a bug worth collecting logs for.
 
@@ -101,11 +159,13 @@ DiagnosticsEnabled = true
 DiagnosticForcedCompressionFactor = 1.0
 ```
 
-Only for a controlled one-connected-player server regression may the forced factor be raised above `1.0`.
+Only for a controlled one-connected-player multiplayer-server regression may the forced factor be raised above `1.0`.
 
 Relevant prefixes:
 
 ```text
+[EnshroudedSleepDiag][SERVER]
+[EnshroudedSleepDiag][CLIENT]
 [EnshroudedSleepHealthDiag][SERVER]
 [EnshroudedSleepHealthDiag][CLIENT]
 [EnshroudedSleepSurvivalDiag][SERVER]
@@ -118,7 +178,7 @@ Collect server console/logs and affected client logs, then disable diagnostics a
 
 1. Stop the server cleanly.
 2. Preserve incident logs.
-3. Remove/disable `pz-enshrouded-sleep` through the normal server workflow.
+3. Remove/disable `pz-enshrouded-sleep` and/or its Workshop item through the normal server workflow.
 4. Restore prior configuration if needed.
 5. Restart and confirm native time/sleep behavior.
 
