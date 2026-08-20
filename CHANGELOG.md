@@ -4,26 +4,104 @@ Human-readable history of notable Enshrouded Sleep changes. Git remains authorit
 
 ## [Unreleased]
 
-### Next decision
+### Public Alpha characterization targets
 
-- Run the v0.0.10 **one-connected-player multiplayer-server** baseline/forced-compression/restored-baseline CharacterStat/Moodle test for SPIKE-004.
-- Classify hunger, thirst, fatigue, endurance and other practical high-severity survival values.
-- Record a **GO / CONDITIONAL GO / NO-GO** decision for WHG Public Alpha deployment.
+- 3–12+ player proportional fractions and long-session stability.
+- joins/disconnects/deaths/respawns under live population changes.
+- non-health world-time systems: spoilage, farming, generators, corpses, composting and weather.
+- pathological survival states not exercised in SPIKE-004: active sickness/food poisoning, poison, zombie infection/fever, and extreme thermal injury.
+- client clock robustness during live admin/sandbox reconfiguration.
 
 ## [0.0.10] - 2026-08-19
 
-Focused SPIKE-004 diagnostic correction after analysis of the successful v0.0.9 two-player run.
+**Public Alpha.** v0.0.10 completed the final pre-deployment health/survival investigation and SPIKE-004 returned **GO**.
 
-### v0.0.9 evidence incorporated
+### v0.0.10 survival-state test result
 
-The two-player controlled run established that partial `MinutesPerDay` compression does not affect all player systems equally.
+The focused diagnostics successfully resolved/read:
 
-Awake bleeding/injury behavior remained approximately real-time bound during ~5x calendar compression:
+```text
+CharacterStatsResolved=24/24
+CharacterStatsReadable=24/24
+MoodlesResolved=25/25
+MoodlesReadable=25/25
+NutritionReadable=10/10
+```
 
-- overall health loss from active bleeding: baseline ~`-0.07869/s`, partial ~`-0.07810/s`, ratio ~`0.993x`;
-- `BleedingTime` progression remained ~`1x`;
-- `ScratchTime` progression remained ~`1x`;
-- no rapid awake-player bleed-out proportional to calendar compression was observed.
+The one-connected-player multiplayer-server forced-compression test exercised baseline, 5x, 10x and 20x calendar compression while the monitored character remained awake. `TrueMultiplier` remained `1.0` during forced compression.
+
+Clean baseline-versus-5x comparisons produced approximately:
+
+- Hunger: `4.85x`;
+- Thirst: `4.67x`;
+- Fatigue: `5.46x`;
+- Carbohydrates: `4.99x`;
+- Proteins: `4.99x`;
+- Lipids: `4.99x`.
+
+A short adjacent 10x-versus-baseline control produced roughly `9.5x` changes for hunger, thirst, fatigue, proteins and lipids while ongoing body-health loss remained about `0.95x`.
+
+Resting endurance recovery remained approximately unchanged when calendar compression doubled from 10x to 20x, supporting a simulation/real-time-bound classification for that tested recovery condition.
+
+Temperature remained physiologically stable and no thermal Moodle hazard appeared during the test. Active sickness, poisoning, zombie infection/fever and extreme thermal injury were not present and remain Public Alpha characterization targets rather than release blockers.
+
+### Safety conclusion
+
+Combined v0.0.9/v0.0.10 evidence shows different player systems use different time domains:
+
+**Simulation/real-time bound under tested conditions**
+
+- awake bleeding/body-health loss;
+- measured bleeding/scratch injury timers;
+- resting endurance recovery.
+
+**World/calendar-time bound**
+
+- hunger;
+- thirst;
+- fatigue;
+- calories;
+- carbohydrates;
+- proteins;
+- lipids.
+
+No evidence showed acute awake-player health damage scaling with calendar compression. SPIKE-004 therefore returned **GO — Public Alpha** with faster survival-need progression accepted as a documented consequence of genuinely faster world/calendar time.
+
+### Diagnostic override safety
+
+The v0.0.10 one-player server test path also passed its sleep-suspension check: when the connected player slept while a forced factor was armed, the controller restored baseline `MinutesPerDay` and suspended the override so it could not stack with vanilla full-sleep acceleration.
+
+### Client synchronization observation
+
+During aggressive live admin/sandbox factor changes, a few isolated client samples temporarily reverted to baseline `MinutesPerDay`; the authoritative server remained compressed and the normal synchronization heartbeat restored the client value within roughly a second. This is documented as a Public Alpha robustness observation, not a release blocker, because the test repeatedly rewrote sandbox/admin settings in a way normal play does not.
+
+### Public Alpha configuration
+
+```lua
+EnshroudedSleep = {
+    Enabled = true,
+    PartialSleepSpeedScale = 1.0,
+    DiagnosticsEnabled = false,
+    DiagnosticForcedCompressionFactor = 1.0,
+}
+```
+
+The diagnostic machinery is retained for support/regression testing but remains dormant by default.
+
+### Earlier v0.0.10 implementation work
+
+v0.0.10 corrected survival-state observability using current Build 42 `CharacterStat`, `MoodleType` and Nutrition APIs and added a tightly gated one-connected-player multiplayer-server forced-compression test path. An intermediate standalone/local-game fallback was removed before runtime validation; Enshrouded Sleep remains server-only.
+
+## [0.0.9] - 2026-08-19
+
+Follow-up SPIKE-004 diagnostic build after the first successful health/injury telemetry run.
+
+The two-player controlled run established that partial `MinutesPerDay` compression does not affect all player systems equally. Awake active-bleeding health loss remained approximately real-time bound during ~5x calendar compression:
+
+- baseline ~`-0.07869/s`;
+- partial ~`-0.07810/s`;
+- ratio ~`0.993x`;
+- measured `BleedingTime` and `ScratchTime` remained ~`1x`.
 
 Nutrition was strongly world/calendar-time bound:
 
@@ -34,84 +112,9 @@ Nutrition was strongly world/calendar-time bound:
 
 The run also preserved correct server/client `MinutesPerDay` convergence and `TrueMultiplier=1.0` during partial compression.
 
-### Corrected survival-state observability
-
-Current Build 42.20.3 vanilla Lua uses registered `CharacterStat` objects rather than legacy named Stats getters/fields for core survival state, and Moodles are keyed by `MoodleType` objects.
-
-v0.0.10 therefore uses:
-
-```lua
-player:getStats():get(CharacterStat.HUNGER)
-player:getMoodles():getMoodleLevel(MoodleType.HUNGRY)
-```
-
-through the shared read-only `SurvivalStatProbe` and focused server/client survival diagnostics. One-time `CAPABILITIES` records make remaining `N/A` values actionable.
-
-### Added — diagnostics-only one-player server forced compression
-
-Added `DiagnosticForcedCompressionFactor`, default `1.0`, range `1.0`–`20.0`.
-
-The override activates only when all of the following are true:
-
-```text
-multiplayer server runtime
-DiagnosticsEnabled = true
-DiagnosticForcedCompressionFactor > 1
-exactly one living player is connected
-that player is awake
-```
-
-When active:
-
-```text
-EffectiveMinutesPerDay = BaselineMinutesPerDay / DiagnosticForcedCompressionFactor
-```
-
-This lets SPIKE-004 isolate the effect of `MinutesPerDay` on one **awake connected server player** without requiring a second sleeping client.
-
-Safety invariants:
-
-- the override never calls `GameTime:setMultiplier()`;
-- factor `1.0` is inactive;
-- if the connected player sleeps, baseline is restored;
-- if another living player connects, baseline is restored;
-- disabling verbose diagnostics disables the override;
-- while a forced test factor is armed, normal proportional-sleep policy is suppressed so the test cannot mix with ordinary multiplayer sleep behavior;
-- multiplayer clock synchronization preserves the `diagnostic-forced` state for the connected client.
-
-### Corrected scope after implementation review
-
-An initial v0.0.10 implementation mistakenly added standalone/local-single-player `getPlayer()` fallbacks and a `StandaloneHealthDiagnostic_Server.lua` bridge. That was outside project scope and was removed before runtime validation.
-
-Enshrouded Sleep is a **multiplayer-server mod**. v0.0.10 does not add or claim standalone/local-game support. The diagnostic test uses a normal multiplayer server with exactly one connected player.
-
-### Scope
-
-- No normal proportional-sleep formula change.
-- No health/survival compensation.
-- No sleep eligibility/wake-policy change.
-- No global multiplier change.
-- Existing broad injury/body diagnostics remain available.
-- New instrumentation/test override is controlled and diagnostic-only.
-
-### Documentation
-
-- Updated SPIKE-004 and the testing guide to use the one-connected-player multiplayer-server test.
-- Updated README/configuration, deployment, architecture, roadmap, requirements, validation history, docs index, and issue #4.
-- `docs/ROADMAP.md` remains the single canonical roadmap.
-- Repository and Build 42 metadata remain `0.0.10`.
-
-## [0.0.9] - 2026-08-19
-
-Follow-up SPIKE-004 diagnostic build after the first successful solo health/injury telemetry run.
-
-Added guarded raw-stat/public-field probes, attempted Moodle telemetry, and direct `DeltaMinutesPerDay`/multiplier context. Runtime testing later showed that the legacy raw-stat access and numeric Moodle-enumeration assumptions did not match current Build 42.20.3 APIs; this is corrected in v0.0.10.
-
-The v0.0.9 controlled two-player run nevertheless produced decisive bleeding and nutrition evidence now recorded under the v0.0.10 entry and SPIKE-004.
-
 ## [0.0.8] - 2026-08-17
 
-Added broad read-only server/client health/time-domain diagnostics for SPIKE-004, including general health, detailed injured-body-part state/timers, nutrition, sleep context, and guarded health probes. A solo vanilla-full-sleep reference showed extremely rapid bleeding death and accelerated healing/recovery while vanilla all-asleep fast-forward owned the state. This demonstrated the need for a separate awake-player partial-compression test.
+Added broad read-only server/client health/time-domain diagnostics for SPIKE-004, including general health, detailed injured-body-part state/timers, nutrition, sleep context, and guarded health probes. A one-player-on-server vanilla-full-sleep reference showed extremely rapid bleeding death and accelerated healing/recovery while vanilla all-asleep fast-forward owned the state. This demonstrated the need for a separate awake-player partial-compression test.
 
 Also added formal SPIKE-004 and retroactively documented SPIKE-001 through SPIKE-003 plus ADR-001 through ADR-003.
 
