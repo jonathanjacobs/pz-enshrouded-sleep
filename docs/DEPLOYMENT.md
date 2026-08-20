@@ -1,16 +1,22 @@
 # Public Alpha Deployment Guide
 
-Current deployment status: **GO for Public Alpha**  
+Current deployment status: **Steam Workshop Public Alpha published; Workshop-distributed server validation pending**  
 Current version: `v0.0.10`  
 Validated core platform: Project Zomboid `42.20.3`  
 Project Zomboid Mod ID: `pz-enshrouded-sleep`  
-Steam Workshop ID: **pending first publication**
+Steam Workshop ID: `3786842301`
+
+Workshop page:
+
+```text
+https://steamcommunity.com/sharedfiles/filedetails/?id=3786842301
+```
 
 Enshrouded Sleep is a **multiplayer-server mod**. Local/standalone single-player is outside project scope.
 
 [`SPIKE-004`](spikes/SPIKE-004-health-time-domains.md) is complete and returned **GO**. Detailed test evidence remains in the spike/validation documentation rather than the public README.
 
-For first Workshop publication and update mechanics, see [`STEAM_WORKSHOP.md`](STEAM_WORKSHOP.md).
+For Workshop publication/update mechanics, see [`STEAM_WORKSHOP.md`](STEAM_WORKSHOP.md).
 
 ## Public Alpha configuration
 
@@ -27,6 +33,19 @@ EnshroudedSleep = {
 
 `DiagnosticsEnabled=true` produces high-volume clock/sleep, health/body, CharacterStat, Moodle, nutrition and multiplier-context telemetry. Enable it only for controlled troubleshooting/regression sessions.
 
+## Steam Workshop installation
+
+A Workshop-backed dedicated server uses both identifiers:
+
+```text
+WorkshopItems=3786842301
+Mods=pz-enshrouded-sleep
+```
+
+The Workshop ID identifies the Steam package to download. `pz-enshrouded-sleep` is the stable Project Zomboid Mod ID loaded by the game.
+
+Players should use the Workshop-distributed copy when joining a Workshop-configured server rather than maintaining a separate manual copy of the same mod.
+
 ## Authoritative runtime tree
 
 The repository itself is intentionally structured as a Project Zomboid Workshop package. There is one authoritative deployable mod tree:
@@ -37,22 +56,7 @@ Contents/mods/pz-enshrouded-sleep/
 
 Do not create or maintain a second root-level `42/`, `common/`, or `mod.info` runtime copy.
 
-The repository/Workshop wrapper may also contain public engineering documentation such as `README.md`, `docs/`, licensing/notices, and the changelog. Source-control metadata (`.git/`), private logs, credentials, local test artifacts, and other non-public material must not be copied into the local Workshop authoring directory.
-
-## Steam Workshop installation — after first publication
-
-Once Steam assigns the permanent Workshop Published File ID, a Workshop-backed server will use both identifiers:
-
-```text
-WorkshopItems=<Steam Workshop ID>
-Mods=pz-enshrouded-sleep
-```
-
-The Workshop ID identifies the Steam package to download. `pz-enshrouded-sleep` is the stable Project Zomboid Mod ID loaded by the game.
-
-After the first upload, record the real Workshop ID in this file, the top-level README, [`STEAM_WORKSHOP.md`](STEAM_WORKSHOP.md), and any host-specific deployment configuration.
-
-Players should use the Workshop-distributed copy when joining a Workshop-configured server rather than maintaining a separate manual copy of the same mod.
+The repository/Workshop wrapper may also contain public engineering documentation such as `README.md`, `docs/`, licensing/notices, the changelog, `workshop-description.bbcode`, and Workshop artwork. Source-control metadata (`.git/`), private logs, credentials, local test artifacts, and other non-public material must not be copied into the local Workshop authoring directory.
 
 ## Manual installation
 
@@ -84,32 +88,37 @@ Then configure:
 Mods=pz-enshrouded-sleep
 ```
 
-Do **not** rename a GitHub Download ZIP wrapper such as `pz-enshrouded-sleep-main` and place the whole repository into `Zomboid\mods`; the repository root is now the Workshop item/project wrapper, not the runtime mod root.
+Do **not** place the whole repository/Workshop wrapper into `Zomboid\mods`; the repository root is the Workshop item/project wrapper, not the runtime mod root.
 
-## First Steam Workshop publication
+## Current Workshop validation gate
 
-Before publication:
+The initial Workshop item has been uploaded and the permanent ID has been recorded. Before treating the Workshop-distributed package as fully deployment-validated:
 
-1. Complete [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md).
-2. Recheck the current Indie Stone Project Zomboid Modding Policy and applicable terms.
-3. Confirm `VERSION` and both deployable `mod.info` files report `0.0.10`.
-4. Confirm normal Public Alpha configuration has diagnostics disabled and forced factor `1.0`.
-5. Add/validate the required root `preview.png` using the current Build 42 `ModTemplate` from the installed Project Zomboid client.
-6. Add/validate versioned `poster.png`/`icon.png` only if they are referenced/used by the current Build 42 mod metadata.
-7. Make a clean Workshop-authoring copy of the repository without `.git/` or private/local artifacts.
-8. Upload through Project Zomboid `Workshop -> Create and Update Items`.
-9. Preserve the permanent Workshop ID assigned by Steam.
-10. Prefer an unlisted/private dress rehearsal if available, inspect the subscribed payload, and run a dedicated-server smoke test using the Workshop-distributed copy before broad announcement.
+1. Subscribe/download Workshop item `3786842301`.
+2. Inspect the delivered payload and confirm the expected runtime tree and artwork.
+3. Configure the dedicated test server with:
+
+```text
+WorkshopItems=3786842301
+Mods=pz-enshrouded-sleep
+```
+
+4. Run the Tier 1 startup smoke test using the Workshop-distributed copy.
+5. Run a short two-player partial-sleep regression if practical.
+6. Verify disable/rollback behavior when practical.
+7. Confirm intended Workshop visibility and the canonical public description from `workshop-description.bbcode`.
+
+GitHub issue #5 tracks these remaining Workshop-distribution checks.
 
 ## Public Alpha deployment procedure
 
-Once a Workshop item exists and its downloaded copy has passed the dress-rehearsal smoke test:
+Once the Workshop-distributed copy has passed the startup smoke test:
 
 1. Announce the deployment/restart.
 2. Stop the server cleanly.
 3. Back up world/save and server configuration.
 4. Preserve the previous known-good mod package/configuration.
-5. Configure the exact permanent `WorkshopItems=<id>` and `Mods=pz-enshrouded-sleep` values.
+5. Configure `WorkshopItems=3786842301` and `Mods=pz-enshrouded-sleep`.
 6. Verify `DiagnosticsEnabled=false` and `DiagnosticForcedCompressionFactor=1.0`.
 7. Start the server and confirm no Enshrouded Sleep Lua exception.
 8. Confirm server/client package/version consistency.
@@ -178,7 +187,7 @@ Collect server console/logs and affected client logs, then disable diagnostics a
 
 1. Stop the server cleanly.
 2. Preserve incident logs.
-3. Remove/disable `pz-enshrouded-sleep` and/or its Workshop item through the normal server workflow.
+3. Remove/disable `pz-enshrouded-sleep` and/or Workshop item `3786842301` through the normal server workflow.
 4. Restore prior configuration if needed.
 5. Restart and confirm native time/sleep behavior.
 
