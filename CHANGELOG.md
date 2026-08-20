@@ -31,14 +31,16 @@ The former root-level runtime copies (`42/`, `common/`, and `mod.info`) were rem
 Added/updated:
 
 - root `workshop.txt` with the permanent Steam ID intentionally blank until first publication;
+- root `preview.png` as the 256x256 Steam Workshop preview image;
+- versioned `42/poster.png` (256x256) and `42/icon.png` (32x32) for Build 42 mod-manager artwork;
+- versioned `42/mod.info` references `poster=poster.png` and `icon=icon.png`;
+- package validation checks artwork presence, PNG dimensions, preview file-size ceiling, metadata references, version agreement, and Public Alpha defaults;
 - `docs/STEAM_WORKSHOP.md` for first upload/update procedures and permanent Workshop-ID handling;
 - `.gitignore` and release-checklist guidance to exclude `.git/`, local logs, credentials, private test artifacts, and scratch files from the Workshop authoring copy;
 - installation/deployment instructions for the new Workshop wrapper versus inner PZ mod tree;
 - public README table of contents, simplified Public Alpha landing-page content, and removal of detailed SPIKE-004 evidence from the README;
 - explicit The Indie Stone and Keen Games non-affiliation/disclaimer language in public/legal/provenance documentation;
 - Public Alpha v0.0.10 Lua headers, startup banners, and inline architecture/function documentation across the controller, synchronization, and diagnostic modules without changing normal sleep policy.
-
-Workshop artwork (`preview.png`, and any versioned `poster.png`/`icon.png` chosen for the in-game mod manager) remains a publication-time asset step and must be validated against the current Build 42 `ModTemplate` before the first upload.
 
 ### v0.0.10 survival-state test result
 
