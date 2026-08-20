@@ -12,13 +12,14 @@ Run after any source/configuration change or Project Zomboid update.
 
 Minimum checks:
 
-1. Server starts without Enshrouded Sleep Lua errors.
-2. Both clients start/connect without Enshrouded Sleep Lua errors.
-3. Core controller and clock-state synchronization modules load.
+1. Game/server starts without Enshrouded Sleep Lua errors.
+2. In multiplayer, clients start/connect without Enshrouded Sleep Lua errors.
+3. Core controller loads.
 4. Existing health/body diagnostics load without exceptions.
-5. New survival diagnostic modules load without exceptions.
-6. With all players awake, server/client `MinutesPerDay` remains at native baseline.
+5. Focused survival diagnostic modules load without exceptions.
+6. With no active compression, `MinutesPerDay` remains at native baseline.
 7. With `DiagnosticsEnabled=false`, no one-second health/survival diagnostic stream is emitted.
+8. With `DiagnosticForcedCompressionFactor=1.0`, the diagnostic test override is inactive.
 
 ## 2. Tier 2 — core multiplayer regression
 
@@ -30,6 +31,8 @@ SleepAllowed = true
 SleepNeeded = true
 FastForwardMultiplier = 40
 PartialSleepSpeedScale = 1.0
+DiagnosticsEnabled = false
+DiagnosticForcedCompressionFactor = 1.0
 ```
 
 Minimum regression:
@@ -61,7 +64,7 @@ The remaining test exists because v0.0.9 used outdated survival-stat/Moodle acce
 
 ## 4. v0.0.10 corrected survival-state instrumentation
 
-When `DiagnosticsEnabled=true`, v0.0.10 adds:
+When `DiagnosticsEnabled=true`, v0.0.10 uses current Build 42 access patterns through the shared `SurvivalStatProbe`:
 
 ```text
 [EnshroudedSleepSurvivalDiag][SERVER] CAPABILITIES ...
@@ -70,128 +73,101 @@ When `DiagnosticsEnabled=true`, v0.0.10 adds:
 [EnshroudedSleepSurvivalDiag][CLIENT] SURVIVAL ...
 ```
 
-The focused diagnostic uses current Build 42 access patterns.
+Continuous values are read through `Stats:get(CharacterStat)`, Moodles through `getMoodleLevel(MoodleType)`, and Nutrition through its native getters.
 
-### CharacterStat continuous values
+For standalone play, the server survival diagnostic falls back to `getPlayer()` if `getOnlinePlayers()` is absent or empty. The fallback injury stream is:
 
-```lua
-local stats = player:getStats()
-
-stats:get(CharacterStat.HUNGER)
-stats:get(CharacterStat.THIRST)
-stats:get(CharacterStat.FATIGUE)
-stats:get(CharacterStat.ENDURANCE)
-stats:get(CharacterStat.STRESS)
-stats:get(CharacterStat.PANIC)
-stats:get(CharacterStat.PAIN)
-stats:get(CharacterStat.BOREDOM)
-stats:get(CharacterStat.UNHAPPINESS)
-stats:get(CharacterStat.SICKNESS)
-stats:get(CharacterStat.FOOD_SICKNESS)
-stats:get(CharacterStat.POISON)
-stats:get(CharacterStat.ZOMBIE_INFECTION)
-stats:get(CharacterStat.ZOMBIE_FEVER)
-stats:get(CharacterStat.TEMPERATURE)
-stats:get(CharacterStat.WETNESS)
+```text
+[EnshroudedSleepStandaloneHealthDiag][SERVER]
 ```
 
-Additional registered CharacterStats are also logged for context.
+It records overall health, injury counts and detailed active body-part bleeding/wound timers without requiring a multiplayer player collection.
 
-### Moodle ordinal values
+## 5. v0.0.10 single-player SPIKE-004 test — CURRENT BLOCKER
 
-```lua
-local moodles = player:getMoodles()
+The remaining health/survival time-domain question can now be tested with one awake character.
 
-moodles:getMoodleLevel(MoodleType.HUNGRY)
-moodles:getMoodleLevel(MoodleType.THIRST)
-moodles:getMoodleLevel(MoodleType.TIRED)
-moodles:getMoodleLevel(MoodleType.ENDURANCE)
-moodles:getMoodleLevel(MoodleType.STRESS)
-moodles:getMoodleLevel(MoodleType.PANIC)
-moodles:getMoodleLevel(MoodleType.PAIN)
-moodles:getMoodleLevel(MoodleType.SICK)
-```
+### Configuration
 
-The diagnostic directly checks all relevant built-in `MoodleType` constants rather than attempting numeric enumeration.
-
-### Nutrition
-
-```lua
-local nutrition = player:getNutrition()
-
-nutrition:getWeight()
-nutrition:getCalories()
-nutrition:getCarbohydrates()
-nutrition:getProteins()
-nutrition:getLipids()
-nutrition:isIncWeight()
-nutrition:isIncWeightLot()
-nutrition:isDecWeight()
-```
-
-The core five nutrition values were already observed successfully in v0.0.9; v0.0.10 retains them in the focused stream to correlate them with CharacterStat changes.
-
-## 5. Focused v0.0.10 SPIKE-004 test — CURRENT BLOCKER
-
-Use the controlled test server, not the public server.
+Start with:
 
 ```lua
 EnshroudedSleep = {
     Enabled = true,
     PartialSleepSpeedScale = 1.0,
     DiagnosticsEnabled = true,
+    DiagnosticForcedCompressionFactor = 1.0,
 }
 ```
 
-Use the same v0.0.10 snapshot on server and both clients.
+`DiagnosticForcedCompressionFactor` is test-only. It is ignored unless `DiagnosticsEnabled=true`.
 
-Set native server:
-
-```text
-FastForwardMultiplier = 10
-```
-
-With two living players and one sleeper on the 90-minute-day test server, expect approximately:
+With native baseline `MinutesPerDay=90`:
 
 ```text
-SleepFraction = 0.5
-CalendarCompressionFactor = 5
-EffectiveMinutesPerDay = 18
+factor 1 -> 90 min/day (inactive/baseline)
+factor 5 -> 18 min/day
+factor 10 -> 9 min/day
 ```
 
-### Player roles
+The diagnostic override does not call the global simulation multiplier.
 
-```text
-Player A = awake monitored subject
-Player B = sleeper used to trigger partial compression
-```
+### Safety behavior
 
-Keep Player A relatively inactive to reduce endurance/activity confounding. Do not deliberately create bleeding; that question already passed.
+If any observed living character sleeps while the forced factor is above `1`, the controller must:
+
+1. suspend the diagnostic override;
+2. restore native `MinutesPerDay`;
+3. log `TEST OVERRIDE SUSPENDED`;
+4. allow vanilla sleep behavior to own the sleeping state.
+
+This prevents diagnostic forced compression from stacking with vanilla full-sleep acceleration.
 
 ### Phase A — baseline, 60–90 real seconds
 
-1. Both players awake.
-2. Confirm server/client `MinutesPerDay=90`.
-3. Inspect the new `CAPABILITIES` lines before continuing.
-4. Desired capability result is nonzero/readable CharacterStats and Moodles on the monitored side(s). If those counts are zero, stop and preserve logs; do not waste the full run.
-5. In Debug Mode, establish useful nonzero hunger, thirst, fatigue and other target states on Player A without putting the character at immediate risk.
-6. Once starting conditions are established, do not eat, drink, sleep, exercise, medicate or otherwise reset those values during the measurement interval.
-7. Hold 60–90 real seconds.
+1. Load one expendable/debug test character.
+2. Keep `DiagnosticForcedCompressionFactor=1.0`.
+3. Confirm baseline `MinutesPerDay`, expected around `90` on the reference setup.
+4. Confirm the focused `CAPABILITIES` line reports readable CharacterStats/Moodles. If the useful counts are zero, stop and preserve logs.
+5. Use Debug Mode to establish useful nonzero hunger, thirst, fatigue and other desired states.
+6. Keep the character awake and relatively inactive for 60–90 seconds.
+7. Do not eat, drink, sleep, exercise, medicate or manually reset monitored values during the measurement interval.
 
-### Phase B — partial compression, 60–90 real seconds
+### Phase B — diagnostic forced compression, 60–90 real seconds
 
-1. Keep Player A awake.
-2. Put Player B to sleep.
-3. Confirm `2 living / 1 sleeping`, approximately factor `5`, and `MinutesPerDay=18`.
-4. Confirm `TrueMultiplier` remains consistent with ordinary active gameplay rather than vanilla full-sleep acceleration.
-5. Hold Player A relatively still for 60–90 real seconds.
-6. Do not manually reset monitored survival values unless necessary for safety.
+1. Without changing the monitored character state, set `DiagnosticForcedCompressionFactor=5.0` in the live sandbox/debug configuration.
+2. Confirm the controller logs:
+
+```text
+TEST OVERRIDE ACTIVE
+```
+
+3. Confirm `MinutesPerDay` changes from approximately `90` to approximately `18`.
+4. Confirm the character remains awake.
+5. Confirm `TrueMultiplier`/global multiplier remains consistent with ordinary awake play.
+6. Hold 60–90 seconds without resetting monitored survival values.
+
+If the live sandbox UI does not apply the option immediately, preserve logs and use separate short baseline/forced runs with carefully matched starting conditions. One-session A/B/C remains preferred.
 
 ### Phase C — restored baseline, 60–90 real seconds
 
-1. Wake Player B.
-2. Confirm server/client `MinutesPerDay=90`.
-3. Hold Player A another 60–90 seconds without resetting monitored values.
+1. Return `DiagnosticForcedCompressionFactor=1.0`.
+2. Confirm `MinutesPerDay` returns to baseline.
+3. Hold another 60–90 seconds without resetting monitored state.
+
+### Optional override-suspension safety test
+
+Using an expendable character only, with factor >1 active, attempt to sleep briefly.
+
+Expected:
+
+```text
+TEST OVERRIDE SUSPENDED
+MinutesPerDay -> baseline
+vanilla sleep owns the state
+```
+
+This safety check is separate from the rate-comparison experiment.
 
 ## 6. Analysis
 
@@ -199,12 +175,12 @@ For each continuous CharacterStat with enough movement:
 
 ```text
 baseline rate = delta(metric) / real seconds during Phase A
-partial rate  = delta(metric) / real seconds during Phase B
+forced rate   = delta(metric) / real seconds during Phase B
 restored rate = delta(metric) / real seconds during Phase C
-rate ratio    = partial rate / baseline rate
+rate ratio    = forced rate / baseline rate
 ```
 
-Compare the ratio to the **observed** compression factor:
+Compare against the **observed** compression factor:
 
 ```text
 ~1x                                -> simulation/real-time bound
@@ -215,7 +191,11 @@ insufficient change / inaccessible -> unclassified
 
 Moodles are ordinal corroboration only. Do not calculate pseudo-continuous rates from Moodle levels.
 
-Compare server and owning-client values where both are readable. A server/client exposure difference is itself a useful result and should be recorded.
+### Why the one-player result is relevant to multiplayer sleep
+
+The remaining causal question is the effect of the same `MinutesPerDay` reduction on an **awake** character. The forced diagnostic mode changes that exact clock primitive while removing the second player's sleep as a confounder. It is therefore valid for time-domain classification.
+
+It does **not** replace multiplayer controller/synchronization regression, which is tested separately in Tier 2 and Public Alpha.
 
 ## 7. Minimum remaining go/no-go questions
 
@@ -225,7 +205,7 @@ Before Public Alpha deployment, answer as far as technically practical:
 2. Does thirst accelerate materially?
 3. Does fatigue accelerate materially?
 4. Is endurance affected in a way that makes awake play disruptive?
-5. Do sickness/food-sickness/poison or zombie infection/fever become dangerous under partial compression?
+5. Do sickness/food-sickness/poison or zombie infection/fever become dangerous under compression?
 6. Do temperature/wetness/cold effects create a high-severity hazard?
 7. Does any observed acceleration require a lower initial `PartialSleepSpeedScale`, lower server fast-forward policy, warning, or targeted mitigation?
 
@@ -235,7 +215,7 @@ Before Public Alpha deployment, answer as far as technically practical:
 
 **CONDITIONAL GO:** behavior is understood and can be safely bounded by configuration or a narrowly targeted validated mitigation.
 
-**NO-GO:** partial sleep can unexpectedly cause rapid starvation/dehydration, infection death, temperature injury, or a comparable severe awake-player failure.
+**NO-GO:** calendar compression can unexpectedly cause rapid starvation/dehydration, infection death, temperature injury, or a comparable severe awake-player failure.
 
 Record the decision in [`spikes/SPIKE-004-health-time-domains.md`](spikes/SPIKE-004-health-time-domains.md).
 
@@ -245,24 +225,26 @@ Normal play:
 
 ```text
 DiagnosticsEnabled=false
+DiagnosticForcedCompressionFactor=1.0
 ```
 
 Controlled investigation:
 
 ```text
 DiagnosticsEnabled=true
+DiagnosticForcedCompressionFactor=1.0 or explicit test value
 ```
 
 The diagnostic build can generate substantial logs. Keep sessions short and purposeful.
 
-Collect:
+Collect for the single-player test:
 
 ```text
-server console
-server DebugLog/log ZIP
-Player A client logs
-Player B client logs when practical
+console.txt / game console output
+Logs ZIP / DebugLog
 ```
+
+For multiplayer regressions, collect server console, server logs and relevant client logs.
 
 ## 9. Public Alpha field testing — after SPIKE-004 GO
 
@@ -274,6 +256,14 @@ Targets include:
 - repeated sleep/wake cycles over long sessions;
 - normal mod-stack interaction;
 - non-health world-time systems such as spoilage, generators, crops, corpses, composting and weather.
+
+Public Alpha must always use:
+
+```text
+DiagnosticForcedCompressionFactor=1.0
+```
+
+unless a deliberately controlled diagnostic session is being run.
 
 ## 10. Project Zomboid update regression
 
