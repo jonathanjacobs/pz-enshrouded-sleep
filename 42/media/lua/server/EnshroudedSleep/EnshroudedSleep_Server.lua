@@ -470,6 +470,37 @@ local function update()
 
     local nativeConfig, nativeErr = readNativeConfig(false)
     if not nativeConfig then
+        -- A standalone diagnostic baseline does not require multiplayer
+        -- ServerOptions. At factor=1 the only safe/requested state is the captured
+        -- native MinutesPerDay, so keep that baseline without reporting a false
+        -- controller failure. Dedicated multiplayer still follows the normal
+        -- fail-safe/error path below if no local diagnostic player is visible.
+        if modConfig.diagnosticsEnabled and readLocalPlayerFallback() then
+            local living, sleeping, playerErr = countLivingAndSleepingPlayers()
+            if living ~= nil then
+                local restored, restoreErr = restoreBaseline()
+                if not restored then
+                    logErrorOnce(restoreErr)
+                    logStateIfChanged("fail-safe", living, sleeping, nil, restoreErr)
+                else
+                    clearError()
+                    logStateIfChanged(
+                        "diagnostic-standalone-baseline",
+                        living,
+                        sleeping,
+                        nil,
+                        "multiplayer ServerOptions unavailable; native baseline retained"
+                    )
+                end
+                return
+            elseif playerErr then
+                restoreBaseline()
+                logErrorOnce(playerErr)
+                logStateIfChanged("fail-safe", 0, 0, nil, playerErr)
+                return
+            end
+        end
+
         restoreBaseline()
         logErrorOnce(nativeErr)
         logStateIfChanged("fail-safe", 0, 0, nil, nativeErr)
