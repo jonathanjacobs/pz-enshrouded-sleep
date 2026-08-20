@@ -1,7 +1,7 @@
 # SPIKE-004 — Player Health and Survival Time Domains Under Calendar Compression
 
 Status: **In progress / Public Alpha deployment blocker**  
-Current implementation target: **v0.0.9**  
+Current implementation target: **v0.0.10**  
 Primary test platform: Project Zomboid **42.20.3**  
 Tracking issue: **GitHub #4** — `SPIKE-004: characterize player health/survival time domains under partial sleep`
 
@@ -9,299 +9,292 @@ Tracking issue: **GitHub #4** — `SPIKE-004: characterize player health/surviva
 
 When Enshrouded Sleep shortens `MinutesPerDay`, which player health/survival systems accelerate in real time with compressed world/calendar time, and which remain tied to ordinary active-simulation/real time?
 
-## Why this is blocking Public Alpha deployment
+## Why this blocks Public Alpha
 
-The core sleep/clock architecture is validated, but a live multiplayer server introduces an important safety question. If an awake player is wounded, bleeding, sick, starving, dehydrated, infected, or otherwise under a time-sensitive health effect while another player sleeps, some of those systems may progress faster in real time when the world calendar is compressed.
+The sleep/clock architecture is validated, but Project Zomboid subsystems do not necessarily share one time domain. A world-time-bound survival variable may advance several times faster in real time while another player sleeps even though movement, combat, vehicles, animations and other active simulation remain normal-speed.
 
-A system that normally changes slowly but scales approximately with `CalendarCompressionFactor` could become dangerous at high partial-sleep compression. This must be measured before exposing normal public-server characters to the mechanic.
+The deployment gate is therefore evidence-based: classify high-severity awake-player effects before normal public-server characters are exposed to partial calendar compression.
 
-## Hypothesis
-
-Project Zomboid health/survival variables do not necessarily share one time domain. Expected outcomes include:
+## Classification model
 
 - **simulation/real-time bound** — rate per real second remains approximately unchanged during partial compression;
-- **world-time bound** — rate per real second scales approximately with `CalendarCompressionFactor`;
-- **mixed/nonlinear** — rate changes, but not proportionally;
-- **event-driven** — value changes only when another subsystem/event fires;
-- **client-local/server-local discrepancy** — useful state is exposed differently on the owning client and server.
+- **world/calendar-time bound** — rate per real second scales approximately with `CalendarCompressionFactor`;
+- **mixed/nonlinear** — rate changes but not proportionally;
+- **event-driven** — useful change occurs only when another subsystem/event fires;
+- **insufficient/unavailable** — the test or Lua exposure is not adequate to classify the value.
 
-No compensation should be implemented until this mapping is measured.
+No compensation should be implemented from assumption alone.
 
 ## Instrumentation
 
-The spike uses read-only diagnostic modules:
+The existing broad health/body diagnostics remain active when `DiagnosticsEnabled=true`:
 
 ```text
 42/media/lua/server/EnshroudedSleep/HealthTimeDomainDiagnostic_Server.lua
 42/media/lua/client/EnshroudedSleep/HealthTimeDomainDiagnostic_Client.lua
 ```
 
-They run only when:
-
-```lua
-DiagnosticsEnabled = true
-```
-
-The server samples every instantiated living player once per real second. The client sampler records the owning local player's corresponding state so server/client exposure can be compared.
-
-### v0.0.9 probe strategy
-
-The first v0.0.8 integration run showed that many continuous `Stats` getters are not exposed through the tested Lua/Kahlua bridge even though corresponding public Java fields exist. v0.0.9 therefore uses a layered read strategy:
-
-1. normal getter;
-2. guarded public-field fallback where the Java API documents a public field;
-3. `N/A` if neither is exposed.
-
-The diagnostic also scans Project Zomboid's Moodle collection by index. Relevant Moodle levels are logged separately and the complete observed Moodle set is emitted as a compact summary. Moodles are a discrete fallback/secondary signal; they are not treated as equivalent to a continuous raw stat.
-
-### Clock/experiment context
-
-Each health sample includes:
-
-- real epoch;
-- baseline/partial/full-sleep phase;
-- living and sleeping counts on the server;
-- sleep fraction;
-- `MinutesPerDay`;
-- observed native baseline;
-- calculated `CalendarCompressionFactor`;
-- `TimeOfDay`;
-- `WorldAgeHours`;
-- `DeltaMinutesPerDay`;
-- game multiplier;
-- true multiplier;
-- server multiplier;
-- player sleep state.
-
-These multiplier fields are particularly useful for separating vanilla all-players-asleep fast-forward from Enshrouded Sleep partial `MinutesPerDay` compression.
-
-### General player metrics
-
-Where exposed by the tested Lua bridge, the diagnostic records:
-
-- health / overall body health;
-- hunger;
-- thirst;
-- fatigue;
-- endurance;
-- stress;
-- panic;
-- pain;
-- boredom;
-- unhappiness;
-- sickness;
-- drunkenness;
-- fear;
-- sanity;
-- food sickness;
-- poison level;
-- zombie infection level / apparent infection / fake infection state;
-- body temperature;
-- wetness;
-- cold progression metrics;
-- sleep counters and sleeping-pill count;
-- weight and nutrition stores (calories, carbohydrates, proteins, lipids).
-
-Unavailable APIs are logged as `N/A`; the diagnostic must not fail the gameplay session because one value is not exposed in Lua.
-
-### Moodle fallback / secondary state
-
-v0.0.9 records selected levels for:
-
-- Hungry, Thirst, Tired and Endurance;
-- Stress, Panic, Pain, Bored and Unhappy;
-- Sick and Drunk;
-- Bleeding and Injured;
-- Wet and HasACold;
-- Hyperthermia and Hypothermia;
-- Zombie.
-
-### Injury/body-part metrics
-
-For non-pristine/injured body parts, the diagnostic records:
-
-- body-part identity and health;
-- pain / additional pain;
-- bleeding flag and bleeding time;
-- bleeding stemmed state;
-- bandage state/life/dirty state;
-- cut and cut timer;
-- scratch and scratch timer;
-- bite and bite timer;
-- deep wound and timer;
-- stitch state and timer;
-- fracture timer / splint state;
-- burn state/timer;
-- wound infection state/level;
-- embedded glass/bullet state;
-- local wetness, skin/inner temperature, and stiffness.
-
-## Preliminary v0.0.8 solo reference run — 2026-08-19
-
-A solo test was run before the decisive two-player experiment. The test character was injured, monitored awake, and then slept under normal solo/vanilla full-sleep behavior.
-
-### Instrumentation result
-
-**PASS:** the new broad diagnostic loaded and ran without an Enshrouded Sleep exception flood.
-
-The captured run contained hundreds of server/client `PLAYER` samples and thousands of injured-body-part `BODY` samples. Overall health and detailed body-part values agreed closely between server and owning client in the portions reviewed.
-
-Useful exposed values included:
-
-- overall health / body health;
-- bleeding/injury counts;
-- detailed body-part injury and healing timers;
-- sleep counters;
-- weight, calories, carbohydrates, proteins and lipids;
-- cold-related values;
-- apparent infection and several body-part infection values.
-
-### Raw-stat exposure gap
-
-The v0.0.8 getter-only implementation produced `N/A` for many values of interest, including:
-
-- hunger;
-- thirst;
-- fatigue;
-- endurance;
-- stress;
-- panic;
-- general pain;
-- boredom;
-- unhappiness;
-- sickness;
-- drunkenness;
-- fear;
-- sanity;
-- food sickness;
-- poison;
-- raw infection level/fake infection level in some contexts;
-- aggregate temperature/wetness in some contexts.
-
-This is the direct reason for the v0.0.9 public-field and Moodle fallbacks.
-
-### Vanilla full-sleep reference
-
-The solo run is **not a partial-sleep test**. With one living player asleep, Enshrouded Sleep restored the native `MinutesPerDay=90` and vanilla full-sleep fast-forward owned the state.
-
-Nevertheless, the run provides useful reference evidence:
-
-- with four active bleeding injuries, client health was approximately `81.16` immediately before sleep;
-- once solo vanilla sleep began, health samples fell approximately `69.68 -> 47.74 -> 25.83 -> 6.03 -> 0` over about five real seconds;
-- the character therefore died extremely quickly under vanilla full-sleep acceleration;
-- a later controlled non-bleeding/healing sleep showed strong acceleration of wound/recovery timers and health recovery;
-- nutrition stores such as carbohydrates/proteins/lipids accelerated strongly with world progression, while calories behaved less like a simple one-clock metric.
-
-This establishes that health-related systems can respond strongly to **vanilla multiplier-driven sleep acceleration**. It does **not** establish that an awake player will experience the same behavior during Enshrouded Sleep partial compression, because partial sleep deliberately leaves global simulation fast-forward alone and changes only `MinutesPerDay`.
-
-## Decisive controlled test design
-
-Use two test characters and Debug Mode so starting conditions can be deliberately created and repeated.
-
-For operational safety and easier computer switching, the recommended first run uses native `FastForwardMultiplier=10` rather than 40. With two living players and one sleeper, that should produce approximately:
+v0.0.10 adds a focused Build 42 survival-state path:
 
 ```text
-SleepFraction = 0.5
-CalendarCompressionFactor = 5
-Baseline MinutesPerDay = 90
-Partial MinutesPerDay = 18
+42/media/lua/shared/EnshroudedSleep/SurvivalStatProbe.lua
+42/media/lua/server/EnshroudedSleep/SurvivalStatDiagnostic_Server.lua
+42/media/lua/client/EnshroudedSleep/SurvivalStatDiagnostic_Client.lua
 ```
 
-A 5x signal is large enough to classify a world-time-bound effect while giving the operator substantially more real time to observe/respond. Higher compression can be tested later if needed.
+The new stream uses:
 
-### Phase A — native baseline
+```text
+[EnshroudedSleepSurvivalDiag][SERVER]
+[EnshroudedSleepSurvivalDiag][CLIENT]
+```
 
-1. Start with two living players awake.
-2. Enable `DiagnosticsEnabled=true`.
-3. Establish controlled health conditions on Player A. At minimum include one active bleeding injury; also create useful nonzero hunger/thirst/fatigue and one healing/injury state if practical.
-4. Hold both players awake for at least 60 real seconds.
-5. Preserve server and client logs.
+and emits one-time `CAPABILITIES` lines plus one-second `SURVIVAL` samples.
 
-### Phase B — partial sleep
+All instrumentation is read-only.
 
-1. Keep Player A, the affected/injured test character, awake.
+## Build 42.20.3 API correction discovered after v0.0.9
+
+The v0.0.9 test still returned `N/A` for hunger, thirst, fatigue, endurance and many related stats, and its Moodle fallback also returned `N/A`.
+
+Review of current vanilla Build 42 Lua and the decompiled 42.20.3 classes identified the cause.
+
+### Continuous survival values
+
+Current vanilla Lua reads registered CharacterStats through `Stats:get(CharacterStat)`:
+
+```lua
+local stats = player:getStats()
+
+local hunger = stats:get(CharacterStat.HUNGER)
+local thirst = stats:get(CharacterStat.THIRST)
+local fatigue = stats:get(CharacterStat.FATIGUE)
+local endurance = stats:get(CharacterStat.ENDURANCE)
+local stress = stats:get(CharacterStat.STRESS)
+local panic = stats:get(CharacterStat.PANIC)
+local pain = stats:get(CharacterStat.PAIN)
+local boredom = stats:get(CharacterStat.BOREDOM)
+local unhappiness = stats:get(CharacterStat.UNHAPPINESS)
+local sickness = stats:get(CharacterStat.SICKNESS)
+local foodSickness = stats:get(CharacterStat.FOOD_SICKNESS)
+local poison = stats:get(CharacterStat.POISON)
+local zombieInfection = stats:get(CharacterStat.ZOMBIE_INFECTION)
+local zombieFever = stats:get(CharacterStat.ZOMBIE_FEVER)
+local temperature = stats:get(CharacterStat.TEMPERATURE)
+local wetness = stats:get(CharacterStat.WETNESS)
+```
+
+The `CharacterStat` class is marked `@UsedFromLua` and registers these values explicitly. v0.0.10 also probes additional registered stats useful for context: fitness, intoxication, anger, morale, nicotine withdrawal, idleness, sanity and discomfort.
+
+### Moodles
+
+Build 42.20.3 `Moodles` stores moodles in a map keyed by `MoodleType`; its Lua-facing getter is:
+
+```lua
+player:getMoodles():getMoodleLevel(MoodleType.HUNGRY)
+```
+
+The v0.0.9 assumption that Moodles could be enumerated using `getNumMoodles()`, `getMoodleType(i)` and `getMoodleLevel(i)` does not match the current 42.20.3 class.
+
+v0.0.10 therefore directly probes the registered MoodleType constants, including:
+
+```lua
+MoodleType.ENDURANCE
+MoodleType.TIRED
+MoodleType.HUNGRY
+MoodleType.PANIC
+MoodleType.SICK
+MoodleType.BORED
+MoodleType.UNHAPPY
+MoodleType.BLEEDING
+MoodleType.WET
+MoodleType.HAS_A_COLD
+MoodleType.ANGRY
+MoodleType.STRESS
+MoodleType.THIRST
+MoodleType.INJURED
+MoodleType.PAIN
+MoodleType.HEAVY_LOAD
+MoodleType.DRUNK
+MoodleType.ZOMBIE
+MoodleType.HYPERTHERMIA
+MoodleType.HYPOTHERMIA
+MoodleType.WINDCHILL
+MoodleType.CANT_SPRINT
+MoodleType.UNCOMFORTABLE
+MoodleType.NOXIOUS_SMELL
+MoodleType.FOOD_EATEN
+```
+
+### Nutrition
+
+Nutrition remains directly available through `player:getNutrition()`:
+
+```lua
+nutrition:getWeight()
+nutrition:getCalories()
+nutrition:getCarbohydrates()
+nutrition:getProteins()
+nutrition:getLipids()
+nutrition:isIncWeight()
+nutrition:isIncWeightLot()
+nutrition:isDecWeight()
+nutrition:characterHaveWeightTrouble()
+nutrition:canAddFitnessXp()
+```
+
+The 42.20.3 decompiled `Nutrition.update()` also explains the v0.0.9 result mechanistically: carbohydrates, proteins, lipids, calories and weight updates use `GameTime.getInstance().getGameWorldSecondsSinceLastUpdate()`, so their rates can follow accelerated world/calendar progression.
+
+## v0.0.8 solo vanilla-full-sleep reference
+
+The initial health diagnostic run established a useful vanilla reference but was not a partial-sleep test.
+
+A character with four active bleeding injuries entered solo vanilla full sleep at roughly `81.16` health. Successive approximately one-second samples fell roughly:
+
+```text
+69.68 -> 47.74 -> 25.83 -> 6.03 -> 0
+```
+
+The character died within about five real seconds. A later healing sleep also showed strongly accelerated recovery/timers.
+
+Because Enshrouded Sleep had restored `MinutesPerDay=90` and vanilla all-asleep fast-forward owned the state, this result did not classify awake-player partial compression.
+
+## v0.0.9 two-player controlled result — 2026-08-19
+
+The v0.0.9 run included native baseline, approximately 5x partial compression (`MinutesPerDay=18`), restored baseline, and a later approximately 10x partial interval (`MinutesPerDay=9`). `TrueMultiplier` remained `1.0` during partial compression and server/client day-length synchronization behaved correctly.
+
+### Awake bleeding/injury — PASS
+
+During the clean comparable interval:
+
+```text
+Overall health loss while actively bleeding
+baseline:   ~-0.07869 health / real second
+5x partial: ~-0.07810 health / real second
+ratio:      ~0.993x
+```
+
+Detailed wound timers corroborated the result:
+
+```text
+Hand_R BleedingTime
+baseline:   ~-0.000959 / sec
+5x partial: ~-0.000960 / sec
+ratio:      ~1.00x
+
+Hand_R ScratchTime
+baseline:   ~-0.000477 / sec
+5x partial: ~-0.000477 / sec
+ratio:      ~1.00x
+```
+
+Other injured-part telemetry showed the same qualitative behavior.
+
+**Classification:** awake active bleeding health loss and the measured bleeding/scratch progression are simulation/real-time bound under the tested partial-compression conditions.
+
+**Safety consequence:** the feared rapid awake-player bleed-out proportional to calendar compression was not observed.
+
+### Nutrition — world/calendar bound
+
+The nutrition signal was exceptionally clean:
+
+| Metric | Baseline rate | ~5x partial rate | Ratio | ~10x partial rate | Ratio | Classification |
+|---|---:|---:|---:|---:|---:|---|
+| Calories | -0.2583/s | -1.2928/s | **5.01x** | -2.5886/s | **10.00x** | world/calendar-time bound |
+| Carbohydrates | -0.05597/s | -0.27987/s | **5.00x** | -0.55972/s | **10.00x** | world/calendar-time bound |
+| Proteins | -0.01374/s | -0.06877/s | **5.00x** | -0.13753/s | **10.01x** | world/calendar-time bound |
+| Lipids | -0.01807/s | -0.09036/s | **5.00x** | -0.18071/s | **10.00x** | world/calendar-time bound |
+
+Weight moved in the expected direction but the interval was too short/noisy for the same confidence in an exact multiplier.
+
+### v0.0.9 telemetry gap
+
+The controlled test did **not** classify hunger, thirst, fatigue, endurance, stress, panic, general pain, sickness and several related values because the legacy getter/public-field probes remained unavailable and the numeric Moodle enumeration assumption was wrong for Build 42.20.3.
+
+That gap, rather than bleeding, is now the reason SPIKE-004 remains open.
+
+## Current results table
+
+| Metric / subsystem | Baseline rate | Partial rate | Rate ratio | Classification | Safety consequence |
+|---|---:|---:|---:|---|---|
+| Overall health loss while bleeding | ~-0.07869/s | ~-0.07810/s at 5x | ~0.993x | simulation/real-time bound | PASS; no accelerated awake bleed-out observed |
+| BleedingTime | ~-0.000959/s | ~-0.000960/s at 5x | ~1.00x | simulation/real-time bound | PASS |
+| ScratchTime | ~-0.000477/s | ~-0.000477/s at 5x | ~1.00x | simulation/real-time bound | PASS |
+| Hunger / Hungry Moodle | pending v0.0.10 | pending | pending | unclassified | deployment gate remains open |
+| Thirst / Thirst Moodle | pending v0.0.10 | pending | pending | unclassified | deployment gate remains open |
+| Fatigue / Tired Moodle | pending v0.0.10 | pending | pending | unclassified | deployment gate remains open |
+| Endurance / Endurance Moodle | pending v0.0.10 | pending | pending | unclassified | deployment gate remains open |
+| Stress / Panic / Pain | pending v0.0.10 | pending | pending | unclassified | characterize if measurable |
+| Sickness / FoodSickness / Poison | pending v0.0.10 | pending | pending | unclassified | high-value if practical |
+| Zombie infection/fever | pending v0.0.10 | pending | pending | unclassified | high-severity if practical |
+| Temperature / wetness / cold | pending v0.0.10 | pending | pending | unclassified | characterize if practical |
+| Calories | -0.2583/s | -1.2928/s at 5x | 5.01x | world/calendar-time bound | expected faster metabolism during partial compression |
+| Carbohydrates | -0.05597/s | -0.27987/s at 5x | 5.00x | world/calendar-time bound | same |
+| Proteins | -0.01374/s | -0.06877/s at 5x | 5.00x | world/calendar-time bound | same |
+| Lipids | -0.01807/s | -0.09036/s at 5x | 5.00x | world/calendar-time bound | same |
+
+## v0.0.10 decisive follow-up test
+
+There is no need to recreate the bleeding experiment unless a regression appears.
+
+Use two players with native `FastForwardMultiplier=10` and `DiagnosticsEnabled=true`.
+
+### Phase A — baseline
+
+1. Both players awake.
+2. Confirm `MinutesPerDay=90`.
+3. Confirm the new server/client `CAPABILITIES` lines report readable CharacterStats and Moodles.
+4. Use Debug Mode to establish nonzero hunger, thirst, fatigue and any other target states without placing the monitored character at immediate risk.
+5. Keep the monitored player awake and relatively inactive for 60–90 real seconds.
+
+### Phase B — partial compression
+
+1. Keep Player A awake and unchanged.
 2. Put Player B to sleep.
-3. Confirm the expected partial state (`2 living / 1 sleeping`) and the actual `MinutesPerDay`/compression factor in logs.
-4. Hold the state for at least 60 real seconds unless Player A becomes unsafe.
-5. Do not artificially heal/feed/reset Player A during the measurement interval unless necessary to prevent test-character death.
+3. Confirm `2 living / 1 sleeping`, approximately factor `5`, and `MinutesPerDay=18`.
+4. Hold 60–90 real seconds.
+5. Do not eat, drink, sleep, exercise, medicate or otherwise reset monitored state during the interval unless required for safety.
 
 ### Phase C — restored baseline
 
 1. Wake Player B.
-2. Hold both players awake another 60 seconds.
-3. Confirm `MinutesPerDay` returns to baseline and monitored rates return toward baseline behavior where applicable.
+2. Confirm server/client `MinutesPerDay=90`.
+3. Hold another 60–90 seconds.
 
-### Optional Phase D — vanilla full sleep
-
-The v0.0.8 solo run already supplies a useful vanilla reference. Additional all-asleep testing is optional and must not be mixed into the partial-sleep classification.
-
-## Analysis
-
-For each numeric metric with sufficient variation, compare change per real second across baseline and partial phases.
-
-Example classification:
+For each numeric CharacterStat with enough movement:
 
 ```text
-baseline hunger rate = +0.0004 / real second
-partial hunger rate  = +0.0020 / real second
-observed compression = 5
-ratio ~= 5
-=> world-time bound
+baseline rate = delta(metric) / real seconds
+partial rate  = delta(metric) / real seconds
+rate ratio    = partial rate / baseline rate
 ```
 
-versus:
+Compare against the **observed** compression factor.
 
-```text
-baseline health loss from bleeding = -0.20 / real second
-partial health loss from bleeding  = -0.21 / real second
-ratio ~= 1
-=> simulation/real-time bound
-```
-
-These examples are analytical illustrations, not predictions.
-
-## Results table — partial-sleep classification still pending
-
-| Metric / subsystem | Baseline rate | Partial rate | Rate ratio | Server/client agreement | Classification | Safety consequence |
-|---|---:|---:|---:|---|---|---|
-| Overall health loss while bleeding | TBD | TBD | TBD | TBD | TBD | TBD |
-| BleedingTime / wound state | TBD | TBD | TBD | TBD | TBD | TBD |
-| Hunger / Hungry Moodle | TBD | TBD | TBD | TBD | TBD | TBD |
-| Thirst / Thirst Moodle | TBD | TBD | TBD | TBD | TBD | TBD |
-| Fatigue / Tired Moodle | TBD | TBD | TBD | TBD | TBD | TBD |
-| Endurance / Endurance Moodle | TBD | TBD | TBD | TBD | TBD | TBD |
-| Wound/healing timer(s) | TBD | TBD | TBD | TBD | TBD | TBD |
-| Pain / Pain Moodle | TBD | TBD | TBD | TBD | TBD | TBD |
-| Sickness / Sick Moodle | TBD | TBD | TBD | TBD | TBD | TBD |
-| Poison | TBD | TBD | TBD | TBD | TBD | TBD |
-| Zombie infection metrics / Zombie Moodle | TBD | TBD | TBD | TBD | TBD | TBD |
-| Temperature / cold Moodles | TBD | TBD | TBD | TBD | TBD | TBD |
-| Nutrition stores | TBD | TBD | TBD | TBD | TBD | TBD |
+Moodle levels remain ordinal corroboration, not substitutes for continuous CharacterStat values.
 
 ## Go / no-go criteria
 
 ### GO for WHG Public Alpha
 
-Proceed if no high-severity awake-player health/survival effect becomes dangerously accelerated by partial sleep, or if any accelerated behavior is understood and judged acceptable for alpha use.
+Proceed if no remaining high-severity awake-player survival effect becomes dangerously accelerated, or if accelerated behavior is understood and acceptable for alpha use.
 
 ### CONDITIONAL GO
 
-Proceed only with a lower `PartialSleepSpeedScale`, additional warnings, or a narrowly targeted mitigation if one or more systems accelerate but can be safely bounded without destabilizing the architecture.
+Proceed with a lower `PartialSleepSpeedScale`, a lower server fast-forward policy, warnings, or a narrowly targeted validated mitigation if an accelerated system can be bounded safely.
 
 ### NO-GO
 
-Do not deploy publicly if partial sleep can cause severe or surprising consequences such as rapid awake-player bleed-out, infection death, starvation/dehydration, or another high-severity health effect before an appropriate mitigation is implemented and validated.
+Do not deploy publicly if partial sleep can unexpectedly cause rapid starvation/dehydration, infection death, temperature injury, or another comparable high-severity awake-player failure before mitigation.
 
-## Outputs
+## Outputs still required
 
-The spike must produce:
-
-1. a completed per-metric time-domain classification table;
-2. any required new GitHub issues;
-3. a Public Alpha GO / CONDITIONAL GO / NO-GO decision;
-4. an ADR if findings require a new architectural policy or compensation mechanism;
-5. updates to requirements, roadmap, deployment guidance, validation history, and changelog.
+1. v0.0.10 CharacterStat/Moodle capability validation;
+2. classification of hunger/thirst/fatigue/endurance and other practical high-severity metrics;
+3. final Public Alpha GO / CONDITIONAL GO / NO-GO decision;
+4. ADR only if results require a new architectural policy or compensation mechanism;
+5. final requirements/roadmap/deployment/validation/changelog update.
 
 ## Current decision
 
-**Public Alpha deployment remains paused until the two-player partial-sleep comparison is completed.** The v0.0.8 solo run validated the diagnostic concept and supplied a vanilla full-sleep reference; v0.0.9 improves observability for the decisive partial-sleep experiment.
+**Public Alpha remains paused.** The v0.0.9 run passed the acute awake-bleeding safety question and proved nutrition stores are world/calendar-time bound. The remaining blocker is the focused v0.0.10 classification of survival variables that v0.0.9 could not observe through the outdated access paths.
