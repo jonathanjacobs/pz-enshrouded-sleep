@@ -170,6 +170,9 @@ Other mods that alter multiplayer sleep, MinutesPerDay, GameTime pacing, or slee
 Enshrouded Sleep is not developed by, affiliated with, sponsored by, or endorsed by The Indie Stone.
 
 Enshrouded Sleep is also not developed by, affiliated with, sponsored by, or endorsed by Keen Games. The project name refers only to general multiplayer-sleep design inspiration associated with the game Enshrouded; no Enshrouded code, assets, or game content are included.
+
+WorkshopItems=<Steam Workshop ID>
+Mods=pz-enshrouded-sleep
 ```
 
 ## Update workflow
