@@ -4,7 +4,7 @@ Status: **Public Alpha**
 Current version: `v0.0.10`  
 Current behaviorally validated Project Zomboid baseline: `42.20.3`
 
-This document defines intended MVP behavior. Enshrouded Sleep is a **multiplayer-server mod**; local/standalone single-player support is out of scope.
+This document defines intended MVP behavior and release/package invariants. Enshrouded Sleep is a **multiplayer-server mod**; local/standalone single-player support is out of scope.
 
 ## 1. Product goal
 
@@ -30,6 +30,8 @@ The implementation uses `GameTime:MinutesPerDay`; it does **not** use a global s
 - **EffectiveMinutesPerDay** — `BaselineMinutesPerDay / CalendarCompressionFactor`.
 - **DiagnosticsEnabled** — support/development telemetry switch; default `false`.
 - **DiagnosticForcedCompressionFactor** — server-test-only factor retained for regression/support; default `1.0` (inactive).
+- **RuntimeModRoot** — `Contents/mods/pz-enshrouded-sleep/`, the single authoritative deployable Project Zomboid mod tree.
+- **WorkshopRoot** — repository root / local Steam Workshop authoring item containing `workshop.txt`, Workshop artwork, `Contents/`, and intentionally public project documentation.
 
 ## 3. Core behavioral requirements
 
@@ -211,7 +213,7 @@ Requirements:
 - the control is test-only and must remain `1.0` during normal Public Alpha operation;
 - no standalone/local-game fallback or bridge is permitted.
 
-## 7. Sleep-duration and operational requirements
+## 7. Sleep-duration, packaging, and operational requirements
 
 ### R31 — Vanilla sleep/wake behavior remains meaningful
 
@@ -220,6 +222,35 @@ Vanilla fatigue, traits, sleeping pills and wake timing should remain meaningful
 ### R32 — Rollback remains straightforward
 
 The mod must not require a persistent custom database or migration to disable. Administrators must be able to stop the server, remove/disable the mod, restart, and return future sleep/time behavior to vanilla.
+
+### R33 — One authoritative runtime package tree
+
+The only deployable Project Zomboid mod tree in the repository is:
+
+```text
+Contents/mods/pz-enshrouded-sleep/
+```
+
+Requirements:
+
+- no second root-level `42/`, `common/`, or runtime `mod.info` copy;
+- Build 42 versioned runtime files remain under `RuntimeModRoot/42/`;
+- required Build 42 scanner placeholder directories remain present;
+- source/runtime changes are made directly in this authoritative tree rather than copied into a generated distribution tree.
+
+### R34 — Workshop wrapper is public and intentional
+
+The repository root may be used as the Steam Workshop item wrapper and may intentionally contain public project documentation in addition to `workshop.txt`, artwork, and `Contents/`.
+
+Requirements:
+
+- every uploaded outer file is intentionally public;
+- `.git/`, credentials, private logs, local test data, and scratch/backups are excluded from the Workshop authoring copy;
+- `workshop.txt` preserves the permanent Workshop ID after first publication;
+- the required valid `preview.png` is present before first upload;
+- any referenced `poster.png`/`icon.png` exists and meets current Build 42 client requirements;
+- normal Workshop server deployment distinguishes the permanent Steam Workshop ID from the stable Project Zomboid Mod ID `pz-enshrouded-sleep`;
+- public Workshop/README/legal material includes required The Indie Stone disclaimers and the project's explicit Keen Games non-affiliation disclosure.
 
 ## 8. Reference examples
 
@@ -242,6 +273,13 @@ LivingPlayers = 1
 SleepingPlayers = 0
 DiagnosticForcedCompressionFactor = 5
 EffectiveMinutesPerDay = 18
+```
+
+Workshop/server identity reference after first publication:
+
+```text
+WorkshopItems=<permanent Steam Published File ID>
+Mods=pz-enshrouded-sleep
 ```
 
 ## 9. MVP acceptance matrix
@@ -269,6 +307,8 @@ EffectiveMinutesPerDay = 18
 21. Hunger/thirst/fatigue/endurance safety classification — `VALIDATED sufficiently for Public Alpha; SPIKE-004 GO`
 22. Public-server stability at larger population — `PUBLIC ALPHA TARGET`
 23. Non-health world-time side effects — `PUBLIC ALPHA TARGET`
+24. Single authoritative Workshop/runtime repository tree — `IMPLEMENTED v0.0.10 publication preparation`
+25. Workshop-distributed dedicated-server smoke test — `PENDING first Steam upload`
 
 ## 10. Out of scope
 
@@ -280,6 +320,7 @@ EffectiveMinutesPerDay = 18
 - broad automatic compensation without measured evidence;
 - guaranteed compatibility with every sleep/recovery mod;
 - player-facing compression notifications;
-- configuration presets.
+- configuration presets;
+- generated build/deployment packaging scripts for normal Workshop publication.
 
 Future work is tracked only in [`ROADMAP.md`](ROADMAP.md).
