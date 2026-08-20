@@ -20,47 +20,51 @@ The implementation uses `GameTime:MinutesPerDay`; it does **not** use a global s
 
 ## 2. Definitions
 
-- **BaselineMinutesPerDay** — live authoritative server `getGameTime():getMinutesPerDay()` when partial compression is inactive.
+- **BaselineMinutesPerDay** — live authoritative `getGameTime():getMinutesPerDay()` when compression is inactive.
 - **NativeFastForward** — server `FastForwardMultiplier`.
-- **PartialSleepSpeedScale** — administrator multiplier; default `1.0`.
-- **LivingPlayers** — instantiated `getOnlinePlayers()` entries where `isDead() == false`.
+- **PartialSleepSpeedScale** — administrator multiplier for normal partial sleep; default `1.0`.
+- **LivingPlayers** — instantiated `getOnlinePlayers()` entries where `isDead() == false` during normal multiplayer operation.
 - **SleepingPlayers** — LivingPlayers where `isAsleep() == true`.
 - **SleepFraction** — `SleepingPlayers / LivingPlayers`.
-- **CalendarCompressionFactor** — proportional world/calendar pacing factor during partial sleep.
+- **CalendarCompressionFactor** — world/calendar pacing factor.
 - **EffectiveMinutesPerDay** — `BaselineMinutesPerDay / CalendarCompressionFactor`.
-- **DiagnosticsEnabled** — support/development telemetry switch; default `false`; must not change gameplay behavior.
+- **DiagnosticsEnabled** — support/development telemetry switch; default `false`.
+- **DiagnosticForcedCompressionFactor** — test-only factor used by SPIKE-004 to force `MinutesPerDay` compression on an awake character; default `1.0` (inactive).
 
 ## 3. Core behavioral requirements
 
 ### R1 — Respect native sleep policy
 
-If native `SleepAllowed=false`, the mod must not apply partial-sleep compression or bypass vanilla sleep restrictions.
+If native `SleepAllowed=false`, the normal mod must not apply partial-sleep compression or bypass vanilla sleep restrictions.
 
 ### R2 — Runtime baseline is authoritative
 
-The server must derive baseline from `getGameTime():getMinutesPerDay()`. No hard-coded day-length mapping is permitted.
+The controller must derive baseline from `getGameTime():getMinutesPerDay()`. No hard-coded day-length mapping is permitted.
 
 ### R3 — Native fast-forward policy is inherited
 
-The server reads `FastForwardMultiplier`; the mod must not hard-code a presumed native fast-forward value.
+Normal partial sleep reads `FastForwardMultiplier`; the mod must not hard-code a presumed native fast-forward value.
 
 ### R4 — Minimal administrator configuration
+
+Normal operation:
 
 ```lua
 EnshroudedSleep = {
     Enabled = true,
     PartialSleepSpeedScale = 1.0,
     DiagnosticsEnabled = false,
+    DiagnosticForcedCompressionFactor = 1.0,
 }
 ```
 
 ### R5 — Use vanilla-visible instantiated population
 
-The proportional denominator consists only of currently instantiated living `IsoPlayer` objects. Dead characters are excluded; admin characters count normally.
+The normal proportional denominator consists only of currently instantiated living `IsoPlayer` objects. Dead characters are excluded; admin characters count normally.
 
 ### R6 — Zero sleepers means exact baseline
 
-When `SleepingPlayers == 0`, `CalendarCompressionFactor=1.0` and server/clients must converge to the exact captured baseline.
+When `SleepingPlayers == 0` during normal gameplay, `CalendarCompressionFactor=1.0` and server/clients must converge to the exact captured baseline.
 
 ### R7 — Partial sleep is proportional
 
@@ -81,7 +85,7 @@ The controller must not call `GameTime:setMultiplier()` for partial sleep. Awake
 
 ### R9 — All living players asleep hands off to vanilla
 
-When all living players sleep, Enshrouded Sleep must restore server baseline, tell clients to use baseline pacing, and let vanilla full-sleep fast-forward own the state. Compressed `MinutesPerDay` must not intentionally stack with vanilla all-asleep fast-forward.
+When all living players sleep, Enshrouded Sleep must restore baseline, tell clients to use baseline pacing, and let vanilla full-sleep fast-forward own the state. Compressed `MinutesPerDay` must not intentionally stack with vanilla all-asleep fast-forward.
 
 ### R10 — State changes recalculate promptly
 
@@ -93,23 +97,23 @@ Join/spawn/death/respawn/sleep/wake/disconnect must affect the denominator as so
 
 ### R12 — Fail toward native baseline
 
-On disable, recoverable error, all-awake state, or full-sleep handoff, restore the exact captured baseline.
+On disable, recoverable error, all-awake normal state, full-sleep handoff, or diagnostic-test exit, restore the exact captured baseline.
 
 ## 4. Client synchronization requirements
 
 ### R13 — Clients mirror authoritative `MinutesPerDay`
 
-Clients must use the server-selected effective day length during partial sleep; clients must not independently calculate policy.
+Clients must use the authoritative selected day length during normal partial sleep. They must not independently calculate policy.
 
 ### R14 — Server remains authoritative for world time
 
-Client synchronization must not use client `setTimeOfDay()`, global multiplier changes, or independent world-time ownership as a substitute for matching server day-length pacing.
+Client synchronization must not use client `setTimeOfDay()`, global multiplier changes, or independent world-time ownership as a substitute for matching authoritative day-length pacing.
 
 ### R15 — Late-loading clients converge
 
 A low-frequency heartbeat is permitted so clients that miss a transition still converge.
 
-### R16 — Transition packets represent settled server state
+### R16 — Transition packets represent settled authoritative state
 
 The synchronization layer may defer publication briefly so the controller applies its target before the state is announced.
 
@@ -137,12 +141,12 @@ Current evidence from v0.0.9 establishes:
 
 - awake active-bleeding health loss remained approximately `1x` during ~5x partial compression;
 - measured bleeding/scratch timers remained approximately `1x`;
-- calories, carbohydrates, proteins and lipids scaled approximately with the observed 5x/10x calendar-compression factors;
+- calories, carbohydrates, proteins and lipids scaled approximately with observed 5x/10x calendar compression;
 - therefore different player systems demonstrably use different time domains.
 
 Remaining priority variables are hunger, thirst, fatigue, endurance, sickness/food sickness/poison, zombie infection/fever, and temperature/cold state where practical.
 
-Public deployment remains blocked if partial sleep can unexpectedly cause rapid starvation/dehydration, infection death, temperature injury, or a comparable high-severity awake-player failure without a validated mitigation or acceptable configuration bound.
+Public deployment remains blocked if calendar compression can unexpectedly cause rapid starvation/dehydration, infection death, temperature injury, or a comparable high-severity awake-player failure without a validated mitigation or acceptable configuration bound.
 
 ## 6. Diagnostic requirements
 
@@ -152,79 +156,32 @@ One-second telemetry must be disabled by default with `DiagnosticsEnabled=false`
 
 ### R22 — Verbose diagnostics remain observational
 
-When `DiagnosticsEnabled=true`, instrumentation may sample once per real second but must not heal, damage, feed, fatigue, infect, wake, sleep, change Moodles, change time, or otherwise mutate player state.
+When `DiagnosticsEnabled=true`, instrumentation may sample once per real second but must not heal, damage, feed, fatigue, infect, wake, sleep, change Moodles, or otherwise mutate player state.
+
+The only diagnostic-time mutation permitted is the explicitly configured v0.0.10 `MinutesPerDay` test override described in R29; it must not mutate health/survival state or the global simulation multiplier.
 
 ### R23 — Build 42 CharacterStat access is the primary survival-stat path
 
-For Build 42.20.3, continuous registered survival values should be observed through the current vanilla pattern:
+For Build 42.20.3, continuous registered survival values should be observed through:
 
 ```lua
 local stats = player:getStats()
 local hunger = stats:get(CharacterStat.HUNGER)
 ```
 
-The diagnostic should directly probe relevant registered values including:
-
-```text
-HUNGER
-THIRST
-FATIGUE
-ENDURANCE
-STRESS
-PANIC
-PAIN
-BOREDOM
-UNHAPPINESS
-SICKNESS
-FOOD_SICKNESS
-POISON
-ZOMBIE_INFECTION
-ZOMBIE_FEVER
-TEMPERATURE
-WETNESS
-```
-
-Additional registered CharacterStats may be logged when useful for context.
-
-Legacy named getters/public fields may remain compatibility fallbacks but must not be treated as the canonical Build 42.20.3 access path.
+At minimum probe HUNGER, THIRST, FATIGUE, ENDURANCE, STRESS, PANIC, PAIN, BOREDOM, UNHAPPINESS, SICKNESS, FOOD_SICKNESS, POISON, ZOMBIE_INFECTION, ZOMBIE_FEVER, TEMPERATURE and WETNESS where available.
 
 ### R24 — Build 42 Moodle access is keyed by MoodleType
 
-Moodle diagnostics must query concrete `MoodleType` objects:
-
-```lua
-local moodles = player:getMoodles()
-local hungry = moodles:getMoodleLevel(MoodleType.HUNGRY)
-```
-
-The diagnostic must not assume numeric enumeration APIs exist. Moodles are ordinal corroboration, not continuous substitutes for CharacterStats.
+Moodle diagnostics must query concrete `MoodleType` objects rather than assume numeric enumeration APIs. Moodles are ordinal corroboration, not continuous substitutes for CharacterStats.
 
 ### R25 — Nutrition telemetry remains direct and correlated
 
-At minimum, diagnostics should retain:
-
-```lua
-nutrition:getWeight()
-nutrition:getCalories()
-nutrition:getCarbohydrates()
-nutrition:getProteins()
-nutrition:getLipids()
-```
-
-Additional non-mutating nutrition state may be observed where exposed.
+At minimum retain weight, calories, carbohydrates, proteins and lipids from `player:getNutrition()`.
 
 ### R26 — Capability failures must be diagnosable
 
-Focused survival diagnostics should emit enough one-time capability information to distinguish:
-
-- missing `CharacterStat` global;
-- unresolved CharacterStat constant;
-- unavailable `Stats:get(CharacterStat)` call;
-- missing `MoodleType` global;
-- unavailable `getMoodleLevel(MoodleType)` call;
-- unavailable Nutrition object/method.
-
-An unavailable path must degrade to `N/A` rather than break gameplay.
+Focused survival diagnostics should emit enough one-time capability information to distinguish missing globals/constants/objects/methods. Unavailable paths must degrade to `N/A` rather than break gameplay.
 
 ### R27 — Avoid the known Kahlua multi-return conversion failure
 
@@ -232,19 +189,42 @@ Do not pass a multi-return safe-wrapper expression directly into `tonumber()`. C
 
 ### R28 — Existing injury diagnostics remain available during SPIKE-004
 
-The validated broad health/body stream should remain available for detailed injured-body-part state even though v0.0.10 adds a separate focused CharacterStat/Moodle/Nutrition stream.
+The validated broad health/body stream should remain available for detailed injured-body-part state even though v0.0.10 adds a focused CharacterStat/Moodle/Nutrition stream.
+
+### R29 — Diagnostic forced compression is explicit, bounded, and sleep-safe
+
+The v0.0.10 single-player test path may force calendar compression only when:
+
+```text
+DiagnosticsEnabled == true
+AND
+DiagnosticForcedCompressionFactor > 1.0
+```
+
+Requirements:
+
+- default factor is exactly `1.0` and therefore inactive;
+- configured/test factor is bounded to `1.0`–`20.0`;
+- target is `BaselineMinutesPerDay / DiagnosticForcedCompressionFactor`;
+- the path must not call `GameTime:setMultiplier()`;
+- if no living player is observed, retain baseline;
+- if **any** observed living player is asleep, suspend the override and restore baseline before vanilla sleep acceleration owns the state;
+- disabling diagnostics or returning factor to `1.0` must restore normal policy;
+- hosted multiplayer synchronization must preserve `diagnostic-forced` authoritative `MinutesPerDay` instead of incorrectly broadcasting baseline;
+- standalone diagnostics may use guarded `getPlayer()` fallback when no populated `getOnlinePlayers()` collection is available;
+- this control is test-only and must remain `1.0` during normal Public Alpha operation.
 
 ## 7. Sleep-duration and operational requirements
 
-### R29 — Vanilla sleep/wake behavior remains meaningful
+### R30 — Vanilla sleep/wake behavior remains meaningful
 
 Vanilla fatigue, traits, sleeping pills and wake timing should remain meaningful. Current evidence shows synchronized client pacing keeps `AsleepTime`/`ForceWakeUpTime` behavior sensible; no custom sleep-duration compensation is presently required.
 
-### R30 — Rollback remains straightforward
+### R31 — Rollback remains straightforward
 
 The mod must not require a persistent custom database or migration to disable. Administrators must be able to stop the server, remove/disable the mod, restart, and return future sleep/time behavior to vanilla. Backups remain appropriate during alpha because elapsed world time cannot be undone by removing the mod.
 
-## 8. Validated reference examples
+## 8. Validated/reference examples
 
 Validated two-player reference with baseline `90`, native FF `40`, scale `1.0`:
 
@@ -254,7 +234,7 @@ CalendarCompressionFactor = 20
 EffectiveMinutesPerDay = 4.5
 ```
 
-SPIKE-004 focused safety configuration with baseline `90`, native FF `10`, scale `1.0`:
+SPIKE-004 multiplayer safety configuration with baseline `90`, native FF `10`, scale `1.0`:
 
 ```text
 SleepFraction = 0.5
@@ -262,12 +242,21 @@ CalendarCompressionFactor = 5
 EffectiveMinutesPerDay = 18
 ```
 
-The v0.0.9 run validated this alternate-fast-forward partial state and also exercised a later factor-10 / `MinutesPerDay=9` interval.
+v0.0.10 standalone diagnostic equivalent:
+
+```text
+BaselineMinutesPerDay = 90
+DiagnosticForcedCompressionFactor = 5
+EffectiveMinutesPerDay = 18
+player remains awake
+```
+
+The standalone test intentionally reproduces the same `MinutesPerDay` condition without requiring a second sleeper.
 
 ## 9. MVP acceptance matrix
 
 1. Baseline inheritance — `PENDING alternate native day-length test`
-2. Native fast-forward inheritance — `VALIDATED in SPIKE-004 with FF=10 and later FF=20 behavior`
+2. Native fast-forward inheritance — `VALIDATED in SPIKE-004 with alternate FF behavior`
 3. Neutral scale `1.0` — `VALIDATED`
 4. Non-default scale tuning — `PENDING`
 5. Two-player partial sleep `90/40 -> 4.5` — `VALIDATED`
@@ -285,9 +274,10 @@ The v0.0.9 run validated this alternate-fast-forward partial state and also exer
 17. Awake bleeding safety under partial compression — `VALIDATED ~1x; PASS`
 18. Nutrition time-domain classification — `VALIDATED; world/calendar-time bound`
 19. Corrected CharacterStat/Moodle telemetry — `IMPLEMENTED v0.0.10; runtime validation pending`
-20. Hunger/thirst/fatigue/endurance safety classification — `CURRENT PRE-ALPHA BLOCKER`
-21. Public-server stability at larger population — `PUBLIC ALPHA TARGET`
-22. Non-health world-time side effects — `PUBLIC ALPHA TARGET`
+20. Single-player forced-compression test path — `IMPLEMENTED v0.0.10; runtime validation pending`
+21. Hunger/thirst/fatigue/endurance safety classification — `CURRENT PRE-ALPHA BLOCKER`
+22. Public-server stability at larger population — `PUBLIC ALPHA TARGET`
+23. Non-health world-time side effects — `PUBLIC ALPHA TARGET`
 
 ## 10. Current out-of-scope items
 
