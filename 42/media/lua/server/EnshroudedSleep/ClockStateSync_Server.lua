@@ -91,11 +91,12 @@ end
 local function deriveMode(living, sleeping, currentMinutesPerDay)
     if living == nil or sleeping == nil then return "unknown" end
 
-    -- In hosted multiplayer, preserve the diagnostic test override rather than
-    -- misclassifying an awake/no-sleeper compressed clock as baseline and
-    -- broadcasting baseline back to clients.
+    -- The diagnostic-forced state is valid only for the deliberately isolated
+    -- server test: exactly one connected living player, awake, with a compressed
+    -- authoritative MinutesPerDay.
     if diagnosticOverrideConfigured()
-        and sleeping <= 0
+        and living == 1
+        and sleeping == 0
         and baselineMinutesPerDay ~= nil
         and currentMinutesPerDay < baselineMinutesPerDay - EPSILON then
         return "diagnostic-forced"
@@ -198,4 +199,4 @@ else
     Events.OnTick.Add(synchronizeClients)
 end
 
-log("Loaded v0.0.10 authoritative MinutesPerDay replication; diagnostic-forced mode is preserved when configured.")
+log("Loaded v0.0.10 authoritative MinutesPerDay replication; diagnostic-forced sync requires exactly one awake living player on the server.")
