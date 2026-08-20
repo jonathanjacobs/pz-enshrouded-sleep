@@ -3,7 +3,13 @@
 Current release stage: **Public Alpha**  
 Current mod version: `v0.0.10`  
 Project Zomboid Mod ID: `pz-enshrouded-sleep`  
-Steam Workshop ID: **pending first publication**
+Steam Workshop ID: **3786842301**
+
+Workshop page:
+
+```text
+https://steamcommunity.com/sharedfiles/filedetails/?id=3786842301
+```
 
 This repository is intentionally structured so a clean copy of the repository root can serve as the Project Zomboid Workshop item directory. No generated deployment tree or packaging script is required.
 
@@ -12,7 +18,8 @@ This repository is intentionally structured so a clean copy of the repository ro
 ```text
 pz-enshrouded-sleep/
 ├── workshop.txt
-├── preview.png                         # Steam Workshop preview, 256x256 PNG
+├── workshop-description.bbcode           # canonical paste-ready Workshop description
+├── preview.png                           # Steam Workshop preview, 256x256 PNG
 ├── Contents/
 │   └── mods/
 │       └── pz-enshrouded-sleep/
@@ -20,8 +27,8 @@ pz-enshrouded-sleep/
 │           ├── common/
 │           └── 42/
 │               ├── mod.info
-│               ├── poster.png          # in-game poster, 256x256 PNG
-│               ├── icon.png            # in-game icon, 32x32 PNG
+│               ├── poster.png            # in-game poster, 256x256 PNG
+│               ├── icon.png              # in-game icon, 32x32 PNG
 │               └── media/
 ├── docs/
 ├── README.md
@@ -66,62 +73,40 @@ icon=icon.png
 
 The repository package-validation workflow checks file presence, PNG identity, expected dimensions, `preview.png` size, and these metadata references.
 
-## Before first upload
+## Permanent Workshop identity
 
-1. Confirm `VERSION`, `Contents/mods/pz-enshrouded-sleep/mod.info`, and `Contents/mods/pz-enshrouded-sleep/42/mod.info` all report the intended version.
-2. Confirm normal Public Alpha settings are:
+The first upload created the permanent Workshop Published File ID:
 
 ```text
-DiagnosticsEnabled=false
-DiagnosticForcedCompressionFactor=1.0
+3786842301
 ```
 
-3. Confirm the three publication artwork files above are present and pass the repository package-validation check.
-4. Review `docs/RELEASE_CHECKLIST.md` and `COMPLIANCE.md`.
-5. Recheck The Indie Stone's current Project Zomboid Modding Policy and applicable terms immediately before upload.
-6. Make a clean copy of the repository contents into the Workshop authoring directory shown by the game client. Do **not** include `.git/`, local logs, credentials, archives/backups, or private test artifacts.
+This ID must be preserved for all future updates. Do not create a new Workshop item for routine releases.
 
-Typical authoring location on Windows:
+A Steam-backed dedicated server uses both identifiers:
 
 ```text
-C:\Users\<user>\Zomboid\Workshop\EnshroudedSleep\
-```
-
-Use the actual path shown by the installed Project Zomboid client if it differs.
-
-## Upload through Project Zomboid
-
-Use the game client:
-
-```text
-Main Menu
--> Workshop
--> Create and Update Items
-```
-
-Select the local Enshrouded Sleep Workshop item, review title/description/tags/visibility, and perform the first upload. Steam will assign a permanent Workshop Published File ID.
-
-For the first publication, an unlisted/private dress rehearsal is recommended if the uploader UI permits it. Subscribe to the resulting item, verify the downloaded payload, run a dedicated-server smoke test using the Workshop copy, then switch visibility to Public when satisfied.
-
-## After Steam assigns the Workshop ID
-
-Record the ID in:
-
-- this file;
-- `workshop.txt`;
-- `README.md` installation instructions;
-- `docs/DEPLOYMENT.md`;
-- server deployment examples;
-- future release notes where useful.
-
-A Steam-backed dedicated server will normally need both concepts:
-
-```text
-WorkshopItems=<Steam Workshop ID>
+WorkshopItems=3786842301
 Mods=pz-enshrouded-sleep
 ```
 
 The Workshop ID identifies the Steam package to download. `pz-enshrouded-sleep` remains the stable Project Zomboid Mod ID loaded by the game.
+
+The permanent ID is recorded in `workshop.txt`, the top-level README, this publication guide, and `docs/DEPLOYMENT.md`.
+
+## Canonical Workshop description
+
+The paste-ready Steam BBCode description is maintained in:
+
+[`../workshop-description.bbcode`](../workshop-description.bbcode)
+
+That file is the canonical source for the Workshop Description field. It includes the GitHub repository link:
+
+```text
+https://github.com/jonathanjacobs/pz-enshrouded-sleep
+```
+
+When the public description changes materially, update `workshop-description.bbcode` in Git first and then paste the new contents into the Steam Workshop item.
 
 ## Public Workshop description requirements
 
@@ -129,62 +114,45 @@ The Workshop page should clearly disclose:
 
 - Public Alpha status and tested PZ version;
 - multiplayer-server scope;
-- Mod ID;
+- Workshop ID and Mod ID;
 - configuration and compatibility caveats;
 - expected world/calendar-time behavior;
 - current known limitations;
+- a link to the GitHub source/documentation/issues;
 - required third-party attribution if any is ever introduced;
 - that this is an unofficial community mod and is not developed by, affiliated with, sponsored by, or endorsed by The Indie Stone;
 - that this mod is not developed by, affiliated with, sponsored by, or endorsed by Keen Games, developer of *Enshrouded*;
 - that no *Enshrouded* code/assets/game content are redistributed by this project.
 
-## Workshop description starter
+## Workshop-distributed package validation
+
+The initial upload is complete, but the Workshop-distributed payload should still be validated before issue #5 is closed:
+
+1. subscribe/download Workshop item `3786842301`;
+2. inspect the delivered payload and confirm the expected `Contents/mods/pz-enshrouded-sleep/` tree, metadata, and artwork;
+3. configure a dedicated test server with:
 
 ```text
-[h1]Enshrouded Sleep — Public Alpha[/h1]
-
-Proportional multiplayer sleeping for Project Zomboid Build 42 servers.
-
-[b]Version:[/b] 0.0.10
-[b]Tested with:[/b] Project Zomboid 42.20.3
-[b]Mod ID:[/b] pz-enshrouded-sleep
-
-When some, but not all, living players sleep, Enshrouded Sleep proportionally compresses world/calendar time while awake active gameplay remains at normal simulation speed. When all living players sleep, vanilla Project Zomboid full-sleep fast-forward takes over.
-
-[h2]Public Alpha[/h2]
-Back up your server before installing or updating. Broader multiplayer and world-system field testing is still in progress.
-
-[h2]Important time behavior[/h2]
-World/calendar time genuinely passes faster during partial sleep. Survival needs and other systems tied to elapsed world time may therefore progress while another survivor sleeps. See the GitHub documentation for detailed validation and known limitations.
-
-[h2]Configuration[/h2]
-Recommended Public Alpha settings:
-DiagnosticsEnabled=false
-DiagnosticForcedCompressionFactor=1.0
-PartialSleepSpeedScale=1.0
-
-[h2]Compatibility[/h2]
-Other mods that alter multiplayer sleep, MinutesPerDay, GameTime pacing, or sleep fast-forward may conflict.
-
-[h2]Unofficial community mod[/h2]
-Enshrouded Sleep is not developed by, affiliated with, sponsored by, or endorsed by The Indie Stone.
-
-Enshrouded Sleep is also not developed by, affiliated with, sponsored by, or endorsed by Keen Games. The project name refers only to general multiplayer-sleep design inspiration associated with the game Enshrouded; no Enshrouded code, assets, or game content are included.
-
-WorkshopItems=<Steam Workshop ID>
+WorkshopItems=3786842301
 Mods=pz-enshrouded-sleep
 ```
+
+4. run the Tier 1 startup smoke test using the Workshop-distributed copy;
+5. run a short two-player partial-sleep regression if practical;
+6. verify disable/rollback behavior when practical;
+7. confirm intended Workshop visibility and public description.
 
 ## Update workflow
 
 For later releases:
 
 1. update source/docs/version in Git;
-2. complete the release checklist and multiplayer regression appropriate to the change;
-3. copy the clean repository contents over the existing local Workshop authoring directory, excluding `.git/` and private/local artifacts;
-4. preserve the existing Workshop ID in `workshop.txt`/the uploader;
-5. use Project Zomboid `Workshop -> Create and Update Items` to update the existing item;
-6. supply an accurate Steam update note;
-7. verify the subscribed/dedicated-server copy after publication.
+2. update `workshop-description.bbcode` if the public description changes;
+3. complete the release checklist and multiplayer regression appropriate to the change;
+4. copy the clean repository contents over the existing local Workshop authoring directory, excluding `.git/` and private/local artifacts;
+5. preserve Workshop ID `3786842301` in `workshop.txt`/the uploader;
+6. use Project Zomboid `Workshop -> Create and Update Items` to update the existing item;
+7. supply an accurate Steam update note;
+8. verify the subscribed/dedicated-server copy after publication.
 
 Never create a new Workshop item merely to publish a routine version update.
