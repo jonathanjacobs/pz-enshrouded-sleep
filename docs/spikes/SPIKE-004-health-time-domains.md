@@ -28,20 +28,24 @@ No compensation was implemented from assumption alone.
 
 ## Instrumentation
 
+The repository was later restructured for direct Steam Workshop publication. The authoritative runtime paths are now under `Contents/mods/pz-enshrouded-sleep/`.
+
 Broad health/body diagnostics:
 
 ```text
-42/media/lua/server/EnshroudedSleep/HealthTimeDomainDiagnostic_Server.lua
-42/media/lua/client/EnshroudedSleep/HealthTimeDomainDiagnostic_Client.lua
+Contents/mods/pz-enshrouded-sleep/42/media/lua/server/EnshroudedSleep/HealthTimeDomainDiagnostic_Server.lua
+Contents/mods/pz-enshrouded-sleep/42/media/lua/client/EnshroudedSleep/HealthTimeDomainDiagnostic_Client.lua
 ```
 
 Focused v0.0.10 survival diagnostics:
 
 ```text
-42/media/lua/shared/EnshroudedSleep/SurvivalStatProbe.lua
-42/media/lua/server/EnshroudedSleep/SurvivalStatDiagnostic_Server.lua
-42/media/lua/client/EnshroudedSleep/SurvivalStatDiagnostic_Client.lua
+Contents/mods/pz-enshrouded-sleep/42/media/lua/shared/EnshroudedSleep/SurvivalStatProbe.lua
+Contents/mods/pz-enshrouded-sleep/42/media/lua/server/EnshroudedSleep/SurvivalStatDiagnostic_Server.lua
+Contents/mods/pz-enshrouded-sleep/42/media/lua/client/EnshroudedSleep/SurvivalStatDiagnostic_Client.lua
 ```
+
+The path move did not change the tested runtime logic.
 
 v0.0.10 capability validation succeeded on the owning client and server path. The client reported:
 
