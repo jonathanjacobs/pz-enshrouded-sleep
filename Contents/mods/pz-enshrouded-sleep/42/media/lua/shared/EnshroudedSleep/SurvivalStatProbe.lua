@@ -1,28 +1,37 @@
 -- Enshrouded Sleep - shared survival-stat diagnostic probe
--- v0.0.10 pre-Public-Alpha instrumentation for Project Zomboid Build 42.20+
+-- Public Alpha v0.0.10 for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
--- Provide one read-only, guarded access layer for Build 42 survival state used by
--- both the server and owning-client diagnostics.
+-- Provide one guarded, read-only access layer for current Build 42 survival state
+-- used by both the server and owning-client focused diagnostics.
 --
--- Build 42.20.3 no longer exposes the important survival values as the legacy
--- Stats getters/fields used by earlier diagnostic builds. Current vanilla Lua
--- reads them through:
+-- API MODEL
+-- ---------
+-- Build 42.20.3 exposes important continuous survival values through registered
+-- CharacterStat objects, for example:
 --
 --     player:getStats():get(CharacterStat.HUNGER)
 --
--- Moodles are likewise keyed by MoodleType objects and are read through:
+-- Moodles are keyed by MoodleType objects, for example:
 --
 --     player:getMoodles():getMoodleLevel(MoodleType.HUNGRY)
 --
--- All Java/Kahlua bridge calls remain inside pcall. This module never mutates
--- Stats, Moodles, Nutrition, BodyDamage, player state, or world time.
+-- The probe resolves those class globals defensively because Java/Javadoc
+-- existence does not by itself guarantee identical Kahlua exposure in every
+-- server/client context.
+--
+-- MUTATION BOUNDARY
+-- -----------------
+-- All Java/Kahlua bridge calls are guarded with pcall. This module never mutates
+-- Stats, CharacterStats, Moodles, Nutrition, BodyDamage, player state, sleep
+-- state, or world time. Missing bindings become nil/N/A diagnostic values.
 
 local Probe = {}
 
 -- Ordered descriptors keep server/client log schemas identical and make post-run
--- rate analysis deterministic.
+-- rate analysis deterministic. `id` is retained as the guarded getById fallback
+-- where static CharacterStat field access is unavailable.
 Probe.CharacterStats = {
     { output = "Hunger", key = "HUNGER", id = "Hunger" },
     { output = "Thirst", key = "THIRST", id = "Thirst" },
@@ -50,9 +59,9 @@ Probe.CharacterStats = {
     { output = "PoisonStat", key = "POISON", id = "Poison" },
 }
 
--- These names match the Build 42.20.3 MoodleType static constants. Moodles are
--- intentionally kept as ordinal corroboration rather than treated as continuous
--- replacements for CharacterStat values.
+-- Moodle levels are ordinal corroboration, not substitutes for continuous
+-- CharacterStat values. Names match the Build 42.20.3 MoodleType constants used
+-- by the validated diagnostic run.
 Probe.Moodles = {
     { output = "MoodleEndurance", key = "ENDURANCE" },
     { output = "MoodleTired", key = "TIRED" },
@@ -81,6 +90,8 @@ Probe.Moodles = {
     { output = "MoodleFoodEaten", key = "FOOD_EATEN" },
 }
 
+-- Nutrition descriptors deliberately include both continuous stores and boolean
+-- weight/fitness state so a single focused log record can be analyzed later.
 Probe.Nutrition = {
     { output = "Weight", method = "getWeight", numeric = true },
     { output = "Calories", method = "getCalories", numeric = true },
@@ -94,8 +105,12 @@ Probe.Nutrition = {
     { output = "CanAddFitnessXp", method = "canAddFitnessXp", numeric = false },
 }
 
--- Safely invoke an instance method. Returns nil when the object, method, or bridge
--- invocation is unavailable. Callers deliberately treat nil as N/A.
+---Safely invoke an instance method. Missing objects/methods/bridge calls return nil
+---so callers can emit N/A rather than breaking a gameplay session.
+---@param obj any
+---@param methodName string
+---@param ... any
+---@return any|nil value
 function Probe.safeMethod(obj, methodName, ...)
     if not obj then return nil end
 
@@ -107,9 +122,11 @@ function Probe.safeMethod(obj, methodName, ...)
     return value
 end
 
--- Convert a previously captured bridge result to a Lua number. Keeping the bridge
--- call and tonumber() in separate expressions avoids the Kahlua multi-return bug
--- that affected the v0.0.6 diagnostics.
+---Convert an already captured bridge result to a Lua number.
+---Keeping bridge invocation and tonumber() in separate expressions preserves the
+---fix for the Kahlua multi-return argument-propagation failure found in v0.0.6.
+---@param value any
+---@return number|nil numberValue
 function Probe.toNumber(value)
     if value == nil then return nil end
 
@@ -121,28 +138,38 @@ function Probe.toNumber(value)
     return tonumber(text)
 end
 
+---Safely invoke a method and normalize its first returned value to number.
+---@param obj any
+---@param methodName string
+---@param ... any
+---@return number|nil value
 function Probe.safeNumber(obj, methodName, ...)
     local value = Probe.safeMethod(obj, methodName, ...)
     return Probe.toNumber(value)
 end
 
--- Read the Java class globals defensively. The decompiled 42.20.3 classes are
--- marked @UsedFromLua, but this diagnostic verifies actual runtime exposure rather
--- than assuming every server/client Kahlua context behaves identically.
+---Resolve the Java CharacterStat global defensively in the current Lua context.
+---@return any|nil class
 local function getCharacterStatClass()
     local ok, value = pcall(function() return CharacterStat end)
     if not ok then return nil end
     return value
 end
 
+---Resolve the Java MoodleType global defensively in the current Lua context.
+---@return any|nil class
 local function getMoodleTypeClass()
     local ok, value = pcall(function() return MoodleType end)
     if not ok then return nil end
     return value
 end
 
--- Resolve a CharacterStat constant. Static-field access is the primary path used
--- by current vanilla Lua; getById() is a guarded secondary path for resilience.
+---Resolve a CharacterStat constant. Static-field access is the primary path used
+---by current vanilla Lua; getById() is a guarded secondary path for resilience.
+---@param key string
+---@param id string|nil
+---@return any|nil stat
+---@return string resolution
 function Probe.resolveCharacterStat(key, id)
     local class = getCharacterStatClass()
     if not class then return nil, "CharacterStat-global-unavailable" end
@@ -159,6 +186,10 @@ function Probe.resolveCharacterStat(key, id)
     return nil, "CharacterStat-member-unavailable:" .. tostring(key)
 end
 
+---Resolve a MoodleType constant from the current Lua-visible Java class.
+---@param key string
+---@return any|nil moodleType
+---@return string resolution
 function Probe.resolveMoodleType(key)
     local class = getMoodleTypeClass()
     if not class then return nil, "MoodleType-global-unavailable" end
@@ -169,6 +200,10 @@ function Probe.resolveMoodleType(key)
     return nil, "MoodleType-member-unavailable:" .. tostring(key)
 end
 
+---Read all configured CharacterStat values plus selected non-CharacterStat Stats
+---state from one player.
+---@param player any
+---@return table values
 function Probe.readCharacterStats(player)
     local result = {}
     local stats = Probe.safeMethod(player, "getStats")
@@ -179,7 +214,6 @@ function Probe.readCharacterStats(player)
         result[descriptor.output] = Probe.toNumber(value)
     end
 
-    -- Extra Stats state that is not represented by CharacterStat itself.
     result.NicotineStress = Probe.safeNumber(stats, "getNicotineStress")
     result.LastEndurance = Probe.safeNumber(stats, "getLastEndurance")
     result.EnduranceWarning = Probe.safeNumber(stats, "getEnduranceWarning")
@@ -189,6 +223,9 @@ function Probe.readCharacterStats(player)
     return result
 end
 
+---Read all configured Moodle levels from one player.
+---@param player any
+---@return table values
 function Probe.readMoodles(player)
     local result = {}
     local moodles = Probe.safeMethod(player, "getMoodles")
@@ -202,6 +239,9 @@ function Probe.readMoodles(player)
     return result
 end
 
+---Read all configured Nutrition values from one player.
+---@param player any
+---@return table values
 function Probe.readNutrition(player)
     local result = {}
     local nutrition = Probe.safeMethod(player, "getNutrition")
@@ -215,12 +255,14 @@ function Probe.readNutrition(player)
     return result
 end
 
+---Read selected BodyDamage/auxiliary values useful when interpreting survival
+---state alongside CharacterStats and Nutrition.
+---@param player any
+---@return table values
 function Probe.readAuxiliary(player)
     local result = {}
     local bodyDamage = Probe.safeMethod(player, "getBodyDamage")
 
-    -- Vanilla's current Stats/Body debug panel accesses this BodyDamage timer
-    -- directly. It is useful when relating food intake to general-health effects.
     result.HealthFromFoodTimer = Probe.safeNumber(bodyDamage, "getHealthFromFoodTimer")
     result.OverallBodyHealth = Probe.safeNumber(bodyDamage, "getOverallBodyHealth")
     result.BodyDamageWetness = Probe.safeNumber(bodyDamage, "getWetness")
@@ -232,6 +274,9 @@ function Probe.readAuxiliary(player)
     return result
 end
 
+---Collect one complete focused survival snapshot for a player.
+---@param player any
+---@return table snapshot
 function Probe.collect(player)
     return {
         characterStats = Probe.readCharacterStats(player),
@@ -241,6 +286,10 @@ function Probe.collect(player)
     }
 end
 
+---Format a diagnostic value, preserving booleans/strings and rendering nil as N/A.
+---@param value any
+---@param decimals integer|nil
+---@return string formatted
 function Probe.formatValue(value, decimals)
     if value == nil then return "N/A" end
     if type(value) == "number" then
@@ -249,17 +298,28 @@ function Probe.formatValue(value, decimals)
     return tostring(value)
 end
 
+---Remove the log field delimiter from arbitrary display values.
+---@param value any
+---@return string sanitized
 function Probe.sanitize(value)
     local text = tostring(value or "N/A")
     return string.gsub(text, "|", "/")
 end
 
+---Append ordered descriptor values to a log-field array.
+---@param parts table
+---@param values table
+---@param descriptors table
+---@return nil
 local function appendDescriptorFields(parts, values, descriptors)
     for _, descriptor in ipairs(descriptors) do
         parts[#parts + 1] = descriptor.output .. "=" .. Probe.formatValue(values[descriptor.output])
     end
 end
 
+---Serialize a focused snapshot into deterministic `key=value | ...` fields.
+---@param snapshot table
+---@return string formattedSnapshot
 function Probe.formatSnapshot(snapshot)
     local parts = {}
 
@@ -284,9 +344,11 @@ function Probe.formatSnapshot(snapshot)
     return table.concat(parts, " | ")
 end
 
--- Return a compact capability record for the first live player observed by each
--- diagnostic side. This makes an N/A result actionable: the next log will show
--- whether class globals, enum members, get() calls, Moodles, or Nutrition failed.
+---Return a compact one-time capability record for a live player. This makes N/A
+---values actionable by showing whether class globals, enum members, Stats:get(),
+---Moodles, or Nutrition are actually readable in the current Lua context.
+---@param player any
+---@return string summary
 function Probe.capabilitySummary(player)
     local parts = {}
     local stats = Probe.safeMethod(player, "getStats")
