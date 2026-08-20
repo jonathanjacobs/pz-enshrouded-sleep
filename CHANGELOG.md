@@ -6,13 +6,13 @@ Human-readable history of notable Enshrouded Sleep changes. Git remains authorit
 
 ### Next decision
 
-- Run the v0.0.10 single-player baseline/forced-compression/restored-baseline CharacterStat/Moodle test for SPIKE-004.
+- Run the v0.0.10 **one-connected-player multiplayer-server** baseline/forced-compression/restored-baseline CharacterStat/Moodle test for SPIKE-004.
 - Classify hunger, thirst, fatigue, endurance and other practical high-severity survival values.
 - Record a **GO / CONDITIONAL GO / NO-GO** decision for WHG Public Alpha deployment.
 
 ## [0.0.10] - 2026-08-19
 
-Focused SPIKE-004 diagnostic correction and controlled single-player time-domain test support after analysis of the successful v0.0.9 two-player run.
+Focused SPIKE-004 diagnostic correction after analysis of the successful v0.0.9 two-player run.
 
 ### v0.0.9 evidence incorporated
 
@@ -45,42 +45,45 @@ player:getStats():get(CharacterStat.HUNGER)
 player:getMoodles():getMoodleLevel(MoodleType.HUNGRY)
 ```
 
-through the shared read-only `SurvivalStatProbe` and focused server/client survival diagnostics. One-time `CAPABILITIES` records make any remaining `N/A` values actionable.
+through the shared read-only `SurvivalStatProbe` and focused server/client survival diagnostics. One-time `CAPABILITIES` records make remaining `N/A` values actionable.
 
-### Added — diagnostics-only single-player forced compression
+### Added — diagnostics-only one-player server forced compression
 
 Added `DiagnosticForcedCompressionFactor`, default `1.0`, range `1.0`–`20.0`.
 
-The override only activates when both conditions are true:
+The override activates only when all of the following are true:
 
 ```text
+multiplayer server runtime
 DiagnosticsEnabled = true
 DiagnosticForcedCompressionFactor > 1
+exactly one living player is connected
+that player is awake
 ```
 
-When active and at least one observed living character is awake, the authoritative controller applies:
+When active:
 
 ```text
 EffectiveMinutesPerDay = BaselineMinutesPerDay / DiagnosticForcedCompressionFactor
 ```
 
-This allows SPIKE-004 to isolate the effect of `MinutesPerDay` on one **awake** character without requiring a second sleeping player.
+This lets SPIKE-004 isolate the effect of `MinutesPerDay` on one **awake connected server player** without requiring a second sleeping client.
 
 Safety invariants:
 
 - the override never calls `GameTime:setMultiplier()`;
-- it is explicitly test-only and disabled at factor `1.0`;
-- if any observed living player sleeps, the override is suspended and native `MinutesPerDay` is restored before vanilla sleep acceleration can own the state;
-- disabling verbose diagnostics also disables the override;
-- ordinary partial-sleep policy remains unchanged.
+- factor `1.0` is inactive;
+- if the connected player sleeps, baseline is restored;
+- if another living player connects, baseline is restored;
+- disabling verbose diagnostics disables the override;
+- while a forced test factor is armed, normal proportional-sleep policy is suppressed so the test cannot mix with ordinary multiplayer sleep behavior;
+- multiplayer clock synchronization preserves the `diagnostic-forced` state for the connected client.
 
-The multiplayer clock-sync observer recognizes `diagnostic-forced` state so a hosted diagnostic test cannot be incorrectly broadcast back to baseline.
+### Corrected scope after implementation review
 
-### Added — standalone player telemetry fallback
+An initial v0.0.10 implementation mistakenly added standalone/local-single-player `getPlayer()` fallbacks and a `StandaloneHealthDiagnostic_Server.lua` bridge. That was outside project scope and was removed before runtime validation.
 
-The focused server survival diagnostic now falls back to `getPlayer()` if `getOnlinePlayers()` is absent or empty. A new `StandaloneHealthDiagnostic_Server.lua` provides the corresponding detailed health/bleeding/body-part stream only in that standalone fallback case.
-
-This makes the baseline → forced compression → restored baseline SPIKE-004 comparison testable in a normal single-player/debug session.
+Enshrouded Sleep is a **multiplayer-server mod**. v0.0.10 does not add or claim standalone/local-game support. The diagnostic test uses a normal multiplayer server with exactly one connected player.
 
 ### Scope
 
@@ -93,8 +96,8 @@ This makes the baseline → forced compression → restored baseline SPIKE-004 c
 
 ### Documentation
 
-- Updated SPIKE-004 and the testing guide to make the single-player forced-compression test the preferred remaining diagnostic.
-- Updated README/configuration documentation and issue #4.
+- Updated SPIKE-004 and the testing guide to use the one-connected-player multiplayer-server test.
+- Updated README/configuration, deployment, architecture, roadmap, requirements, validation history, docs index, and issue #4.
 - `docs/ROADMAP.md` remains the single canonical roadmap.
 - Repository and Build 42 metadata remain `0.0.10`.
 
@@ -116,17 +119,7 @@ Also added formal SPIKE-004 and retroactively documented SPIKE-001 through SPIKE
 
 Fixed the v0.0.6 Kahlua multi-return `tonumber()` diagnostic exception and added a one-observer-pass synchronization settling guard.
 
-Clean two-player regression on PZ 42.20.3 confirmed:
-
-- server/client `90 <-> 4.5` transitions;
-- smooth sleeping and awake clocks;
-- normal-speed awake gameplay;
-- correct baseline/full-sleep handoff;
-- correct wake/disconnect recalculation;
-- no stale partial-state packet paired with baseline 90;
-- sensible vanilla sleep/wake behavior.
-
-Issues #1, #2, and #3 were closed after this regression.
+Clean two-player regression on PZ 42.20.3 confirmed server/client `90 <-> 4.5` transitions, smooth sleeping and awake clocks, normal-speed awake gameplay, correct baseline/full-sleep handoff, correct wake/disconnect recalculation, no stale partial-state packet paired with baseline 90, and sensible vanilla sleep/wake behavior. Issues #1, #2, and #3 were closed after this regression.
 
 ## [0.0.6] - 2026-08-15
 
