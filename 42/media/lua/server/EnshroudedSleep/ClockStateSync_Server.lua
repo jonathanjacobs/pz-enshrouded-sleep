@@ -1,14 +1,10 @@
 -- Enshrouded Sleep - server-to-client MinutesPerDay replication
--- v0.0.8 package; synchronization behavior remains the validated v0.0.7 design
+-- v0.0.10 package; normal synchronization behavior remains the validated v0.0.7 design
 --
--- PURPOSE
--- -------
 -- Runtime server changes to GameTime MinutesPerDay are not automatically copied
 -- to clients in the tested multiplayer path. This module publishes the settled
 -- authoritative MinutesPerDay so clients can pace their local clocks coherently.
---
--- It does not calculate the proportional policy and never mutates GameTime;
--- EnshroudedSleep_Server.lua remains the sole authoritative controller.
+-- It does not calculate normal proportional sleep policy.
 
 if isClient() then return end
 
@@ -17,6 +13,7 @@ local MODULE = "EnshroudedSleep"
 local COMMAND = "ClockState"
 local PROTOCOL_VERSION = 1
 local HEARTBEAT_SECONDS = 2
+local EPSILON = 0.0001
 
 local baselineMinutesPerDay = nil
 local lastSentSignature = nil
@@ -67,14 +64,11 @@ local function countPlayers()
 
     local living = 0
     local sleeping = 0
-
     for i = 0, size - 1 do
         local player = safeMethod(players, "get", i)
         if not player then return nil, nil end
-
         local dead = safeMethod(player, "isDead")
         if dead == nil then return nil, nil end
-
         if dead ~= true then
             living = living + 1
             local asleep = safeMethod(player, "isAsleep")
@@ -86,8 +80,27 @@ local function countPlayers()
     return living, sleeping
 end
 
-local function deriveMode(living, sleeping)
+local function diagnosticOverrideConfigured()
+    local vars = SandboxVars and SandboxVars.EnshroudedSleep or nil
+    local factor = tonumber(vars and vars.DiagnosticForcedCompressionFactor) or 1.0
+    return vars ~= nil
+        and vars.DiagnosticsEnabled == true
+        and factor > 1.0 + EPSILON
+end
+
+local function deriveMode(living, sleeping, currentMinutesPerDay)
     if living == nil or sleeping == nil then return "unknown" end
+
+    -- In hosted multiplayer, preserve the diagnostic test override rather than
+    -- misclassifying an awake/no-sleeper compressed clock as baseline and
+    -- broadcasting baseline back to clients.
+    if diagnosticOverrideConfigured()
+        and sleeping <= 0
+        and baselineMinutesPerDay ~= nil
+        and currentMinutesPerDay < baselineMinutesPerDay - EPSILON then
+        return "diagnostic-forced"
+    end
+
     if living <= 0 or sleeping <= 0 then return "baseline" end
     if sleeping >= living then return "vanilla-full-sleep" end
     return "partial"
@@ -96,7 +109,6 @@ end
 local function synchronizeClients()
     local now = os.time()
     local gt = getGameTime()
-
     if not gt then
         logErrorOnce("getGameTime() unavailable")
         return
@@ -118,18 +130,16 @@ local function synchronizeClients()
         return
     end
 
-    local mode = deriveMode(living, sleeping)
+    local mode = deriveMode(living, sleeping, currentMinutesPerDay)
     local populationSignature = table.concat({mode, tostring(living), tostring(sleeping)}, "|")
 
-    -- Defer one observer pass after a visible population/sleep transition so the
-    -- authoritative controller can settle the matching MinutesPerDay first.
     if populationSignature ~= lastObservedPopulationSignature then
         lastObservedPopulationSignature = populationSignature
         return
     end
 
     local targetMinutesPerDay = currentMinutesPerDay
-    if mode ~= "partial" and baselineMinutesPerDay ~= nil then
+    if mode ~= "partial" and mode ~= "diagnostic-forced" and baselineMinutesPerDay ~= nil then
         targetMinutesPerDay = baselineMinutesPerDay
     end
 
@@ -151,7 +161,7 @@ local function synchronizeClients()
 
     local args = {
         protocolVersion = PROTOCOL_VERSION,
-        buildVersion = "0.0.8",
+        buildVersion = "0.0.10",
         mode = mode,
         minutesPerDay = targetMinutesPerDay,
         baselineMinutesPerDay = baselineMinutesPerDay or targetMinutesPerDay,
@@ -188,4 +198,4 @@ else
     Events.OnTick.Add(synchronizeClients)
 end
 
-log("Loaded v0.0.8 authoritative MinutesPerDay replication (validated v0.0.7 behavior unchanged).")
+log("Loaded v0.0.10 authoritative MinutesPerDay replication; diagnostic-forced mode is preserved when configured.")
