@@ -11,7 +11,7 @@ The initial directory README was only scaffolding. That was incomplete once the 
 | [`SPIKE-001-minutes-per-day-feasibility.md`](SPIKE-001-minutes-per-day-feasibility.md) | Completed / GO | Can `MinutesPerDay` compress world/calendar time without globally speeding active gameplay? |
 | [`SPIKE-002-vanilla-sleep-lifecycle.md`](SPIKE-002-vanilla-sleep-lifecycle.md) | Completed / GO | Can the MVP rely on vanilla instantiated-player/sleep lifecycle and hand all-asleep back to vanilla? |
 | [`SPIKE-003-client-clock-synchronization.md`](SPIKE-003-client-clock-synchronization.md) | Completed / GO | Why do client clocks jump, and can client pacing be corrected without changing server authority? |
-| [`SPIKE-004-health-time-domains.md`](SPIKE-004-health-time-domains.md) | **In progress / Public Alpha blocker** | Which health/survival systems accelerate with compressed calendar time, and is any effect unsafe for awake players? |
+| [`SPIKE-004-health-time-domains.md`](SPIKE-004-health-time-domains.md) | **Completed / GO for Public Alpha** | Which health/survival systems accelerate with compressed calendar time, and is any effect unsafe for awake players? |
 
 ## Required spike structure
 
