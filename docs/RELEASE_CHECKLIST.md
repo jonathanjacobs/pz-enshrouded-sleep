@@ -14,11 +14,13 @@ Use this checklist before any public GitHub release or Steam Workshop publicatio
 ## Workshop package structure
 
 - [ ] Repository/Workshop root contains `workshop.txt`.
-- [ ] Repository/Workshop root contains a valid `preview.png` before upload.
+- [ ] Repository/Workshop root contains a valid `preview.png`: PNG, exactly `256x256`, no larger than `1000 KB`.
 - [ ] The single authoritative deployable mod is under `Contents/mods/pz-enshrouded-sleep/`.
 - [ ] There is no second root-level `42/`, `common/`, or `mod.info` runtime copy.
 - [ ] The versioned Build 42 tree contains the expected `42/mod.info` and `42/media/` content.
-- [ ] If `poster.png` and/or `icon.png` are referenced by `mod.info`, those files exist at the expected versioned location and satisfy the current client requirements.
+- [ ] `Contents/mods/pz-enshrouded-sleep/42/poster.png` exists and is `256x256` PNG.
+- [ ] `Contents/mods/pz-enshrouded-sleep/42/icon.png` exists and is `32x32` PNG.
+- [ ] `42/mod.info` contains `poster=poster.png` and `icon=icon.png`.
 
 ## Indie Stone policy / provenance
 
@@ -47,7 +49,7 @@ Use this checklist before any public GitHub release or Steam Workshop publicatio
 
 - [ ] `ASSET_LICENSE.md` accurately describes the licensing boundary for creative/promotional assets.
 - [ ] Promotional images, screenshots, logos, sounds, and other media have known provenance and permitted usage.
-- [ ] `preview.png`, `poster.png`, and `icon.png` (if used) have documented provenance and are safe to distribute.
+- [ ] `preview.png`, `poster.png`, and `icon.png` have documented provenance and are safe to distribute.
 - [ ] No promotional asset creates a misleading impression of endorsement by The Indie Stone or Keen Games.
 
 ## Technical validation
