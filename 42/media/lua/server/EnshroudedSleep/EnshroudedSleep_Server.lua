@@ -1,34 +1,17 @@
 -- Enshrouded Sleep - proportional calendar/world-time compression
 -- v0.0.10 controller for Project Zomboid Build 42.20+
 --
--- DESIGN SUMMARY
--- --------------
--- Vanilla Project Zomboid owns sleep eligibility, sleep/wake state, death,
--- respawn, joins/disconnects, and the all-living-players-asleep fast-forward.
+-- This mod is designed for multiplayer servers. Normal operation shortens
+-- GameTime MinutesPerDay only while some, but not all, instantiated living
+-- server players are asleep. It never uses GameTime:setMultiplier() for partial
+-- sleep.
 --
--- During normal operation this mod adds one behavior only: while SOME, but not
--- all, currently instantiated living players are asleep, it shortens GameTime
--- MinutesPerDay according to the sleeping fraction. This compresses
--- world/calendar time without calling GameTime:setMultiplier() or otherwise
--- globally accelerating the active simulation.
---
--- v0.0.10 also contains an explicitly gated DIAGNOSTIC TEST OVERRIDE. When
--- DiagnosticsEnabled=true and DiagnosticForcedCompressionFactor>1, an awake
--- test character may experience forced MinutesPerDay compression without a
--- second sleeper. This exists only to isolate SPIKE-004 health time-domain
--- behavior in controlled single-player/debug tests. It is not normal gameplay.
---
--- IMPORTANT INVARIANTS
--- --------------------
--- 1. baselineMinutesPerDay is captured once from the live GameTime value and is
---    the exact value restored whenever compression is not active.
--- 2. Normal partial sleep never applies compressed MinutesPerDay when all living
---    players are asleep; vanilla fast-forward owns that state.
--- 3. The diagnostic override is impossible unless verbose diagnostics are also
---    enabled, and it is suspended whenever any observed living player sleeps.
--- 4. Any recoverable error fails toward the captured native baseline.
--- 5. Only instantiated, non-dead players participate in normal proportional
---    sleep math. A guarded getPlayer() fallback supports standalone diagnostics.
+-- v0.0.10 also contains a deliberately narrow diagnostic test override for
+-- SPIKE-004. When DiagnosticsEnabled=true and DiagnosticForcedCompressionFactor
+-- is greater than 1, the override may compress MinutesPerDay ONLY when exactly
+-- one living player is connected to the multiplayer server and that player is
+-- awake. It is not standalone/local-single-player support and it is not normal
+-- gameplay policy.
 
 if isClient() then return end
 
@@ -187,72 +170,45 @@ local function restoreBaseline()
     return setMinutesPerDay(baselineMinutesPerDay)
 end
 
-local function readLocalPlayerFallback()
-    if type(getPlayer) ~= "function" then return nil end
-    local ok, player = pcall(getPlayer)
-    if not ok or not player then return nil end
-    return player
-end
-
-local function countOnePlayer(player)
-    if not player then return 0, 0, nil end
-
-    local dead, deadErr = safeMethod(player, "isDead")
-    if dead == nil then return nil, nil, "could not read isDead() for local player: " .. tostring(deadErr) end
-    if dead == true then return 0, 0, nil end
-
-    local asleep, sleepErr = safeMethod(player, "isAsleep")
-    if asleep == nil then return nil, nil, "could not read isAsleep() for local player: " .. tostring(sleepErr) end
-    return 1, asleep == true and 1 or 0, nil
-end
-
 local function countLivingAndSleepingPlayers()
-    if type(getOnlinePlayers) == "function" then
-        local players = getOnlinePlayers()
-        if players then
-            local size, sizeErr = safeMethod(players, "size")
-            size = tonumber(size)
+    if type(getOnlinePlayers) ~= "function" then
+        return nil, nil, "getOnlinePlayers() unavailable"
+    end
 
-            if size ~= nil and size > 0 then
-                local living = 0
-                local sleeping = 0
+    local players = getOnlinePlayers()
+    if not players then return 0, 0, nil end
 
-                for i = 0, size - 1 do
-                    local player, getErr = safeMethod(players, "get", i)
-                    if not player then
-                        return nil, nil, "could not read player index " .. tostring(i) .. ": " .. tostring(getErr)
-                    end
+    local size, sizeErr = safeMethod(players, "size")
+    size = tonumber(size)
+    if size == nil then
+        return nil, nil, "could not read online-player count: " .. tostring(sizeErr)
+    end
 
-                    local dead, deadErr = safeMethod(player, "isDead")
-                    if dead == nil then
-                        return nil, nil, "could not read isDead() for player index " .. tostring(i) .. ": " .. tostring(deadErr)
-                    end
+    local living = 0
+    local sleeping = 0
 
-                    if dead ~= true then
-                        living = living + 1
-                        local asleep, sleepErr = safeMethod(player, "isAsleep")
-                        if asleep == nil then
-                            return nil, nil, "could not read isAsleep() for player index " .. tostring(i) .. ": " .. tostring(sleepErr)
-                        end
-                        if asleep == true then sleeping = sleeping + 1 end
-                    end
-                end
+    for i = 0, size - 1 do
+        local player, getErr = safeMethod(players, "get", i)
+        if not player then
+            return nil, nil, "could not read player index " .. tostring(i) .. ": " .. tostring(getErr)
+        end
 
-                return living, sleeping, nil
-            elseif size == nil then
-                local fallback = readLocalPlayerFallback()
-                if fallback then return countOnePlayer(fallback) end
-                return nil, nil, "could not read online-player count: " .. tostring(sizeErr)
+        local dead, deadErr = safeMethod(player, "isDead")
+        if dead == nil then
+            return nil, nil, "could not read isDead() for player index " .. tostring(i) .. ": " .. tostring(deadErr)
+        end
+
+        if dead ~= true then
+            living = living + 1
+            local asleep, sleepErr = safeMethod(player, "isAsleep")
+            if asleep == nil then
+                return nil, nil, "could not read isAsleep() for player index " .. tostring(i) .. ": " .. tostring(sleepErr)
             end
+            if asleep == true then sleeping = sleeping + 1 end
         end
     end
 
-    -- Standalone/single-player diagnostics may not expose a populated online
-    -- player list. Reuse the local IsoPlayer only when no online population was
-    -- available, avoiding double counting in multiplayer.
-    local fallback = readLocalPlayerFallback()
-    if fallback then return countOnePlayer(fallback) end
-    return 0, 0, nil
+    return living, sleeping, nil
 end
 
 local function calculateDecision(nativeConfig, modConfig, living, sleeping)
@@ -299,28 +255,35 @@ end
 
 local function calculateDiagnosticDecision(modConfig, living, sleeping)
     local factor = modConfig.diagnosticForcedCompressionFactor
-    if not modConfig.diagnosticsEnabled or factor <= 1.0 + EPSILON then return nil end
 
-    -- Never stack the forced diagnostic clock with vanilla sleep acceleration.
     if sleeping and sleeping > 0 then
         return {
             mode = "diagnostic-forced-suspended-sleep",
-            sleepFraction = living and living > 0 and math.min(1.0, sleeping / living) or 0.0,
+            sleepFraction = living > 0 and math.min(1.0, sleeping / living) or 0.0,
             calendarCompressionFactor = 1.0,
             realTimeCompensationFactor = 1.0,
-            effectivePartialSleepCap = factor,
             targetMinutesPerDay = baselineMinutesPerDay,
             diagnosticForcedCompressionFactor = factor,
         }
     end
 
-    if not living or living <= 0 then
+    if living <= 0 then
         return {
             mode = "diagnostic-forced-awaiting-player",
             sleepFraction = 0.0,
             calendarCompressionFactor = 1.0,
             realTimeCompensationFactor = 1.0,
-            effectivePartialSleepCap = factor,
+            targetMinutesPerDay = baselineMinutesPerDay,
+            diagnosticForcedCompressionFactor = factor,
+        }
+    end
+
+    if living ~= 1 then
+        return {
+            mode = "diagnostic-forced-suspended-player-count",
+            sleepFraction = 0.0,
+            calendarCompressionFactor = 1.0,
+            realTimeCompensationFactor = 1.0,
             targetMinutesPerDay = baselineMinutesPerDay,
             diagnosticForcedCompressionFactor = factor,
         }
@@ -331,7 +294,6 @@ local function calculateDiagnosticDecision(modConfig, living, sleeping)
         sleepFraction = 0.0,
         calendarCompressionFactor = factor,
         realTimeCompensationFactor = 1.0 / factor,
-        effectivePartialSleepCap = factor,
         targetMinutesPerDay = baselineMinutesPerDay / factor,
         diagnosticForcedCompressionFactor = factor,
     }
@@ -353,15 +315,6 @@ local function maybeLogStartupConfig(nativeConfig, modConfig)
         tostring(modConfig.diagnosticsEnabled),
         formatNumber(modConfig.diagnosticForcedCompressionFactor, 3)
     ))
-
-    if nativeConfig.sandboxDayLengthMinutes
-        and math.abs(nativeConfig.sandboxDayLengthMinutes - baselineMinutesPerDay) > EPSILON then
-        log(string.format(
-            "NOTICE | runtime MinutesPerDay (%s) differs from sandbox day-length minutes (%s); runtime value remains authoritative",
-            formatNumber(baselineMinutesPerDay, 3),
-            formatNumber(nativeConfig.sandboxDayLengthMinutes, 3)
-        ))
-    end
 end
 
 local function logStateIfChanged(mode, living, sleeping, decision, extra)
@@ -398,21 +351,26 @@ local function logStateIfChanged(mode, living, sleeping, decision, extra)
         ))
     elseif mode == "diagnostic-forced" then
         log(string.format(
-            "TEST OVERRIDE ACTIVE | mode=diagnostic-forced | living=%d | sleeping=%d | DiagnosticForcedCompressionFactor=%s | EffectiveMinutesPerDay=%s | player must remain awake | NOT FOR NORMAL GAMEPLAY",
-            living or 0,
-            sleeping or 0,
+            "TEST OVERRIDE ACTIVE | mode=diagnostic-forced | living=1 | sleeping=0 | DiagnosticForcedCompressionFactor=%s | EffectiveMinutesPerDay=%s | one connected server player must remain awake | NOT FOR NORMAL GAMEPLAY",
             formatNumber(decision.diagnosticForcedCompressionFactor, 3),
             formatNumber(decision.targetMinutesPerDay, 3)
         ))
     elseif mode == "diagnostic-forced-suspended-sleep" then
         log(string.format(
-            "TEST OVERRIDE SUSPENDED | living=%d | sleeping=%d | restoredMinutesPerDay=%s | a living player is asleep; vanilla sleep safety takes precedence",
+            "TEST OVERRIDE SUSPENDED | reason=sleeping-player | living=%d | sleeping=%d | restoredMinutesPerDay=%s",
+            living or 0,
+            sleeping or 0,
+            formatNumber(baselineMinutesPerDay, 3)
+        ))
+    elseif mode == "diagnostic-forced-suspended-player-count" then
+        log(string.format(
+            "TEST OVERRIDE SUSPENDED | reason=requires-exactly-one-living-connected-player | living=%d | sleeping=%d | restoredMinutesPerDay=%s",
             living or 0,
             sleeping or 0,
             formatNumber(baselineMinutesPerDay, 3)
         ))
     elseif mode == "diagnostic-forced-awaiting-player" then
-        log("TEST OVERRIDE ARMED | no living player currently observed | baseline retained")
+        log("TEST OVERRIDE ARMED | living=0 | baseline retained until exactly one awake living player is connected")
     else
         log(string.format(
             "STATE | mode=%s | living=%d | sleeping=%d | MinutesPerDay=%s%s",
@@ -441,19 +399,31 @@ local function update()
         return
     end
 
-    -- Diagnostic forced compression is evaluated before native multiplayer
-    -- ServerOptions so the controlled single-player test can work in a standalone
-    -- Lua context that may not expose multiplayer ServerOptions.
+    -- This is a server-only mod: native multiplayer ServerOptions remain part of
+    -- the required runtime contract even for the one-connected-player test.
+    local nativeConfig, nativeErr = readNativeConfig(false)
+    if not nativeConfig then
+        restoreBaseline()
+        logErrorOnce(nativeErr)
+        logStateIfChanged("fail-safe", 0, 0, nil, nativeErr)
+        return
+    end
+
+    maybeLogStartupConfig(nativeConfig, modConfig)
+
+    local living, sleeping, playerErr = countLivingAndSleepingPlayers()
+    if living == nil then
+        restoreBaseline()
+        logErrorOnce(playerErr)
+        logStateIfChanged("fail-safe", 0, 0, nil, playerErr)
+        return
+    end
+
+    -- The diagnostic override deliberately suppresses normal proportional sleep
+    -- policy while armed. It can only compress with exactly one connected living
+    -- player who remains awake; all other population/sleep states restore baseline.
     if modConfig.diagnosticsEnabled
         and modConfig.diagnosticForcedCompressionFactor > 1.0 + EPSILON then
-        local living, sleeping, playerErr = countLivingAndSleepingPlayers()
-        if living == nil then
-            restoreBaseline()
-            logErrorOnce(playerErr)
-            logStateIfChanged("fail-safe", 0, 0, nil, playerErr)
-            return
-        end
-
         local decision = calculateDiagnosticDecision(modConfig, living, sleeping)
         local applied, applyErr = setMinutesPerDay(decision.targetMinutesPerDay)
         if not applied then
@@ -468,59 +438,10 @@ local function update()
         return
     end
 
-    local nativeConfig, nativeErr = readNativeConfig(false)
-    if not nativeConfig then
-        -- A standalone diagnostic baseline does not require multiplayer
-        -- ServerOptions. At factor=1 the only safe/requested state is the captured
-        -- native MinutesPerDay, so keep that baseline without reporting a false
-        -- controller failure. Dedicated multiplayer still follows the normal
-        -- fail-safe/error path below if no local diagnostic player is visible.
-        if modConfig.diagnosticsEnabled and readLocalPlayerFallback() then
-            local living, sleeping, playerErr = countLivingAndSleepingPlayers()
-            if living ~= nil then
-                local restored, restoreErr = restoreBaseline()
-                if not restored then
-                    logErrorOnce(restoreErr)
-                    logStateIfChanged("fail-safe", living, sleeping, nil, restoreErr)
-                else
-                    clearError()
-                    logStateIfChanged(
-                        "diagnostic-standalone-baseline",
-                        living,
-                        sleeping,
-                        nil,
-                        "multiplayer ServerOptions unavailable; native baseline retained"
-                    )
-                end
-                return
-            elseif playerErr then
-                restoreBaseline()
-                logErrorOnce(playerErr)
-                logStateIfChanged("fail-safe", 0, 0, nil, playerErr)
-                return
-            end
-        end
-
-        restoreBaseline()
-        logErrorOnce(nativeErr)
-        logStateIfChanged("fail-safe", 0, 0, nil, nativeErr)
-        return
-    end
-
-    maybeLogStartupConfig(nativeConfig, modConfig)
-
     if not nativeConfig.sleepAllowed then
         local restored, restoreErr = restoreBaseline()
         if not restored then logErrorOnce(restoreErr) else clearError() end
-        logStateIfChanged("native-sleep-disabled", 0, 0, nil, "SleepAllowed=false")
-        return
-    end
-
-    local living, sleeping, playerErr = countLivingAndSleepingPlayers()
-    if living == nil then
-        restoreBaseline()
-        logErrorOnce(playerErr)
-        logStateIfChanged("fail-safe", 0, 0, nil, playerErr)
+        logStateIfChanged("native-sleep-disabled", living, sleeping, nil, "SleepAllowed=false")
         return
     end
 
@@ -539,7 +460,7 @@ end
 
 Events.OnTickEvenPaused.Add(update)
 
-log("Loaded v0.0.10 proportional calendar-compression controller.")
+log("Loaded v0.0.10 multiplayer-server calendar-compression controller.")
 log("Normal partial sleep changes MinutesPerDay only; global simulation multiplier is never modified.")
-log("At 100% living players asleep, native MinutesPerDay is restored and vanilla sleep fast-forward takes over.")
-log("Diagnostic forced compression requires DiagnosticsEnabled=true and DiagnosticForcedCompressionFactor>1; it is suspended if any living player sleeps.")
+log("Diagnostic forced compression is SERVER TEST ONLY and requires exactly one awake living player connected to the multiplayer server.")
+log("If that player sleeps or another living player connects, the diagnostic override restores native MinutesPerDay.")
