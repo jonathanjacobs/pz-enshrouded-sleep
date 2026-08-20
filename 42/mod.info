@@ -1,6 +1,6 @@
 id=pz-enshrouded-sleep
 name=Enshrouded Sleep
-description=Pre-Public-Alpha proportional partial-sleep calendar compression with synchronized client pacing and opt-in one-player server health time-domain diagnostics for Build 42 multiplayer.
+description=Public Alpha proportional partial-sleep calendar compression with synchronized client pacing and opt-in server diagnostics for Build 42 multiplayer.
 author=Jonathan Jacobs
 category=features
 modversion=0.0.10
