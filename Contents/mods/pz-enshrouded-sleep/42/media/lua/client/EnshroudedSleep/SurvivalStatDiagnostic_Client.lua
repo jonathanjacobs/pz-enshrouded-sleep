@@ -1,10 +1,18 @@
 -- Enshrouded Sleep - focused owning-client survival-stat diagnostic
--- v0.0.10 pre-Public-Alpha instrumentation for Project Zomboid Build 42.20+
+-- Public Alpha v0.0.10 for Project Zomboid Build 42.20+
 --
--- Record the connected player's Build 42 CharacterStat, MoodleType, Nutrition,
--- and related health values once per real second. This is client-side telemetry
--- for multiplayer-server testing only; it is read-only and dormant unless
--- DiagnosticsEnabled=true.
+-- PURPOSE
+-- -------
+-- Record the connected player's current Build 42 CharacterStat, MoodleType,
+-- Nutrition, and related health values once per real second while verbose
+-- diagnostics are enabled. This is the focused survival-state stream validated
+-- during SPIKE-004.
+--
+-- MUTATION BOUNDARY
+-- -----------------
+-- Read-only. This module never changes CharacterStats, Moodles, Nutrition,
+-- health, sleep state, or GameTime. DiagnosticForcedCompressionFactor is owned
+-- by the authoritative server controller, not by this sampler.
 
 if not isClient() then return end
 
@@ -17,21 +25,35 @@ local lastSampleAt = -1
 local observedBaselineMinutesPerDay = nil
 local capabilityLogged = false
 
+---Return whether verbose support diagnostics are explicitly enabled.
+---@return boolean enabled
 local function diagnosticsEnabled()
     local vars = SandboxVars and SandboxVars.EnshroudedSleep or nil
     return vars ~= nil and vars.DiagnosticsEnabled == true
 end
 
+---Return whether the diagnostics-only forced compression control is armed.
+---This is used only to label telemetry; the client never applies test policy.
+---@return boolean configured
 local function diagnosticForcedConfigured()
     local vars = SandboxVars and SandboxVars.EnshroudedSleep or nil
     local factor = tonumber(vars and vars.DiagnosticForcedCompressionFactor) or 1.0
     return vars ~= nil and vars.DiagnosticsEnabled == true and factor > 1.0 + EPSILON
 end
 
+---Write one namespaced focused-survival diagnostic line.
+---@param message any
+---@return nil
 local function log(message)
     print(PREFIX .. " " .. tostring(message))
 end
 
+---Derive a diagnostic phase label from local sleep state and observed day length.
+---The label is descriptive only; it does not drive clock or sleep behavior.
+---@param player any
+---@param minutesPerDay number|nil
+---@param baseline number|nil
+---@return string phase
 local function derivePhase(player, minutesPerDay, baseline)
     if not player then return "no-player" end
 
@@ -51,10 +73,14 @@ local function derivePhase(player, minutesPerDay, baseline)
     return "baseline"
 end
 
+---Capture one wall-clock-gated local survival-state sample.
+---@return nil
 local function sample()
     if not diagnosticsEnabled() then return end
 
     local epoch = os.time()
+    -- Use real wall-clock seconds so calendar compression cannot accelerate the
+    -- diagnostic sampling cadence itself.
     if lastSampleAt >= 0 and (epoch - lastSampleAt) < SAMPLE_INTERVAL_SECONDS then return end
     lastSampleAt = epoch
 
@@ -63,6 +89,8 @@ local function sample()
     if not player or not gameTime then return end
     if SurvivalStatProbe.safeMethod(player, "isDead") == true then return end
 
+    -- The highest valid local MinutesPerDay seen by this sampler is retained as
+    -- its observational baseline. This value is never written back to GameTime.
     local minutesPerDay = SurvivalStatProbe.safeNumber(gameTime, "getMinutesPerDay")
     if minutesPerDay and minutesPerDay > 0 then
         if not observedBaselineMinutesPerDay or minutesPerDay > observedBaselineMinutesPerDay then
@@ -81,6 +109,8 @@ local function sample()
         or "N/A"
     local onlineID = SurvivalStatProbe.safeNumber(player, "getOnlineID")
 
+    -- Emit capability information once per client session so unavailable Build 42
+    -- bindings can be distinguished from a metric that simply did not change.
     if not capabilityLogged then
         capabilityLogged = true
         log("CAPABILITIES | player=" .. SurvivalStatProbe.sanitize(playerName)
@@ -113,4 +143,4 @@ end
 
 Events.OnTick.Add(sample)
 
-log("Loaded v0.0.10 owning-client survival-stat diagnostic for multiplayer-server testing; dormant unless DiagnosticsEnabled=true.")
+log("Loaded Public Alpha v0.0.10 owning-client survival-stat diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")
