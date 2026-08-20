@@ -76,57 +76,52 @@ Nutrition behaved differently and very cleanly:
 
 Those stores are therefore strongly world/calendar-time bound in the tested conditions.
 
-The remaining blocker is observability of hunger, thirst, fatigue, endurance, stress, sickness, and related character state. v0.0.9 used legacy `Stats` getter/public-field assumptions and attempted to enumerate Moodles numerically; Build 42.20.3 vanilla code uses a different API shape.
+The remaining blocker is classification of hunger, thirst, fatigue, endurance, stress, sickness, temperature and related character state.
 
 ## v0.0.10 focused survival diagnostics
 
-v0.0.10 adds a shared read-only probe and focused server/client diagnostic stream based on the same APIs used by current Build 42 vanilla Lua.
-
-Continuous character stats are read through `CharacterStat` objects:
-
-```lua
-local stats = player:getStats()
-local hunger = stats:get(CharacterStat.HUNGER)
-local thirst = stats:get(CharacterStat.THIRST)
-local fatigue = stats:get(CharacterStat.FATIGUE)
-local endurance = stats:get(CharacterStat.ENDURANCE)
-```
-
-The diagnostic also samples stress, panic, pain, boredom, unhappiness, sickness, food sickness, poison, zombie-infection/fever values, temperature, wetness, fitness, morale, intoxication, discomfort and related registered `CharacterStat` values.
-
-Moodles are queried by `MoodleType`, not by numeric index:
-
-```lua
-local moodles = player:getMoodles()
-local hungryLevel = moodles:getMoodleLevel(MoodleType.HUNGRY)
-local thirstLevel = moodles:getMoodleLevel(MoodleType.THIRST)
-local tiredLevel = moodles:getMoodleLevel(MoodleType.TIRED)
-local enduranceLevel = moodles:getMoodleLevel(MoodleType.ENDURANCE)
-```
-
-Nutrition remains directly observable through:
-
-```lua
-local nutrition = player:getNutrition()
-nutrition:getWeight()
-nutrition:getCalories()
-nutrition:getCarbohydrates()
-nutrition:getProteins()
-nutrition:getLipids()
-```
-
-The new diagnostic also emits a one-time `CAPABILITIES` record on server and client so a future `N/A` result tells us whether the class globals, enum members, object, or actual getter path failed.
-
-Diagnostic prefixes are:
+v0.0.10 uses the same registered `CharacterStat`, `MoodleType`, Nutrition and related APIs used by current Build 42 vanilla Lua. The focused streams are:
 
 ```text
 [EnshroudedSleepSurvivalDiag][SERVER]
 [EnshroudedSleepSurvivalDiag][CLIENT]
 ```
 
-The older broad health/body diagnostic remains in place because its detailed injury telemetry was already useful and validated. The new stream is deliberately focused on the Build 42 survival-state API gap.
+The older broad injury/body diagnostic remains available because its wound telemetry is already useful.
 
-All diagnostic code is observational only and remains dormant unless `DiagnosticsEnabled=true`.
+### Single-player SPIKE-004 test mode
+
+v0.0.10 also adds an explicit diagnostics-only forced calendar-compression mode so the remaining time-domain test can be run with **one awake character** rather than requiring two computers.
+
+```lua
+EnshroudedSleep = {
+    Enabled = true,
+    PartialSleepSpeedScale = 1.0,
+    DiagnosticsEnabled = true,
+    DiagnosticForcedCompressionFactor = 5.0,
+}
+```
+
+The override is intentionally difficult to activate accidentally:
+
+```text
+DiagnosticsEnabled must be true
+AND
+DiagnosticForcedCompressionFactor must be > 1
+```
+
+With a 90-minute baseline and factor `5`, the controller forces `MinutesPerDay=18` while the observed character remains awake. It does **not** change the global simulation multiplier.
+
+If any observed living player falls asleep, the test override is immediately suspended and native `MinutesPerDay` is restored so it cannot stack with vanilla full-sleep acceleration.
+
+For normal gameplay:
+
+```text
+DiagnosticsEnabled = false
+DiagnosticForcedCompressionFactor = 1.0
+```
+
+A standalone `getPlayer()` diagnostic fallback is included so CharacterStat/Nutrition and detailed injury telemetry can still be collected when a single-player session does not expose a populated `getOnlinePlayers()` collection.
 
 ## Important design caveat: world time really is passing faster
 
@@ -170,26 +165,24 @@ GitHub **Download ZIP** normally creates `pz-enshrouded-sleep-main`; rename that
 
 ## Configuration
 
+Normal operation:
+
 ```lua
 EnshroudedSleep = {
     Enabled = true,
     PartialSleepSpeedScale = 1.0,
     DiagnosticsEnabled = false,
-},
+    DiagnosticForcedCompressionFactor = 1.0,
+}
 ```
 
 `Enabled` turns the mechanic on/off.
 
-`PartialSleepSpeedScale` scales the server's native `FastForwardMultiplier` for **partial sleep only**. `1.0` is the neutral/default value.
+`PartialSleepSpeedScale` scales the server's native `FastForwardMultiplier` for **real partial sleep only**. `1.0` is the neutral/default value.
 
-`DiagnosticsEnabled` controls verbose development/support telemetry:
+`DiagnosticsEnabled` controls verbose development/support telemetry.
 
-```text
-false -> normal operation; low-volume state-transition logs only
-true  -> one-second clock, health/body, CharacterStat, Moodle and nutrition telemetry
-```
-
-Leave diagnostics off except during controlled testing or focused troubleshooting.
+`DiagnosticForcedCompressionFactor` is a **test-only** SPIKE-004 control. At the normal value `1.0` it does nothing. Values above `1.0` only take effect while diagnostics are enabled and must not be used for ordinary play.
 
 ## How proportional sleep is calculated
 
@@ -200,7 +193,7 @@ LivingPlayers = getOnlinePlayers() where isDead() == false
 SleepingPlayers = LivingPlayers where isAsleep() == true
 ```
 
-During partial sleep:
+During normal partial sleep:
 
 ```text
 SleepFraction = SleepingPlayers / LivingPlayers
