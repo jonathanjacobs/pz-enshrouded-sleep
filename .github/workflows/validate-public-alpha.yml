@@ -1,0 +1,62 @@
+name: Validate Public Alpha Package
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  validate-package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate Workshop and runtime structure
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          MOD_ROOT="Contents/mods/pz-enshrouded-sleep"
+          VERSION_VALUE="$(tr -d '\r\n' < VERSION)"
+
+          test "$VERSION_VALUE" = "0.0.10"
+          test -f workshop.txt
+          test -d "$MOD_ROOT/common"
+          test -d "$MOD_ROOT/42"
+          test -f "$MOD_ROOT/mod.info"
+          test -f "$MOD_ROOT/42/mod.info"
+          test -f "$MOD_ROOT/42/media/sandbox-options.txt"
+
+          # These empty directories are intentionally retained for the Build 42
+          # mod-media scanner workaround validated during development.
+          test -f "$MOD_ROOT/common/media/AnimSets/.gitkeep"
+          test -f "$MOD_ROOT/common/media/actiongroups/.gitkeep"
+          test -f "$MOD_ROOT/42/media/AnimSets/.gitkeep"
+          test -f "$MOD_ROOT/42/media/actiongroups/.gitkeep"
+
+          # The deployable mod must exist only under Contents/mods; duplicate
+          # root-level runtime trees create source/publication drift.
+          test ! -e 42
+          test ! -e common
+          test ! -e mod.info
+
+          grep -Fxq "id=pz-enshrouded-sleep" "$MOD_ROOT/mod.info"
+          grep -Fxq "id=pz-enshrouded-sleep" "$MOD_ROOT/42/mod.info"
+          grep -Fxq "modversion=$VERSION_VALUE" "$MOD_ROOT/mod.info"
+          grep -Fxq "modversion=$VERSION_VALUE" "$MOD_ROOT/42/mod.info"
+
+          grep -Fq 'option EnshroudedSleep.DiagnosticsEnabled' "$MOD_ROOT/42/media/sandbox-options.txt"
+          grep -Fq 'default = false' "$MOD_ROOT/42/media/sandbox-options.txt"
+          grep -Fq 'option EnshroudedSleep.DiagnosticForcedCompressionFactor' "$MOD_ROOT/42/media/sandbox-options.txt"
+          grep -Fq 'default = 1.0' "$MOD_ROOT/42/media/sandbox-options.txt"
+
+          # Publication-time artwork is deliberately checked as a warning until
+          # it is validated against the installed Build 42 ModTemplate.
+          if [[ ! -f preview.png ]]; then
+            echo "::warning::preview.png is still required before first Steam Workshop upload."
+          fi
+
+          echo "Public Alpha package structure/version checks passed for v$VERSION_VALUE."
