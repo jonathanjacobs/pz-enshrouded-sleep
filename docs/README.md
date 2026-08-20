@@ -1,6 +1,6 @@
 # Enshrouded Sleep Documentation
 
-Detailed design, testing, deployment, validation evidence, spikes, and architecture decisions live under `docs/`. The top-level README remains the player/server-admin landing page.
+Detailed design, testing, deployment, validation evidence, spikes, architecture decisions, and Steam Workshop publication guidance live under `docs/`. The top-level README remains the player/server-admin landing page.
 
 ## Current project state
 
@@ -10,10 +10,12 @@ Detailed design, testing, deployment, validation evidence, spikes, and architect
 - Core sleep/clock architecture: validated on Project Zomboid `42.20.3`
 - SPIKE-004: **complete / GO for Public Alpha**
 - Health/survival result: awake acute injury/body-health loss approximately real-time bound; hunger/thirst/fatigue and core nutrition stores approximately world/calendar-time bound; resting endurance recovery approximately real-time bound under tested conditions
-- Current focus: larger-population field validation, live lifecycle behavior, non-health world-time systems, and pathological survival states not exercised in SPIKE-004
+- Repository packaging: Workshop-compatible root with one authoritative runtime tree under `Contents/mods/pz-enshrouded-sleep/`
+- Current focus: first Steam Workshop publication, larger-population field validation, live lifecycle behavior, non-health world-time systems, and pathological survival states not exercised in SPIKE-004
 
 ## Start here
 
+- [`STEAM_WORKSHOP.md`](STEAM_WORKSHOP.md) — first publication/update workflow, Workshop package layout, permanent ID handling, and Workshop-description guidance.
 - [`DEPLOYMENT.md`](DEPLOYMENT.md) — Public Alpha installation, monitoring, diagnostics, and rollback guidance.
 - [`ROADMAP.md`](ROADMAP.md) — **single canonical project roadmap** and release-stage criteria.
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — proportional compression, vanilla handoff, client synchronization, diagnostic forced compression, and time-domain boundaries.
@@ -23,6 +25,7 @@ Detailed design, testing, deployment, validation evidence, spikes, and architect
 - [`REQUIREMENTS.md`](REQUIREMENTS.md) — canonical MVP requirements and acceptance matrix.
 - [`TESTING.md`](TESTING.md) — smoke/regression procedures and Public Alpha field-testing guidance.
 - [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md) — consolidated evidence from v0.0.1 onward.
+- [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md) — mandatory release/Workshop publication gate.
 
 ## Formal spike investigations
 
@@ -47,11 +50,14 @@ See [`adr/README.md`](adr/README.md) for the ADR convention.
 ## Repository-level files
 
 - [`../README.md`](../README.md) — public project overview/status.
+- [`../workshop.txt`](../workshop.txt) — Project Zomboid Workshop item descriptor; receives the permanent Steam ID after first publication.
 - [`../CHANGELOG.md`](../CHANGELOG.md) — version/change history.
 - [`../COMPLIANCE.md`](../COMPLIANCE.md) — Project Zomboid mod-policy/compliance entry point.
+- [`../THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md) — redistributed-material and prior-art provenance.
+- [`../ASSET_LICENSE.md`](../ASSET_LICENSE.md) — creative/promotional asset licensing boundary.
 - [`../LICENSE`](../LICENSE) — Apache License 2.0 source-code license.
-- [`../NOTICE`](../NOTICE) — project notices.
+- [`../NOTICE`](../NOTICE) — project notices and non-affiliation statements.
 
 ## Documentation policy
 
-New investigations, ADRs, compatibility notes, detailed evidence, and roadmap changes belong under `docs/`. The top-level README should remain understandable to a new server administrator or player without duplicating engineering history.
+Detailed experiments, validation evidence, release procedures, ADRs, compatibility notes, and roadmap changes belong under `docs/`. The top-level README should remain understandable to a player/server administrator without duplicating experimental history.
