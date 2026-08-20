@@ -7,19 +7,19 @@ Detailed design, testing, deployment, validation evidence, spikes, and architect
 - Development version: `v0.0.10`
 - Core sleep/clock architecture: validated on Project Zomboid `42.20.3`
 - v0.0.9 two-player health result: awake bleeding/injury progression approximately real-time bound; core nutrition stores approximately proportional to calendar compression
-- Current blocker: corrected CharacterStat/Moodle observation and final classification of hunger/thirst/fatigue/endurance and related high-severity survival state
+- Current blocker: run the v0.0.10 single-player diagnostic-forced-compression test and classify hunger/thirst/fatigue/endurance and related high-severity survival state
 - WHG Public Alpha deployment: **paused pending completion of SPIKE-004**
 
 ## Start here
 
 - [`DEPLOYMENT.md`](DEPLOYMENT.md) — deployment gate, installation, monitoring, diagnostics, and rollback guidance.
 - [`ROADMAP.md`](ROADMAP.md) — **single canonical project roadmap** and release-stage criteria.
-- [`ARCHITECTURE.md`](ARCHITECTURE.md) — proportional compression, vanilla handoff, client synchronization, diagnostics, and time-domain boundaries.
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) — proportional compression, vanilla handoff, client synchronization, diagnostic forced compression, and time-domain boundaries.
 
 ## Specification and testing
 
 - [`REQUIREMENTS.md`](REQUIREMENTS.md) — canonical MVP requirements and acceptance matrix.
-- [`TESTING.md`](TESTING.md) — current smoke/regression procedures and focused v0.0.10 SPIKE-004 survival-state test.
+- [`TESTING.md`](TESTING.md) — current smoke/regression procedures and the single-player v0.0.10 SPIKE-004 survival-state test.
 - [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md) — consolidated evidence from v0.0.1 onward.
 
 ## Formal spike investigations
@@ -27,7 +27,7 @@ Detailed design, testing, deployment, validation evidence, spikes, and architect
 - [`spikes/SPIKE-001-minutes-per-day-feasibility.md`](spikes/SPIKE-001-minutes-per-day-feasibility.md) — proved `MinutesPerDay` calendar compression without global active-simulation acceleration.
 - [`spikes/SPIKE-002-vanilla-sleep-lifecycle.md`](spikes/SPIKE-002-vanilla-sleep-lifecycle.md) — established vanilla population/sleep/full-sleep semantics.
 - [`spikes/SPIKE-003-client-clock-synchronization.md`](spikes/SPIKE-003-client-clock-synchronization.md) — diagnosed/fixed client day-length pacing mismatch.
-- [`spikes/SPIKE-004-health-time-domains.md`](spikes/SPIKE-004-health-time-domains.md) — **current Public Alpha blocker**; maps awake-player health/survival behavior under partial calendar compression.
+- [`spikes/SPIKE-004-health-time-domains.md`](spikes/SPIKE-004-health-time-domains.md) — **current Public Alpha blocker**; maps awake-player health/survival behavior under calendar compression.
 
 See [`spikes/README.md`](spikes/README.md) for the spike convention.
 
