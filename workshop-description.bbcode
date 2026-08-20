@@ -1,0 +1,48 @@
+[h1]Enshrouded Sleep — Public Alpha[/h1]
+
+Proportional multiplayer sleeping for Project Zomboid Build 42 servers.
+
+[b]Version:[/b] 0.0.10
+[b]Tested with:[/b] Project Zomboid 42.20.3
+[b]Workshop ID:[/b] 3786842301
+[b]Mod ID:[/b] pz-enshrouded-sleep
+
+[h2]What it does[/h2]
+When some, but not all, living players are asleep, Enshrouded Sleep proportionally compresses world/calendar time while awake players continue moving, fighting, driving, crafting, and interacting at normal active-simulation speed.
+
+When all living players are asleep, Enshrouded Sleep restores the native day length and vanilla Project Zomboid full-sleep fast-forward takes over.
+
+[h2]Public Alpha[/h2]
+This is a Public Alpha release. Back up your server before installing or updating. Broader multiplayer and world-system field testing is still in progress.
+
+[h2]Important time behavior[/h2]
+World/calendar time genuinely passes faster during partial sleep. Systems tied to elapsed world time can therefore progress while another survivor sleeps. Controlled testing confirms that hunger, thirst, fatigue, calories, and nutrition advance with compressed world time, while acute awake-player bleeding/body-health loss did not scale with calendar compression under the tested conditions.
+
+[h2]Configuration[/h2]
+Recommended Public Alpha settings:
+
+[code]
+EnshroudedSleep.Enabled=true
+EnshroudedSleep.PartialSleepSpeedScale=1.0
+EnshroudedSleep.DiagnosticsEnabled=false
+EnshroudedSleep.DiagnosticForcedCompressionFactor=1.0
+[/code]
+
+[h2]Server setup[/h2]
+[code]
+WorkshopItems=3786842301
+Mods=pz-enshrouded-sleep
+[/code]
+
+[h2]Compatibility[/h2]
+Other mods that alter multiplayer sleep, MinutesPerDay, GameTime pacing, or sleep fast-forward may conflict. Compatibility claims are limited to configurations that have actually been tested.
+
+[h2]Source code, documentation, issues, and test results[/h2]
+[url=https://github.com/jonathanjacobs/pz-enshrouded-sleep]GitHub — Enshrouded Sleep repository[/url]
+
+The GitHub repository contains installation details, configuration documentation, architecture notes, validation history, SPIKE test results, known limitations, and issue tracking.
+
+[h2]Unofficial community mod[/h2]
+Enshrouded Sleep is an unofficial community mod and is not developed by, affiliated with, sponsored by, endorsed by, or otherwise official to The Indie Stone.
+
+Enshrouded Sleep is also not developed by, affiliated with, sponsored by, or endorsed by Keen Games. The project name refers only to general multiplayer-sleep design inspiration associated with the game Enshrouded; no Enshrouded code, assets, or game content are included or redistributed.
