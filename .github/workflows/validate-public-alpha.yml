@@ -20,9 +20,10 @@ jobs:
           set -euo pipefail
 
           MOD_ROOT="Contents/mods/pz-enshrouded-sleep"
+          LUA_ROOT="$MOD_ROOT/42/media/lua"
           VERSION_VALUE="$(tr -d '\r\n' < VERSION)"
 
-          test "$VERSION_VALUE" = "0.0.10"
+          [[ "$VERSION_VALUE" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           test -f workshop.txt
           test -d "$MOD_ROOT/common"
           test -d "$MOD_ROOT/42"
@@ -47,6 +48,20 @@ jobs:
           grep -Fxq "id=pz-enshrouded-sleep" "$MOD_ROOT/42/mod.info"
           grep -Fxq "modversion=$VERSION_VALUE" "$MOD_ROOT/mod.info"
           grep -Fxq "modversion=$VERSION_VALUE" "$MOD_ROOT/42/mod.info"
+
+          # Public startup banners should identify the package being tested. The
+          # comments may retain older version history, but live banners should not.
+          grep -Fq "Public Alpha v$VERSION_VALUE" "$LUA_ROOT/server/EnshroudedSleep/EnshroudedSleep_Server.lua"
+          grep -Fq "Public Alpha v$VERSION_VALUE" "$LUA_ROOT/server/EnshroudedSleep/ClockStateSync_Server.lua"
+          grep -Fq "Public Alpha v$VERSION_VALUE" "$LUA_ROOT/client/EnshroudedSleep/ClockStateSync_Client.lua"
+          grep -Fq "Public Alpha v$VERSION_VALUE" "$LUA_ROOT/server/EnshroudedSleep/ClockSyncDiagnostic_Server.lua"
+          grep -Fq "Public Alpha v$VERSION_VALUE" "$LUA_ROOT/client/EnshroudedSleep/ClockSyncDiagnostic_Client.lua"
+          grep -Fq "Public Alpha v$VERSION_VALUE" "$LUA_ROOT/server/EnshroudedSleep/HealthTimeDomainDiagnostic_Server.lua"
+          grep -Fq "Public Alpha v$VERSION_VALUE" "$LUA_ROOT/client/EnshroudedSleep/HealthTimeDomainDiagnostic_Client.lua"
+          grep -Fq "Public Alpha v$VERSION_VALUE" "$LUA_ROOT/server/EnshroudedSleep/SurvivalStatDiagnostic_Server.lua"
+          grep -Fq "Public Alpha v$VERSION_VALUE" "$LUA_ROOT/client/EnshroudedSleep/SurvivalStatDiagnostic_Client.lua"
+          grep -Fq "Public Alpha v$VERSION_VALUE" "$LUA_ROOT/shared/EnshroudedSleep/SurvivalStatProbe.lua"
+          grep -Fq "buildVersion = \"$VERSION_VALUE\"" "$LUA_ROOT/server/EnshroudedSleep/ClockStateSync_Server.lua"
 
           grep -Fq 'option EnshroudedSleep.DiagnosticsEnabled' "$MOD_ROOT/42/media/sandbox-options.txt"
           grep -Fq 'default = false' "$MOD_ROOT/42/media/sandbox-options.txt"
