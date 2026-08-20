@@ -1,23 +1,20 @@
--- Enshrouded Sleep - client clock and sleep synchronization diagnostic
--- v0.0.8 pre-Public-Alpha support instrumentation for Project Zomboid Build 42.20+
+-- Enshrouded Sleep - client clock/sleep diagnostic
+-- Public Alpha v0.0.10 for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
--- Record the multiplayer client's view of GameTime and local sleep state once
--- per real second when development/support diagnostics are explicitly enabled.
--- v0.0.5 established that runtime server MinutesPerDay changes were not
--- automatically replicated to clients. v0.0.6 proved that explicit ClockState
--- replication fixes the client pacing mismatch, smooths both visible clock
--- paths, and restores sensible sleep-duration behavior. v0.0.7 then passed a
--- clean regression. v0.0.8 retains that proven clock/sleep sampler alongside the
--- new health/time-domain diagnostics.
+-- Record the connected client's view of GameTime and local sleep state once per
+-- real second while verbose diagnostics are explicitly enabled. This is support
+-- instrumentation only; normal Public Alpha gameplay leaves it dormant.
 --
--- Verbose diagnostics are opt-in through
--- SandboxVars.EnshroudedSleep.DiagnosticsEnabled. They are disabled by default
--- to avoid generating large client logs during normal multiplayer play.
+-- This sampler preserves the clock/sleep observability first used to diagnose
+-- the historical client MinutesPerDay mismatch. It complements the newer health
+-- and CharacterStat diagnostics without participating in clock policy.
 --
--- This file is observational only. ClockStateSync_Client.lua is the only client
--- component that mutates local MinutesPerDay.
+-- MUTATION BOUNDARY
+-- -----------------
+-- Read-only. ClockStateSync_Client.lua is the only client component that
+-- intentionally mutates local MinutesPerDay.
 
 if not isClient() then return end
 
@@ -67,8 +64,8 @@ local function safeMethod(obj, methodName, ...)
     return value
 end
 
----Resolve the local player and read sleep/recovery values relevant to support
----diagnostics. This function never mutates the player.
+---Resolve the owning client player and read sleep/recovery values relevant to
+---clock/sleep support diagnostics. This function never mutates the player.
 ---@return table state
 local function readPlayerState()
     local state = {
@@ -99,20 +96,26 @@ local function readPlayerState()
     state.forceWakeUpTime = tonumber(safeMethod(player, "getForceWakeUpTime"))
     state.sleepingPillsTaken = tonumber(safeMethod(player, "getSleepingPillsTaken"))
 
+    -- This legacy broad diagnostic keeps the historical fatigue getter probe for
+    -- continuity. Current Build 42 survival-state analysis uses the dedicated
+    -- SurvivalStatProbe/CharacterStat path instead, so N/A here is acceptable.
     local stats = safeMethod(player, "getStats")
     state.fatigue = tonumber(safeMethod(stats, "getFatigue"))
 
     return state
 end
 
----Capture one real-time client clock/sleep sample when verbose diagnostics are
----explicitly enabled.
+---Capture one wall-clock-gated client clock/sleep sample when verbose
+---diagnostics are explicitly enabled.
 ---@return nil
 local function sampleClock()
     if not diagnosticsEnabled() then return end
 
     local now = os.time()
 
+    -- os.time() is intentionally used as a real-time gate. A game-world-time
+    -- event would itself accelerate under calendar compression and distort the
+    -- diagnostic sampling rate.
     if now == lastSampleAt or (lastSampleAt >= 0 and now - lastSampleAt < SAMPLE_INTERVAL_SECONDS) then
         return
     end
@@ -160,10 +163,12 @@ local function sampleClock()
     ))
 end
 
+-- Prefer the even-while-paused hook so support telemetry can continue through
+-- sleep/pause transitions; fall back to OnTick on builds where it is unavailable.
 if Events.OnTickEvenPaused then
     Events.OnTickEvenPaused.Add(sampleClock)
 else
     Events.OnTick.Add(sampleClock)
 end
 
-log("Loaded v0.0.8 client clock/sleep diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")
+log("Loaded Public Alpha v0.0.10 client clock/sleep diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")
