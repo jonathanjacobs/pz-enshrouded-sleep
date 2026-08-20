@@ -5,5 +5,7 @@
   "Sandbox_EnshroudedSleep_PartialSleepSpeedScale": "Partial sleep speed scale",
   "Sandbox_EnshroudedSleep_PartialSleepSpeedScale_tooltip": "Scales the server FastForwardMultiplier for partial sleep only. 1.0 is neutral, 0.5 halves the partial-sleep compression, and 2.0 doubles it. The mod never changes the global simulation multiplier.",
   "Sandbox_EnshroudedSleep_DiagnosticsEnabled": "Enable verbose diagnostics",
-  "Sandbox_EnshroudedSleep_DiagnosticsEnabled_tooltip": "Development/support option. Logs one-second clock, sleep, health, survival-stat, nutrition, and injury telemetry on the server and owning clients. This can produce very large log files. Leave disabled for normal play except during controlled diagnostics."
+  "Sandbox_EnshroudedSleep_DiagnosticsEnabled_tooltip": "Development/support option. Logs one-second clock, sleep, health, survival-stat, nutrition, and injury telemetry on the server and owning clients. This can produce very large log files. Leave disabled for normal play except during controlled diagnostics.",
+  "Sandbox_EnshroudedSleep_DiagnosticForcedCompressionFactor": "Diagnostic forced compression factor (TEST ONLY)",
+  "Sandbox_EnshroudedSleep_DiagnosticForcedCompressionFactor_tooltip": "Controlled-test option for SPIKE-004. Only active when verbose diagnostics are enabled. Values above 1 force MinutesPerDay compression while observed players remain awake; any sleeping player suspends the override and restores baseline. Use 1.0 for normal play."
 }
