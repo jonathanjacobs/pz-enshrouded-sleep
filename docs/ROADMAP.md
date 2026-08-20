@@ -1,94 +1,127 @@
 # Roadmap
 
-This roadmap is evidence-driven. Findings from controlled spikes and Public Alpha field use may change priorities.
+This is the **single canonical roadmap** for Enshrouded Sleep. The top-level README links here but intentionally does not duplicate roadmap content.
+
+The roadmap is evidence-driven. Controlled spikes and Public Alpha field results may change priorities.
 
 ## Current phase — Pre-Public-Alpha validation
 
-Status: **Public Alpha candidate; deployment paused pending health/time-domain characterization**
+Status: **Public Alpha candidate; deployment paused pending final survival-state characterization**
 
-Current development version: `v0.0.9`
+Current development version: `v0.0.10`
 
 Current behaviorally validated platform baseline: Project Zomboid `42.20.3`
 
-The core two-player sleep/clock architecture is working and the original clock/sleep defects are closed. Before moving onto the WHG public multiplayer server, the project is completing one additional safety gate:
+The core two-player sleep/clock architecture is working. Issues involving clock jumps, client day-length mismatch, and pathological long sleep have been resolved. The remaining pre-alpha gate is [`SPIKE-004 — Player Health and Survival Time Domains Under Calendar Compression`](spikes/SPIKE-004-health-time-domains.md).
 
-- [`SPIKE-004 — Player Health and Survival Time Domains Under Calendar Compression`](spikes/SPIKE-004-health-time-domains.md)
+### Evidence established by v0.0.9
+
+The controlled two-player v0.0.9 run materially reduced the safety risk:
+
+- awake-player health loss from active bleeding remained approximately real-time bound (`~0.993x` during a 5x partial-compression comparison);
+- `BleedingTime` and scratch-timer progression remained approximately `1x`;
+- no rapid awake-player bleed-out caused by `MinutesPerDay` compression was observed;
+- calories scaled approximately `5.01x` at 5x compression and `10.00x` at 10x;
+- carbohydrates scaled approximately `5.00x / 10.00x`;
+- proteins scaled approximately `5.00x / 10.01x`;
+- lipids scaled approximately `5.00x / 10.00x`;
+- server/client `MinutesPerDay` synchronization and baseline restoration remained correct;
+- `TrueMultiplier` remained `1.0` during partial compression.
+
+This establishes that player systems do not share one time domain: awake injury/bleeding behaved simulation/real-time bound, while core nutrition stores behaved world/calendar-time bound.
+
+### Why v0.0.10 exists
+
+v0.0.9 still returned `N/A` for hunger, thirst, fatigue, endurance, stress, panic, pain, sickness and related continuous state; its Moodle fallback also failed.
+
+Review of current Build 42.20.3 vanilla Lua and decompiled classes identified the cause: current vanilla code reads survival state through registered `CharacterStat` objects and queries Moodles using `MoodleType` objects. The earlier diagnostic still assumed legacy named Stats getters/public fields and numeric Moodle enumeration.
+
+v0.0.10 therefore adds a focused read-only diagnostic using:
+
+```lua
+player:getStats():get(CharacterStat.HUNGER)
+player:getStats():get(CharacterStat.THIRST)
+player:getStats():get(CharacterStat.FATIGUE)
+player:getStats():get(CharacterStat.ENDURANCE)
+
+player:getMoodles():getMoodleLevel(MoodleType.HUNGRY)
+player:getMoodles():getMoodleLevel(MoodleType.THIRST)
+player:getMoodles():getMoodleLevel(MoodleType.TIRED)
+player:getMoodles():getMoodleLevel(MoodleType.ENDURANCE)
+```
+
+It also emits one-time capability records so inaccessible classes/enums/methods can be diagnosed directly from the next test logs.
 
 ### Current blocker
 
-Determine whether awake-player health/survival systems become dangerously accelerated in real time while another player sleeps.
+Run one focused v0.0.10 test and classify the still-unresolved variables:
 
-Priority variables include:
+- hunger / Hungry Moodle;
+- thirst / Thirst Moodle;
+- fatigue / Tired Moodle;
+- endurance / Endurance Moodle;
+- stress, panic and pain where useful;
+- sickness / food sickness / poison where practical;
+- zombie infection/fever values where practical;
+- temperature/wetness/cold state where practical.
 
-- bleeding and overall health loss;
-- hunger and thirst;
-- fatigue/endurance;
-- wound healing;
-- sickness/food sickness/poison;
-- zombie infection timing;
-- body temperature/wetness/cold progression;
-- pain and related injury timers.
+The bleeding experiment does **not** need to be repeated unless v0.0.10 unexpectedly exposes a regression.
 
-### Evidence accumulated so far
+### Recommended v0.0.10 test
 
-The v0.0.8 solo integration run successfully exercised the health/injury telemetry. It also established a useful vanilla reference: a character with four active bleeding injuries died within roughly five real seconds after entering solo **vanilla full sleep**, while Enshrouded Sleep had restored baseline `MinutesPerDay` and stepped aside. A later healing sleep showed strong recovery/timer acceleration.
+Use two players and native `FastForwardMultiplier=10`:
 
-That evidence demonstrates why the safety question matters, but it does not classify Enshrouded Sleep partial compression because the monitored character was asleep and vanilla multiplier-driven fast-forward owned the state.
+```text
+Phase A: both awake, 60–90 real seconds
+Phase B: monitored player awake + other player asleep, 60–90 real seconds
+         expected ~5x / MinutesPerDay=18
+Phase C: both awake again, 60–90 real seconds
+```
 
-The same run found that many raw `Stats` getters are unavailable through the tested Lua/Kahlua bridge. v0.0.9 adds guarded public-field fallbacks, Moodle-level telemetry, and multiplier/delta context before the decisive multiplayer comparison.
+Before interpreting rates, verify the new `CAPABILITIES` records show that CharacterStats and Moodles are readable on the relevant server/client side.
 
 ### Pre-alpha exit criteria
 
 Move to Public Alpha when:
 
-- v0.0.9 diagnostics load without errors;
-- controlled baseline/partial/restored-baseline health telemetry is collected with an **awake** monitored player;
-- high-severity player-state variables are classified by time domain where measurable;
-- no unacceptable rapid awake-player bleed-out, starvation/dehydration, infection progression, or comparable safety problem is observed, **or** a validated mitigation/configuration bound is in place;
-- the normal core two-player regression still passes after the diagnostic additions;
-- a formal GO / CONDITIONAL GO / NO-GO decision is recorded in SPIKE-004.
-
-The recommended first safety run uses native `FastForwardMultiplier=10`, which should produce approximately factor `5` / `MinutesPerDay=18` with two living players and one sleeper on the 90-minute-day test server. This remains a strong experimental signal while giving the operator more reaction time than factor 20.
+- v0.0.10 loads without new Enshrouded Sleep errors;
+- corrected CharacterStat/Moodle telemetry is verified, or any remaining unavailable fields are explicitly characterized;
+- hunger/thirst/fatigue/endurance and other practical high-severity values are classified sufficiently to assess player safety;
+- no unacceptable rapid awake-player starvation/dehydration, infection, temperature or comparable failure is observed, **or** a validated mitigation/configuration bound is adopted;
+- the normal core two-player sleep regression still passes;
+- SPIKE-004 records a formal **GO / CONDITIONAL GO / NO-GO** decision.
 
 ## Public Alpha — next
 
-If SPIKE-004 produces a GO or acceptable conditional GO, deploy to a real multiplayer server with the normal Public Alpha configuration:
-
-```text
-Enabled = true
-PartialSleepSpeedScale = 1.0 (unless SPIKE-004 recommends a lower initial value)
-DiagnosticsEnabled = false
-```
+If SPIKE-004 produces a GO or acceptable conditional GO, deploy to a real multiplayer server with diagnostics normally disabled.
 
 Primary goals:
 
 - exercise proportional sleep with 3–12+ players;
-- observe repeated joins, disconnects, deaths, respawns, and sleep/wake cycles;
+- observe joins, disconnects, deaths, respawns, and repeated sleep/wake cycles;
 - verify clock continuity and normal-speed awake gameplay over long sessions;
-- detect client/server synchronization edge cases that are rare in controlled tests;
-- validate player health/survival behavior under ordinary live conditions after the controlled spike;
+- validate player survival behavior under ordinary live conditions;
 - characterize non-health world-time-driven effects such as spoilage, crops, generators, corpse decay, composting, and weather;
 - identify compatibility problems with other sleep/recovery or world-time-driven mods;
-- keep deployment and rollback simple enough for live server administration.
+- keep deployment and rollback operationally simple.
 
 ### Public Alpha exit criteria
 
-Move toward Public Beta when field evidence supports all of the following:
+Move toward Public Beta when field evidence supports:
 
-- no recurring clock-jump or client synchronization defect;
+- no recurring clock-jump/client synchronization defect;
 - no global acceleration of awake simulation;
 - no repeated sleep-duration pathology;
-- no high-severity awake-player health effect caused by partial compression;
+- no high-severity awake-player health/survival effect caused by partial compression;
 - reliable baseline restoration and vanilla full-sleep handoff across larger populations;
 - proportional behavior validated with more than two living players;
-- configuration inheritance validated across at least one alternate native day length and/or `FastForwardMultiplier`;
-- public-server log volume and error rate remain operationally acceptable;
-- major world-time-driven side effects are understood well enough to document, accept, or explicitly address;
-- no known severity-high defect requires administrators to avoid normal gameplay.
+- configuration inheritance validated across alternate native day length and/or `FastForwardMultiplier` settings;
+- operationally acceptable log/error volume;
+- major world-time side effects documented, accepted, or explicitly addressed.
 
 ## Public Beta / v0.1.x
 
-Public Beta should focus on stabilization rather than replacing the validated core sleep model.
+Public Beta focuses on stabilization, not replacement of the validated core sleep model.
 
 Likely work:
 
@@ -97,13 +130,13 @@ Likely work:
 - document expected behavior of major world-time-driven systems;
 - decide whether any measured system needs optional real-time compensation or should intentionally follow compressed world time;
 - improve administrator-facing configuration/documentation based on alpha feedback;
-- reduce/remove development instrumentation no longer useful;
+- reduce/remove development instrumentation no longer needed;
 - improve distribution/installation workflow;
-- add regression checks around future Project Zomboid B42 updates.
+- establish regression checks for future Project Zomboid B42 updates.
 
 ## v1.0 readiness
 
-A stable `v1.0` should require:
+A stable `v1.0` requires:
 
 - stable, documented server/client synchronization architecture;
 - reliable behavior across representative multiplayer population sizes;
@@ -126,7 +159,7 @@ Possible future features, not commitments:
 - refined lifecycle handling if public-server evidence demonstrates a real need;
 - configurable sleep windows or other non-vanilla sleep policy extensions.
 
-## Explicit non-goals for the current pre-alpha/alpha work
+## Explicit non-goals for current pre-alpha/alpha work
 
 The project is not currently trying to:
 
