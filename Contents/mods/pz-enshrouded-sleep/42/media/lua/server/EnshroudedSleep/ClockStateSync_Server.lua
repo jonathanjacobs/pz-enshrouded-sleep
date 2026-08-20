@@ -1,10 +1,23 @@
 -- Enshrouded Sleep - server-to-client MinutesPerDay replication
--- v0.0.10 package; normal synchronization behavior remains the validated v0.0.7 design
+-- Public Alpha v0.0.10 for Project Zomboid Build 42.20+
 --
--- Runtime server changes to GameTime MinutesPerDay are not automatically copied
--- to clients in the tested multiplayer path. This module publishes the settled
--- authoritative MinutesPerDay so clients can pace their local clocks coherently.
--- It does not calculate normal proportional sleep policy.
+-- PURPOSE
+-- -------
+-- Publish the settled, server-authoritative MinutesPerDay to connected clients
+-- so their local clocks pace coherently between vanilla multiplayer world-time
+-- corrections. This module observes controller output; it does not calculate the
+-- normal proportional-sleep target itself.
+--
+-- DESIGN BOUNDARY
+-- ---------------
+-- EnshroudedSleep_Server.lua owns server policy and the authoritative
+-- GameTime:setMinutesPerDay() mutation. This module only observes that settled
+-- value and sends protocol-1 EnshroudedSleep/ClockState packets. The client sync
+-- module mirrors the resulting target locally.
+--
+-- A one-observer-pass settling guard is retained from the validated v0.0.7
+-- regression so a population/sleep transition is not broadcast before the
+-- controller has had a chance to apply its new MinutesPerDay.
 
 if isClient() then return end
 
@@ -15,16 +28,26 @@ local PROTOCOL_VERSION = 1
 local HEARTBEAT_SECONDS = 2
 local EPSILON = 0.0001
 
+-- The synchronization layer captures its own observational baseline from the
+-- first valid authoritative value. It never writes this baseline to the server.
 local baselineMinutesPerDay = nil
 local lastSentSignature = nil
 local lastSentAt = -1
 local lastError = nil
 local lastObservedPopulationSignature = nil
 
+---Write one namespaced server synchronization message.
+---@param message any Value to stringify.
+---@return nil
 local function log(message)
     print(PREFIX .. " " .. tostring(message))
 end
 
+---Best-effort Java/Lua bridge call used only by this observer.
+---@param obj any Object expected to expose methodName.
+---@param methodName string Method name.
+---@param ... any Method arguments.
+---@return any|nil value
 local function safeMethod(obj, methodName, ...)
     if not obj then return nil end
     local okMethod, method = pcall(function() return obj[methodName] end)
@@ -34,6 +57,9 @@ local function safeMethod(obj, methodName, ...)
     return value
 end
 
+---Log one distinct synchronization error once until a successful cycle clears it.
+---@param message any Error description.
+---@return nil
 local function logErrorOnce(message)
     message = tostring(message)
     if message == lastError then return end
@@ -41,10 +67,15 @@ local function logErrorOnce(message)
     log("ERROR | " .. message)
 end
 
+---Clear the remembered synchronization error after successful observation/send.
+---@return nil
 local function clearError()
     lastError = nil
 end
 
+---Capture the first valid authoritative MinutesPerDay as the observer's baseline.
+---@param current number Current server MinutesPerDay.
+---@return nil
 local function ensureBaseline(current)
     if baselineMinutesPerDay ~= nil then return end
     if type(current) == "number" and current > 0 then
@@ -53,6 +84,10 @@ local function ensureBaseline(current)
     end
 end
 
+---Count instantiated living and sleeping players using the same vanilla-visible
+---population semantics as the authoritative controller.
+---@return integer|nil living
+---@return integer|nil sleeping
 local function countPlayers()
     if type(getOnlinePlayers) ~= "function" then return nil, nil end
     local players = getOnlinePlayers()
@@ -80,6 +115,8 @@ local function countPlayers()
     return living, sleeping
 end
 
+---Return whether the diagnostics-only forced-compression mode is currently armed.
+---@return boolean configured
 local function diagnosticOverrideConfigured()
     local vars = SandboxVars and SandboxVars.EnshroudedSleep or nil
     local factor = tonumber(vars and vars.DiagnosticForcedCompressionFactor) or 1.0
@@ -88,12 +125,18 @@ local function diagnosticOverrideConfigured()
         and factor > 1.0 + EPSILON
 end
 
+---Derive a semantic mode for packet/log metadata from observed population and
+---authoritative MinutesPerDay. This does not alter controller policy.
+---@param living integer|nil
+---@param sleeping integer|nil
+---@param currentMinutesPerDay number
+---@return string mode
 local function deriveMode(living, sleeping, currentMinutesPerDay)
     if living == nil or sleeping == nil then return "unknown" end
 
-    -- The diagnostic-forced state is valid only for the deliberately isolated
-    -- server test: exactly one connected living player, awake, with a compressed
-    -- authoritative MinutesPerDay.
+    -- Diagnostic-forced is valid only for the intentionally isolated SPIKE/support
+    -- state: one living connected server player, awake, and an authoritative
+    -- MinutesPerDay below the captured baseline.
     if diagnosticOverrideConfigured()
         and living == 1
         and sleeping == 0
@@ -107,6 +150,9 @@ local function deriveMode(living, sleeping, currentMinutesPerDay)
     return "partial"
 end
 
+---Observe the settled server clock and publish it when state changes or the
+---low-frequency convergence heartbeat becomes due.
+---@return nil
 local function synchronizeClients()
     local now = os.time()
     local gt = getGameTime()
@@ -126,6 +172,8 @@ local function synchronizeClients()
 
     local living, sleeping = countPlayers()
     if living == 0 then
+        -- No client needs a ClockState packet. Clear the transition guard so the
+        -- next connected population is allowed one settling pass.
         clearError()
         lastObservedPopulationSignature = nil
         return
@@ -134,6 +182,9 @@ local function synchronizeClients()
     local mode = deriveMode(living, sleeping, currentMinutesPerDay)
     local populationSignature = table.concat({mode, tostring(living), tostring(sleeping)}, "|")
 
+    -- One-pass settling guard: on the first observation of a new population/mode,
+    -- return without sending. The next tick sees controller output after its own
+    -- update and is therefore the value safe to publish.
     if populationSignature ~= lastObservedPopulationSignature then
         lastObservedPopulationSignature = populationSignature
         return
@@ -160,6 +211,9 @@ local function synchronizeClients()
         return
     end
 
+    -- Packet schema is deliberately small and versioned. living/sleeping are
+    -- diagnostic/context fields; clients must use minutesPerDay rather than
+    -- independently recalculating a target from those counts.
     local args = {
         protocolVersion = PROTOCOL_VERSION,
         buildVersion = "0.0.10",
@@ -181,6 +235,7 @@ local function synchronizeClients()
     lastSentSignature = signature
     lastSentAt = now
 
+    -- Heartbeats are intentionally quiet; only semantic transitions are logged.
     if stateChanged then
         log(string.format(
             "STATE | mode=%s | living=%s | sleeping=%s | currentServerMinutesPerDay=%.4f | broadcastMinutesPerDay=%.4f | broadcast ClockState",
@@ -193,10 +248,11 @@ local function synchronizeClients()
     end
 end
 
+-- Continue synchronization through paused/sleep transitions where supported.
 if Events.OnTickEvenPaused then
     Events.OnTickEvenPaused.Add(synchronizeClients)
 else
     Events.OnTick.Add(synchronizeClients)
 end
 
-log("Loaded v0.0.10 authoritative MinutesPerDay replication; diagnostic-forced sync requires exactly one awake living player on the server.")
+log("Loaded Public Alpha v0.0.10 authoritative MinutesPerDay replication.")
