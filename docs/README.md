@@ -4,23 +4,24 @@ Detailed design, testing, deployment, validation evidence, spikes, and architect
 
 ## Current project state
 
-- Development version: `v0.0.10`
+- Version: `v0.0.10`
+- Status: **Public Alpha**
 - Runtime scope: **multiplayer servers only; local/standalone single-player is out of scope**
 - Core sleep/clock architecture: validated on Project Zomboid `42.20.3`
-- v0.0.9 health result: awake bleeding/injury progression approximately real-time bound; core nutrition stores approximately proportional to calendar compression
-- Current blocker: run the v0.0.10 **one-connected-player multiplayer-server** diagnostic-forced-compression test and classify hunger/thirst/fatigue/endurance and related survival state
-- WHG Public Alpha deployment: **paused pending completion of SPIKE-004**
+- SPIKE-004: **complete / GO for Public Alpha**
+- Health/survival result: awake acute injury/body-health loss approximately real-time bound; hunger/thirst/fatigue and core nutrition stores approximately world/calendar-time bound; resting endurance recovery approximately real-time bound under tested conditions
+- Current focus: larger-population field validation, live lifecycle behavior, non-health world-time systems, and pathological survival states not exercised in SPIKE-004
 
 ## Start here
 
-- [`DEPLOYMENT.md`](DEPLOYMENT.md) — deployment gate, installation, monitoring, diagnostics, and rollback guidance.
+- [`DEPLOYMENT.md`](DEPLOYMENT.md) — Public Alpha installation, monitoring, diagnostics, and rollback guidance.
 - [`ROADMAP.md`](ROADMAP.md) — **single canonical project roadmap** and release-stage criteria.
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — proportional compression, vanilla handoff, client synchronization, diagnostic forced compression, and time-domain boundaries.
 
 ## Specification and testing
 
 - [`REQUIREMENTS.md`](REQUIREMENTS.md) — canonical MVP requirements and acceptance matrix.
-- [`TESTING.md`](TESTING.md) — current smoke/regression procedures and the v0.0.10 one-connected-player server SPIKE-004 test.
+- [`TESTING.md`](TESTING.md) — smoke/regression procedures and Public Alpha field-testing guidance.
 - [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md) — consolidated evidence from v0.0.1 onward.
 
 ## Formal spike investigations
@@ -28,7 +29,7 @@ Detailed design, testing, deployment, validation evidence, spikes, and architect
 - [`spikes/SPIKE-001-minutes-per-day-feasibility.md`](spikes/SPIKE-001-minutes-per-day-feasibility.md) — proved `MinutesPerDay` calendar compression without global active-simulation acceleration.
 - [`spikes/SPIKE-002-vanilla-sleep-lifecycle.md`](spikes/SPIKE-002-vanilla-sleep-lifecycle.md) — established vanilla population/sleep/full-sleep semantics.
 - [`spikes/SPIKE-003-client-clock-synchronization.md`](spikes/SPIKE-003-client-clock-synchronization.md) — diagnosed/fixed client day-length pacing mismatch.
-- [`spikes/SPIKE-004-health-time-domains.md`](spikes/SPIKE-004-health-time-domains.md) — **current Public Alpha blocker**; maps awake-player health/survival behavior under calendar compression.
+- [`spikes/SPIKE-004-health-time-domains.md`](spikes/SPIKE-004-health-time-domains.md) — completed health/survival time-domain investigation; **GO for Public Alpha**.
 
 See [`spikes/README.md`](spikes/README.md) for the spike convention.
 
@@ -38,6 +39,8 @@ See [`spikes/README.md`](spikes/README.md) for the spike convention.
 - [`adr/ADR-001-use-minutes-per-day-for-partial-sleep.md`](adr/ADR-001-use-minutes-per-day-for-partial-sleep.md) — use `MinutesPerDay`, not global simulation fast-forward.
 - [`adr/ADR-002-extend-vanilla-sleep-lifecycle.md`](adr/ADR-002-extend-vanilla-sleep-lifecycle.md) — extend vanilla lifecycle and hand full sleep back to vanilla.
 - [`adr/ADR-003-mirror-authoritative-minutes-per-day-to-clients.md`](adr/ADR-003-mirror-authoritative-minutes-per-day-to-clients.md) — explicitly mirror authoritative day-length pacing to clients.
+
+SPIKE-004 did not require a new ADR because its results did not change the chosen architecture.
 
 See [`adr/README.md`](adr/README.md) for the ADR convention.
 
