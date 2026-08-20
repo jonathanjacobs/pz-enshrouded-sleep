@@ -4,7 +4,9 @@ Current deployment status: **PAUSED pending completion of SPIKE-004**
 Current development version: `v0.0.10`  
 Validated core platform: Project Zomboid `42.20.3`
 
-The core two-player sleep/clock architecture is validated. The remaining deployment gate is narrower: finish classification of survival values that v0.0.9 could not observe with its outdated Stats/Moodle access paths.
+Enshrouded Sleep is a **multiplayer-server mod**. Local/standalone single-player is outside project scope.
+
+The core two-player sleep/clock architecture is validated. The remaining deployment gate is to finish classification of survival values that v0.0.9 could not observe with its outdated Stats/Moodle access paths.
 
 Do **not** deploy the current development build to the WHG public server until [`SPIKE-004`](spikes/SPIKE-004-health-time-domains.md) records a GO or acceptable CONDITIONAL GO decision.
 
@@ -19,36 +21,38 @@ The v0.0.9 two-player run showed:
 - server/client `MinutesPerDay` synchronization and baseline restoration remained correct;
 - `TrueMultiplier` remained `1.0` during partial compression.
 
-The acute bleeding concern therefore passed. The remaining questions are hunger, thirst, fatigue, endurance, and other practical high-severity survival state.
+The remaining questions are hunger, thirst, fatigue, endurance, and other practical high-severity survival state.
 
-## Why v0.0.10 requires one more controlled test
+## Why v0.0.10 requires one more controlled server test
 
 v0.0.10 corrects survival-state observability using current Build 42 `CharacterStat`, `MoodleType` and Nutrition APIs.
 
-It also adds a diagnostics-only single-player forced-compression path so the remaining causal question can be tested on one **awake** character without requiring a second sleeper.
+It also adds a diagnostics-only forced-compression path that works on a normal multiplayer server with **exactly one living player connected and awake**. This reproduces the relevant `MinutesPerDay` condition without requiring a second sleeping client.
 
-Test-only activation requires:
+Activation requires:
 
 ```text
 DiagnosticsEnabled = true
 DiagnosticForcedCompressionFactor > 1
+living = 1
+sleeping = 0
 ```
 
 With a 90-minute baseline and factor `5`, expected `MinutesPerDay` is approximately `18`.
 
-The test override does not call the global simulation multiplier. If any observed living player sleeps, the override is suspended and baseline `MinutesPerDay` is restored before vanilla sleep acceleration proceeds.
+If the player sleeps or another living player connects, the override is suspended and baseline is restored.
 
 ## Pre-deployment gate
 
 Before WHG Public Alpha deployment:
 
-1. Confirm v0.0.10 loads cleanly in standalone single-player/debug mode.
+1. Confirm v0.0.10 loads cleanly on the multiplayer test server and one connected client.
 2. Confirm `CAPABILITIES` records show corrected CharacterStat/Moodle access, or explicitly characterize any remaining exposure gap.
-3. Run the one-character baseline / forced factor-5 / restored-baseline test for 60–90 seconds per phase.
+3. Run the one-connected-player baseline / forced factor-5 / restored-baseline test for 60–90 seconds per phase.
 4. Classify hunger/thirst/fatigue/endurance and other practical high-severity variables.
 5. Confirm no unacceptable rapid starvation/dehydration, infection, temperature or comparable awake-player hazard, or validate a mitigation/configuration bound.
 6. Record GO / CONDITIONAL GO / NO-GO in SPIKE-004.
-7. Run a short core two-player sleep regression before public deployment.
+7. Run a short normal two-player sleep regression before public deployment.
 
 The bleeding experiment does not need to be deliberately repeated unless a regression appears.
 
@@ -65,13 +69,13 @@ EnshroudedSleep = {
 }
 ```
 
-`DiagnosticForcedCompressionFactor` is **test-only**. Public Alpha must run at `1.0` except during an explicitly controlled diagnostic session.
+`DiagnosticForcedCompressionFactor` is **server-test-only**. Public Alpha must run at `1.0` except during an explicitly controlled diagnostic session with exactly one connected living player.
 
-`DiagnosticsEnabled=true` produces clock/sleep, broad health/body, CharacterStat, Moodle, nutrition and multiplier-context telemetry. It can generate large logs and should be restricted to controlled diagnostics.
+`DiagnosticsEnabled=true` produces clock/sleep, broad health/body, CharacterStat, Moodle, nutrition and multiplier-context telemetry and can generate large logs.
 
 ## Server installation
 
-Preferred local server folder:
+Preferred server folder:
 
 ```text
 mods/pz-enshrouded-sleep/
@@ -113,44 +117,31 @@ Expected low-volume prefixes include:
 [EnshroudedSleepSync][CLIENT]
 ```
 
-The diagnostic modules may print startup lines, but continuous one-second output must not appear with diagnostics disabled.
-
 ## Public Alpha monitoring priorities
 
-Pay particular attention to:
-
-- 3+ player proportional fractions and multiple sleepers;
-- joins/disconnects/deaths/respawns while compression is active;
-- repeated sleep/wake cycles;
-- clock continuity and exact baseline restoration;
-- normal-speed awake movement/combat/actions;
-- unexpected hunger/thirst/fatigue or health-state progression;
-- client error-counter increases;
-- non-health world-time systems such as spoilage, crops, generators, corpses, composting and weather;
-- mods driven by `EveryOneMinute`, `WorldAgeHours`, or custom sleep/recovery logic.
+Pay particular attention to 3+ player proportional fractions, joins/disconnects/deaths/respawns, repeated sleep/wake cycles, clock continuity, exact baseline restoration, normal-speed awake actions, unexpected survival-state progression, client errors, and non-health world-time systems such as spoilage, crops, generators, corpses, composting and weather.
 
 ## Focused diagnostics
 
-For a reproducible issue, temporarily set:
+Normal troubleshooting:
 
 ```lua
 DiagnosticsEnabled = true
 DiagnosticForcedCompressionFactor = 1.0
 ```
 
-Only raise the forced factor above `1.0` when deliberately reproducing a time-domain condition with an awake test character.
+For the SPIKE-004 forced-time test only, raise the factor above `1.0` **after confirming exactly one living player is connected and awake**.
 
-Relevant prefixes include:
+Relevant prefixes:
 
 ```text
 [EnshroudedSleepHealthDiag][SERVER]
 [EnshroudedSleepHealthDiag][CLIENT]
 [EnshroudedSleepSurvivalDiag][SERVER]
 [EnshroudedSleepSurvivalDiag][CLIENT]
-[EnshroudedSleepStandaloneHealthDiag][SERVER]
 ```
 
-Collect server/game console, DebugLog/log ZIP and affected client logs as applicable, then disable diagnostics after the shortest practical reproduction.
+Collect server console/logs and the connected test player's client logs, then disable diagnostics after the shortest practical reproduction.
 
 ## Rollback
 
@@ -164,11 +155,4 @@ The mod does not maintain a custom persistent sleep database. Removing it return
 
 ## Public Alpha rollback triggers
 
-Roll back and investigate if:
-
-- compressed `MinutesPerDay` persists after baseline should be restored;
-- awake simulation globally accelerates;
-- clients repeatedly lose clock pacing synchronization;
-- recurring Enshrouded Sleep exceptions appear;
-- awake health/survival state becomes dangerously accelerated beyond the accepted SPIKE-004 behavior;
-- a time-driven system causes severe persistent world/player-state damage beyond the documented alpha model.
+Roll back and investigate if compressed `MinutesPerDay` persists after baseline should be restored, awake simulation globally accelerates, clients repeatedly lose clock pacing synchronization, recurring Enshrouded Sleep exceptions appear, awake health/survival state becomes dangerously accelerated beyond accepted SPIKE-004 behavior, or a time-driven system causes severe persistent player/world-state damage.
