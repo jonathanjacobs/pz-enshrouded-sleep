@@ -2,9 +2,8 @@
 -- v0.0.10 pre-Public-Alpha instrumentation for Project Zomboid Build 42.20+
 --
 -- Samples Build 42 CharacterStat, MoodleType, Nutrition, and related health
--- values needed to finish SPIKE-004. Server-side/read-only. v0.0.10 adds a
--- guarded getPlayer() fallback so standalone single-player tests are observable
--- even when getOnlinePlayers() is absent or empty.
+-- values needed to finish SPIKE-004. This diagnostic is server-side/read-only
+-- and observes only instantiated players returned by getOnlinePlayers().
 
 if isClient() then return end
 
@@ -39,31 +38,21 @@ local function addLivingPlayer(result, player)
     return SurvivalStatProbe.safeMethod(player, "isAsleep") == true and 1 or 0
 end
 
-local function localPlayerFallback(result)
-    if type(getPlayer) ~= "function" then return result, #result, 0 end
-    local ok, player = pcall(getPlayer)
-    if not ok or not player then return result, #result, 0 end
-    local sleeping = addLivingPlayer(result, player)
-    return result, #result, sleeping
-end
-
 local function collectLivingPlayers()
     local result = {}
+    if type(getOnlinePlayers) ~= "function" then return result, 0, 0 end
 
-    if type(getOnlinePlayers) == "function" then
-        local players = getOnlinePlayers()
-        local size = SurvivalStatProbe.safeNumber(players, "size")
-        if size and size > 0 then
-            local sleeping = 0
-            for i = 0, size - 1 do
-                local player = SurvivalStatProbe.safeMethod(players, "get", i)
-                sleeping = sleeping + addLivingPlayer(result, player)
-            end
-            return result, #result, sleeping
-        end
+    local players = getOnlinePlayers()
+    local size = SurvivalStatProbe.safeNumber(players, "size")
+    if not size then return result, 0, 0 end
+
+    local sleeping = 0
+    for i = 0, size - 1 do
+        local player = SurvivalStatProbe.safeMethod(players, "get", i)
+        sleeping = sleeping + addLivingPlayer(result, player)
     end
 
-    return localPlayerFallback(result)
+    return result, #result, sleeping
 end
 
 local function derivePhase(living, sleeping, minutesPerDay, baseline)
@@ -73,6 +62,8 @@ local function derivePhase(living, sleeping, minutesPerDay, baseline)
     end
 
     if diagnosticForcedConfigured()
+        and living == 1
+        and sleeping == 0
         and baseline and minutesPerDay
         and minutesPerDay < baseline - EPSILON then
         return "diagnostic-forced"
@@ -162,4 +153,4 @@ else
     Events.OnTick.Add(sample)
 end
 
-log("Loaded v0.0.10 survival-stat diagnostic; standalone getPlayer() fallback active when DiagnosticsEnabled=true.")
+log("Loaded v0.0.10 server survival-stat diagnostic; online server players only, dormant unless DiagnosticsEnabled=true.")
