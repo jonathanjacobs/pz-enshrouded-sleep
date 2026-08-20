@@ -16,6 +16,30 @@ Human-readable history of notable Enshrouded Sleep changes. Git remains authorit
 
 **Public Alpha.** v0.0.10 completed the final pre-deployment health/survival investigation and SPIKE-004 returned **GO**.
 
+### Steam Workshop publication preparation
+
+The repository was restructured so a clean copy of the repository root can serve directly as the Project Zomboid Workshop item without a generated deployment package.
+
+The single authoritative runtime mod tree is now:
+
+```text
+Contents/mods/pz-enshrouded-sleep/
+```
+
+The former root-level runtime copies (`42/`, `common/`, and `mod.info`) were removed to prevent source/release drift. The outer repository/Workshop item intentionally retains public project documentation, licensing/provenance files, `workshop.txt`, and related release material.
+
+Added/updated:
+
+- root `workshop.txt` with the permanent Steam ID intentionally blank until first publication;
+- `docs/STEAM_WORKSHOP.md` for first upload/update procedures and permanent Workshop-ID handling;
+- `.gitignore` and release-checklist guidance to exclude `.git/`, local logs, credentials, private test artifacts, and scratch files from the Workshop authoring copy;
+- installation/deployment instructions for the new Workshop wrapper versus inner PZ mod tree;
+- public README table of contents, simplified Public Alpha landing-page content, and removal of detailed SPIKE-004 evidence from the README;
+- explicit The Indie Stone and Keen Games non-affiliation/disclaimer language in public/legal/provenance documentation;
+- Public Alpha v0.0.10 Lua headers, startup banners, and inline architecture/function documentation across the controller, synchronization, and diagnostic modules without changing normal sleep policy.
+
+Workshop artwork (`preview.png`, and any versioned `poster.png`/`icon.png` chosen for the in-game mod manager) remains a publication-time asset step and must be validated against the current Build 42 `ModTemplate` before the first upload.
+
 ### v0.0.10 survival-state test result
 
 The focused diagnostics successfully resolved/read:
