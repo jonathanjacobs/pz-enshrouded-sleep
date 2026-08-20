@@ -6,13 +6,13 @@ Human-readable history of notable Enshrouded Sleep changes. Git remains authorit
 
 ### Next decision
 
-- Run the focused v0.0.10 baseline/partial/restored-baseline CharacterStat/Moodle test for SPIKE-004.
+- Run the v0.0.10 single-player baseline/forced-compression/restored-baseline CharacterStat/Moodle test for SPIKE-004.
 - Classify hunger, thirst, fatigue, endurance and other practical high-severity survival values.
 - Record a **GO / CONDITIONAL GO / NO-GO** decision for WHG Public Alpha deployment.
 
 ## [0.0.10] - 2026-08-19
 
-Focused SPIKE-004 diagnostic correction after analysis of the successful v0.0.9 two-player run.
+Focused SPIKE-004 diagnostic correction and controlled single-player time-domain test support after analysis of the successful v0.0.9 two-player run.
 
 ### v0.0.9 evidence incorporated
 
@@ -34,72 +34,75 @@ Nutrition was strongly world/calendar-time bound:
 
 The run also preserved correct server/client `MinutesPerDay` convergence and `TrueMultiplier=1.0` during partial compression.
 
-### Root cause of remaining v0.0.9 N/A fields
+### Corrected survival-state observability
 
-Current Build 42.20.3 vanilla Lua uses registered `CharacterStat` objects rather than legacy named Stats getters/fields for core survival state:
+Current Build 42.20.3 vanilla Lua uses registered `CharacterStat` objects rather than legacy named Stats getters/fields for core survival state, and Moodles are keyed by `MoodleType` objects.
+
+v0.0.10 therefore uses:
 
 ```lua
 player:getStats():get(CharacterStat.HUNGER)
-```
-
-Current Build 42.20.3 Moodles are keyed by `MoodleType` objects:
-
-```lua
 player:getMoodles():getMoodleLevel(MoodleType.HUNGRY)
 ```
 
-The v0.0.9 numeric Moodle enumeration assumption did not match the current `Moodles` class. This explains the persistent `N/A` Moodle stream.
+through the shared read-only `SurvivalStatProbe` and focused server/client survival diagnostics. One-time `CAPABILITIES` records make any remaining `N/A` values actionable.
 
-### Added — shared survival-state probe
+### Added — diagnostics-only single-player forced compression
 
-Added:
+Added `DiagnosticForcedCompressionFactor`, default `1.0`, range `1.0`–`20.0`.
 
-```text
-42/media/lua/shared/EnshroudedSleep/SurvivalStatProbe.lua
-```
-
-The probe uses guarded Build 42 access for registered CharacterStats, explicit MoodleTypes, direct Nutrition getters, and selected BodyDamage context. It includes one-time capability reporting so future unavailable fields can be localized to class/global resolution, enum resolution, object access, or method invocation.
-
-### Added — focused server/client survival diagnostics
-
-Added:
+The override only activates when both conditions are true:
 
 ```text
-42/media/lua/server/EnshroudedSleep/SurvivalStatDiagnostic_Server.lua
-42/media/lua/client/EnshroudedSleep/SurvivalStatDiagnostic_Client.lua
+DiagnosticsEnabled = true
+DiagnosticForcedCompressionFactor > 1
 ```
 
-New diagnostic prefixes:
+When active and at least one observed living character is awake, the authoritative controller applies:
 
 ```text
-[EnshroudedSleepSurvivalDiag][SERVER]
-[EnshroudedSleepSurvivalDiag][CLIENT]
+EffectiveMinutesPerDay = BaselineMinutesPerDay / DiagnosticForcedCompressionFactor
 ```
 
-Each side emits a one-time `CAPABILITIES` record and one-second `SURVIVAL` samples only while `DiagnosticsEnabled=true`.
+This allows SPIKE-004 to isolate the effect of `MinutesPerDay` on one **awake** character without requiring a second sleeping player.
+
+Safety invariants:
+
+- the override never calls `GameTime:setMultiplier()`;
+- it is explicitly test-only and disabled at factor `1.0`;
+- if any observed living player sleeps, the override is suspended and native `MinutesPerDay` is restored before vanilla sleep acceleration can own the state;
+- disabling verbose diagnostics also disables the override;
+- ordinary partial-sleep policy remains unchanged.
+
+The multiplayer clock-sync observer recognizes `diagnostic-forced` state so a hosted diagnostic test cannot be incorrectly broadcast back to baseline.
+
+### Added — standalone player telemetry fallback
+
+The focused server survival diagnostic now falls back to `getPlayer()` if `getOnlinePlayers()` is absent or empty. A new `StandaloneHealthDiagnostic_Server.lua` provides the corresponding detailed health/bleeding/body-part stream only in that standalone fallback case.
+
+This makes the baseline → forced compression → restored baseline SPIKE-004 comparison testable in a normal single-player/debug session.
 
 ### Scope
 
-- No proportional-sleep formula change.
+- No normal proportional-sleep formula change.
 - No health/survival compensation.
 - No sleep eligibility/wake-policy change.
 - No global multiplier change.
 - Existing broad injury/body diagnostics remain available.
-- New instrumentation is read-only.
+- New instrumentation/test override is controlled and diagnostic-only.
 
 ### Documentation
 
-- Updated SPIKE-004 with the v0.0.9 classification results and focused v0.0.10 test.
-- Updated issue #4 with completed and remaining work.
-- Updated requirements and testing guidance for `CharacterStat`/`MoodleType` APIs.
-- Made `docs/ROADMAP.md` the single canonical roadmap; removed the duplicate roadmap section from the top-level README.
-- Updated repository and Build 42 metadata to `0.0.10`.
+- Updated SPIKE-004 and the testing guide to make the single-player forced-compression test the preferred remaining diagnostic.
+- Updated README/configuration documentation and issue #4.
+- `docs/ROADMAP.md` remains the single canonical roadmap.
+- Repository and Build 42 metadata remain `0.0.10`.
 
 ## [0.0.9] - 2026-08-19
 
 Follow-up SPIKE-004 diagnostic build after the first successful solo health/injury telemetry run.
 
-Added guarded raw-stat/public-field probes, attempted Moodle telemetry, and direct `DeltaMinutesPerDay`/multiplier context. The build remained observational only. Runtime testing later showed that the legacy raw-stat access and numeric Moodle-enumeration assumptions did not match current Build 42.20.3 APIs; this is corrected in v0.0.10.
+Added guarded raw-stat/public-field probes, attempted Moodle telemetry, and direct `DeltaMinutesPerDay`/multiplier context. Runtime testing later showed that the legacy raw-stat access and numeric Moodle-enumeration assumptions did not match current Build 42.20.3 APIs; this is corrected in v0.0.10.
 
 The v0.0.9 controlled two-player run nevertheless produced decisive bleeding and nutrition evidence now recorded under the v0.0.10 entry and SPIKE-004.
 
