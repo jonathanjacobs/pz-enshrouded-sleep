@@ -9,7 +9,7 @@
 **Proportional multiplayer sleeping for Project Zomboid Build 42.**
 
 Status: **Public Alpha candidate — pre-deployment health/time-domain validation in progress**  
-Current development version: **v0.0.9**  
+Current development version: **v0.0.10**  
 Current behaviorally validated PZ baseline: **42.20.3**
 
 Enshrouded Sleep lets some players sleep without requiring every survivor on a multiplayer server to go to bed at the same time.
@@ -17,8 +17,6 @@ Enshrouded Sleep lets some players sleep without requiring every survivor on a m
 When part of the living player population is asleep, the mod proportionally compresses **world/calendar time**. Awake players continue moving, fighting, driving, crafting, and interacting at normal active-game speed. When every living player is asleep, Enshrouded Sleep restores the native day length and lets vanilla Project Zomboid full-sleep fast-forward take over.
 
 ## What it does
-
-Vanilla Project Zomboid already owns sleep eligibility, fatigue, sleeping pills, traits, waking, death/respawn, and full-sleep fast-forward. Enshrouded Sleep adds the missing multiplayer case:
 
 ```text
 no one asleep
@@ -33,7 +31,7 @@ all living players asleep
 -> vanilla full-sleep fast-forward takes over
 ```
 
-For example, on the validated test configuration using a 90-real-minute day and native fast-forward setting of 40:
+On the validated 90-real-minute-day / native-fast-forward-40 test configuration:
 
 ```text
 2 living / 0 sleeping -> 90 min/day
@@ -51,65 +49,90 @@ Validated behavior includes:
 
 - proportional partial-sleep calendar compression;
 - synchronized server/client day-length pacing;
-- smooth sleeping black-screen clock;
-- smooth awake HUD/watch clock;
+- smooth sleeping black-screen and awake HUD/watch clocks;
 - normal-speed awake movement/actions while calendar time is compressed;
-- exact return to native day length when sleepers wake;
+- exact baseline restoration on wake;
 - correct handoff to vanilla when all living players sleep;
 - correct recalculation after disconnects;
-- normal vanilla wake timing once client/server clock pacing is synchronized;
-- clean regression without the earlier client error flood.
+- normal vanilla wake timing once client/server pacing is synchronized;
+- clean regression without the earlier client synchronization error flood.
 
-The original clock-jump and pathological-long-sleep bugs are closed.
+### SPIKE-004 safety result so far
 
-### Why Public Alpha deployment is temporarily paused
+The v0.0.9 two-player controlled run materially narrowed the remaining Public Alpha safety question.
 
-Pre-deployment review identified a separate safety question: **world/calendar time really is passing faster**, so player health and survival systems may not all progress on the same time domain.
+With an awake injured subject while another player triggered approximately **5x partial calendar compression**:
 
-If one awake player is bleeding while another sleeps, we need to know whether blood loss remains tied to normal active-simulation time or accelerates with compressed world time. The same question applies to hunger, thirst, fatigue, healing, sickness, infection, temperature, and related systems.
+- active bleeding health loss remained approximately **1x real-time rate** (`~0.993x` in the clean comparison interval);
+- `BleedingTime` and scratch-timer progression remained approximately **1x**;
+- therefore the feared case where an awake wounded player suddenly bleeds out five or ten times faster was **not observed**.
 
-A solo v0.0.8 diagnostic run successfully validated the new broad health/injury telemetry and produced a useful vanilla full-sleep reference. In that run, vanilla full sleep accelerated world progression and health/wound processes dramatically; a character with four active bleeding injuries died within only a few real seconds after falling asleep. That was **vanilla all-players-asleep fast-forward**, not Enshrouded Sleep partial compression, so it does not answer the awake-player safety question by itself.
+Nutrition behaved differently and very cleanly:
 
-The same run also showed that several raw `Stats` values were not exposed through their getters in the tested Lua/Kahlua context. v0.0.9 improves the diagnostic with guarded public-field fallbacks, Moodle-level telemetry, and direct multiplier/delta context.
+- calories scaled approximately **5.01x** at 5x compression and **10.00x** at 10x;
+- carbohydrates scaled approximately **5.00x / 10.00x**;
+- proteins scaled approximately **5.00x / 10.01x**;
+- lipids scaled approximately **5.00x / 10.00x**.
 
-Public Alpha deployment remains a **GO candidate**, blocked only until [`SPIKE-004`](docs/spikes/SPIKE-004-health-time-domains.md) compares an awake injured player at baseline versus partial compression.
+Those stores are therefore strongly world/calendar-time bound in the tested conditions.
 
-## v0.0.9 health/time-domain diagnostics
+The remaining blocker is observability of hunger, thirst, fatigue, endurance, stress, sickness, and related character state. v0.0.9 used legacy `Stats` getter/public-field assumptions and attempted to enumerate Moodles numerically; Build 42.20.3 vanilla code uses a different API shape.
 
-When verbose diagnostics are explicitly enabled, v0.0.9 samples every instantiated living player on the server once per real second and records a broad set of metrics including:
+## v0.0.10 focused survival diagnostics
 
-- health and overall body health;
-- hunger, thirst, fatigue, endurance;
-- stress, panic, pain, boredom, unhappiness;
-- sickness, poison, food sickness and infection state;
-- temperature, wetness and cold progression;
-- nutrition/weight metrics;
-- vanilla sleep counters;
-- detailed timers and state for injured body parts, including bleeding, cuts, scratches, bites, deep wounds, fractures, burns, bandages and wound infection;
-- Project Zomboid Moodle levels as a fallback/secondary health-state signal;
-- `DeltaMinutesPerDay`, game multiplier, true multiplier and server multiplier alongside the health sample.
+v0.0.10 adds a shared read-only probe and focused server/client diagnostic stream based on the same APIs used by current Build 42 vanilla Lua.
 
-For raw survival stats, the diagnostic first attempts the normal getter and then safely probes documented public fields where available. Missing APIs remain `N/A`; the diagnostic must not fail the gameplay session because a value is unavailable.
+Continuous character stats are read through `CharacterStat` objects:
 
-The owning client records the corresponding local state because previous sleep diagnostics showed that some useful player timing values can be exposed differently on client and server.
+```lua
+local stats = player:getStats()
+local hunger = stats:get(CharacterStat.HUNGER)
+local thirst = stats:get(CharacterStat.THIRST)
+local fatigue = stats:get(CharacterStat.FATIGUE)
+local endurance = stats:get(CharacterStat.ENDURANCE)
+```
 
-This instrumentation is observational only. It does not alter health, injuries, sleep, fatigue, Moodles, or time behavior.
+The diagnostic also samples stress, panic, pain, boredom, unhappiness, sickness, food sickness, poison, zombie-infection/fever values, temperature, wetness, fitness, morale, intoxication, discomfort and related registered `CharacterStat` values.
+
+Moodles are queried by `MoodleType`, not by numeric index:
+
+```lua
+local moodles = player:getMoodles()
+local hungryLevel = moodles:getMoodleLevel(MoodleType.HUNGRY)
+local thirstLevel = moodles:getMoodleLevel(MoodleType.THIRST)
+local tiredLevel = moodles:getMoodleLevel(MoodleType.TIRED)
+local enduranceLevel = moodles:getMoodleLevel(MoodleType.ENDURANCE)
+```
+
+Nutrition remains directly observable through:
+
+```lua
+local nutrition = player:getNutrition()
+nutrition:getWeight()
+nutrition:getCalories()
+nutrition:getCarbohydrates()
+nutrition:getProteins()
+nutrition:getLipids()
+```
+
+The new diagnostic also emits a one-time `CAPABILITIES` record on server and client so a future `N/A` result tells us whether the class globals, enum members, object, or actual getter path failed.
+
+Diagnostic prefixes are:
+
+```text
+[EnshroudedSleepSurvivalDiag][SERVER]
+[EnshroudedSleepSurvivalDiag][CLIENT]
+```
+
+The older broad health/body diagnostic remains in place because its detailed injury telemetry was already useful and validated. The new stream is deliberately focused on the Build 42 survival-state API gap.
+
+All diagnostic code is observational only and remains dormant unless `DiagnosticsEnabled=true`.
 
 ## Important design caveat: world time really is passing faster
 
 Enshrouded Sleep does not merely animate the clock faster. During partial sleep, Project Zomboid world/calendar minutes genuinely elapse faster in real time.
 
-Systems tied to game minutes or `WorldAgeHours` may therefore progress faster while someone sleeps. Current investigation priorities include:
-
-- player health/survival effects — **SPIKE-004, pre-alpha blocker**;
-- food spoilage;
-- farming/crops;
-- generator fuel consumption;
-- corpse decay and composting;
-- weather;
-- other mods driven by world/game time.
-
-This is distinct from globally accelerating active gameplay. Controlled tests have shown awake movement/actions remain normal-speed.
+The v0.0.9 run confirms that different player systems use different time domains: awake bleeding/injury progression behaved approximately real-time bound, while core nutrition stores followed compressed world time almost exactly. Other world-time systems such as spoilage, farming, generators, corpses, composting and weather remain later characterization targets.
 
 ## Installation
 
@@ -143,9 +166,7 @@ Server configuration:
 Mods=pz-enshrouded-sleep
 ```
 
-GitHub **Download ZIP** normally creates `pz-enshrouded-sleep-main`; rename that outer folder to `pz-enshrouded-sleep` before installation. The `-main` suffix is a Git archive/branch name, not part of the PZ Mod ID.
-
-Until an automated distribution mechanism is used, participating clients need the same mod snapshot installed locally.
+GitHub **Download ZIP** normally creates `pz-enshrouded-sleep-main`; rename that outer folder to `pz-enshrouded-sleep` before installation. Until an automated distribution mechanism is used, participating clients need the same mod snapshot installed locally.
 
 ## Configuration
 
@@ -165,10 +186,10 @@ EnshroudedSleep = {
 
 ```text
 false -> normal operation; low-volume state-transition logs only
-true  -> one-second clock, sleep, health, survival, Moodle and injury telemetry
+true  -> one-second clock, health/body, CharacterStat, Moodle and nutrition telemetry
 ```
 
-Leave diagnostics off except during controlled testing or focused troubleshooting; the expanded health diagnostic can generate large logs.
+Leave diagnostics off except during controlled testing or focused troubleshooting.
 
 ## How proportional sleep is calculated
 
@@ -194,48 +215,13 @@ The server remains authoritative. Clients receive the resulting effective `Minut
 
 For the technical design and rationale, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and the architecture decision records under [`docs/adr/`](docs/adr/).
 
-## Roadmap
-
-### Pre-Public-Alpha — current
-
-- run the v0.0.9 SPIKE-004 baseline/partial/restored-baseline comparison;
-- classify bleeding/health loss and the available survival metrics by time domain;
-- make a GO / CONDITIONAL GO / NO-GO decision for live WHG deployment;
-- run a short core sleep regression after the diagnostic work.
-
-### Public Alpha — next, if SPIKE-004 passes
-
-- validate real 3–12+ player populations;
-- exercise joins, disconnects, deaths, respawns and repeated sleep cycles;
-- monitor long-session stability and client errors;
-- characterize non-health world-time systems such as spoilage, farming, generators and weather;
-- test interaction with the normal multiplayer mod stack.
-
-### Public Beta / v0.1.x
-
-- complete the remaining configuration/acceptance matrix;
-- document or address important world-time side effects;
-- build a compatibility matrix for important B42 mods;
-- improve distribution and administrator experience;
-- establish regression practice for future PZ B42 releases.
-
-### Stable / v1.0
-
-- representative multiplayer scale validated;
-- no known high-severity save/world/player-state risk;
-- world-time behavior clearly documented;
-- reliable install/upgrade/disable/rollback workflow;
-- compatibility claims limited to combinations actually tested.
-
-See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the full roadmap and release-stage criteria.
-
 ## Documentation
 
-Detailed engineering material is intentionally kept out of this landing page.
+Detailed engineering material is intentionally kept out of this landing page. **The project roadmap is maintained only in [`docs/ROADMAP.md`](docs/ROADMAP.md); this README intentionally does not duplicate it.**
 
 - [`docs/README.md`](docs/README.md) — documentation index
 - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — deployment/rollback guidance and current deployment gate
-- [`docs/ROADMAP.md`](docs/ROADMAP.md) — roadmap and phase criteria
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — canonical roadmap and phase criteria
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — technical architecture
 - [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) — canonical MVP requirements
 - [`docs/TESTING.md`](docs/TESTING.md) — current test procedures
