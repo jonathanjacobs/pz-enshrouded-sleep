@@ -34,27 +34,13 @@ This establishes that player systems do not share one time domain: awake injury/
 
 v0.0.9 still returned `N/A` for hunger, thirst, fatigue, endurance, stress, panic, pain, sickness and related continuous state; its Moodle fallback also failed.
 
-Review of current Build 42.20.3 vanilla Lua and decompiled classes identified the cause: current vanilla code reads survival state through registered `CharacterStat` objects and queries Moodles using `MoodleType` objects. The earlier diagnostic still assumed legacy named Stats getters/public fields and numeric Moodle enumeration.
+v0.0.10 corrects this using current Build 42 `CharacterStat`, `MoodleType` and Nutrition access. It also adds a tightly gated diagnostics-only `DiagnosticForcedCompressionFactor` so the remaining causal test can be run with one **awake** single-player/debug character rather than requiring a second sleeping client.
 
-v0.0.10 therefore adds a focused read-only diagnostic using:
-
-```lua
-player:getStats():get(CharacterStat.HUNGER)
-player:getStats():get(CharacterStat.THIRST)
-player:getStats():get(CharacterStat.FATIGUE)
-player:getStats():get(CharacterStat.ENDURANCE)
-
-player:getMoodles():getMoodleLevel(MoodleType.HUNGRY)
-player:getMoodles():getMoodleLevel(MoodleType.THIRST)
-player:getMoodles():getMoodleLevel(MoodleType.TIRED)
-player:getMoodles():getMoodleLevel(MoodleType.ENDURANCE)
-```
-
-It also emits one-time capability records so inaccessible classes/enums/methods can be diagnosed directly from the next test logs.
+The standalone path applies the same `MinutesPerDay` primitive used by normal partial sleep while keeping global simulation multiplier behavior untouched. If the observed character sleeps, the override is suspended and baseline is restored before vanilla sleep acceleration proceeds.
 
 ### Current blocker
 
-Run one focused v0.0.10 test and classify the still-unresolved variables:
+Run one focused v0.0.10 single-player test and classify the still-unresolved variables:
 
 - hunger / Hungry Moodle;
 - thirst / Thirst Moodle;
@@ -69,23 +55,29 @@ The bleeding experiment does **not** need to be repeated unless v0.0.10 unexpect
 
 ### Recommended v0.0.10 test
 
-Use two players and native `FastForwardMultiplier=10`:
+Use one awake Debug-mode character with diagnostics enabled:
 
 ```text
-Phase A: both awake, 60–90 real seconds
-Phase B: monitored player awake + other player asleep, 60–90 real seconds
-         expected ~5x / MinutesPerDay=18
-Phase C: both awake again, 60–90 real seconds
+Phase A: DiagnosticForcedCompressionFactor=1.0
+         baseline, 60–90 real seconds
+
+Phase B: DiagnosticForcedCompressionFactor=5.0
+         expected ~5x / MinutesPerDay=18 on a 90-minute baseline
+         character remains awake, 60–90 real seconds
+
+Phase C: DiagnosticForcedCompressionFactor=1.0
+         restored baseline, 60–90 real seconds
 ```
 
-Before interpreting rates, verify the new `CAPABILITIES` records show that CharacterStats and Moodles are readable on the relevant server/client side.
+Before interpreting rates, verify the new `CAPABILITIES` record shows that CharacterStats/Moodles are readable. The standalone `getPlayer()` fallback should provide server-side survival and injury telemetry when no populated online-player list exists.
 
 ### Pre-alpha exit criteria
 
 Move to Public Alpha when:
 
-- v0.0.10 loads without new Enshrouded Sleep errors;
+- v0.0.10 loads without new Enshrouded Sleep errors in standalone diagnostic mode;
 - corrected CharacterStat/Moodle telemetry is verified, or any remaining unavailable fields are explicitly characterized;
+- baseline → forced factor-5 → restored-baseline telemetry is collected;
 - hunger/thirst/fatigue/endurance and other practical high-severity values are classified sufficiently to assess player safety;
 - no unacceptable rapid awake-player starvation/dehydration, infection, temperature or comparable failure is observed, **or** a validated mitigation/configuration bound is adopted;
 - the normal core two-player sleep regression still passes;
@@ -93,7 +85,12 @@ Move to Public Alpha when:
 
 ## Public Alpha — next
 
-If SPIKE-004 produces a GO or acceptable conditional GO, deploy to a real multiplayer server with diagnostics normally disabled.
+If SPIKE-004 produces a GO or acceptable conditional GO, deploy to a real multiplayer server with:
+
+```text
+DiagnosticsEnabled=false
+DiagnosticForcedCompressionFactor=1.0
+```
 
 Primary goals:
 
