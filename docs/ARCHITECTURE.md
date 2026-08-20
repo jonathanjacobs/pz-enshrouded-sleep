@@ -5,6 +5,29 @@ This document describes the current Enshrouded Sleep architecture. Empirical evi
 Current version: `v0.0.10`  
 Release phase: **Public Alpha**
 
+## Repository and runtime boundary
+
+The Git repository is also the intended Steam Workshop item wrapper. The authoritative Project Zomboid runtime mod exists in exactly one location:
+
+```text
+Contents/mods/pz-enshrouded-sleep/
+```
+
+Within that runtime tree, Build 42 versioning remains explicit:
+
+```text
+Contents/mods/pz-enshrouded-sleep/
+├── mod.info
+├── common/
+└── 42/
+    ├── mod.info
+    └── media/
+```
+
+The repository/Workshop root may also contain public documentation, licensing/provenance files, `workshop.txt`, and Workshop artwork. Those outer files are not part of the PZ runtime mod tree.
+
+There must not be a second root-level runtime copy of `42/`, `common/`, or `mod.info`; one authoritative runtime tree avoids source/deployment drift.
+
 ## Design goal
 
 Enshrouded Sleep is a **Project Zomboid Build 42 multiplayer-server mod**. It adds proportional multiplayer sleep while preserving vanilla sleep rules. Local/standalone single-player support is outside project scope.
@@ -77,7 +100,7 @@ Controlled validation also exercised factors `5`, `10`, and `20` while monitorin
 
 ## Native server settings remain authoritative
 
-The controller reads live `GameTime:getMinutesPerDay()`, `SleepAllowed`, `SleepNeeded`, and `FastForwardMultiplier` from the server runtime.
+The controller reads live `GameTime:getMinutesPerDay()`, `SleepAllowed`, `SleepNeeded`, and `FastForwardMultiplier` from the multiplayer server runtime.
 
 Normal Public Alpha configuration:
 
@@ -90,9 +113,23 @@ DiagnosticForcedCompressionFactor=1.0
 
 ## Server authority and client pacing
 
-The server controller calculates/applies authoritative `MinutesPerDay`; the server sync observer publishes it; connected clients mirror it locally so HUD/watch/sleep clocks remain smoothly paced.
+Runtime responsibility is intentionally split:
 
-The client does not independently calculate proportional compression and does not use `setTimeOfDay()` or `setMultiplier()` as a substitute for server authority.
+```text
+EnshroudedSleep_Server.lua
+-> calculates normal/diagnostic server policy
+-> owns authoritative server setMinutesPerDay()
+
+ClockStateSync_Server.lua
+-> observes settled authoritative server state
+-> publishes ClockState packets
+
+ClockStateSync_Client.lua
+-> validates ClockState packets
+-> mirrors authoritative MinutesPerDay locally
+```
+
+The client does not independently calculate proportional compression and does not use `setTimeOfDay()` or a global multiplier as a substitute for server authority.
 
 ADR-003 records this client-pacing decision.
 
@@ -147,7 +184,7 @@ The v0.0.10 runtime test validated the sleep-suspension path.
 
 ## Fail-safe behavior
 
-The controller captures the native baseline once and fails toward it. Restoration is attempted when normal partial sleep ends, all players become asleep, native sleep is disabled for normal policy, the mod is disabled, diagnostic forced compression is suspended/exited, or a recoverable controller error occurs.
+The controller captures the native runtime baseline once and fails toward it. Restoration is attempted when normal partial sleep ends, all players become asleep, native sleep is disabled for normal policy, the mod is disabled, diagnostic forced compression is suspended/exited, or a recoverable controller error occurs.
 
 ## Logging / observability
 
@@ -162,13 +199,21 @@ Operational prefixes:
 Verbose diagnostics:
 
 ```text
+[EnshroudedSleepDiag][SERVER]
+[EnshroudedSleepDiag][CLIENT]
 [EnshroudedSleepHealthDiag][SERVER]
 [EnshroudedSleepHealthDiag][CLIENT]
 [EnshroudedSleepSurvivalDiag][SERVER]
 [EnshroudedSleepSurvivalDiag][CLIENT]
 ```
 
-All one-second telemetry remains gated by `DiagnosticsEnabled=true`.
+All one-second telemetry remains gated by `DiagnosticsEnabled=true` and uses wall-clock gating so the telemetry cadence itself does not accelerate with compressed world time.
+
+The broad health/body diagnostic retains legacy probes for historical continuity. Current Build 42 CharacterStat/Moodle survival-state access is centralized in:
+
+```text
+Contents/mods/pz-enshrouded-sleep/42/media/lua/shared/EnshroudedSleep/SurvivalStatProbe.lua
+```
 
 ## Multiple PZ time domains — validated finding
 
@@ -193,6 +238,8 @@ SPIKE-004 confirmed that different player systems use different time domains.
 This means faster survival-need progression during partial sleep is expected because genuine game-world time is passing faster. No broad health/survival compensation is currently justified.
 
 Active sickness/food poisoning, poison, zombie infection/fever and extreme thermal injury were not present during the controlled test and remain Public Alpha characterization targets.
+
+Detailed evidence is in [`spikes/SPIKE-004-health-time-domains.md`](spikes/SPIKE-004-health-time-domains.md).
 
 ## Future compensation policy
 
