@@ -2,18 +2,18 @@
 
 This document preserves the technical evidence behind the current Enshrouded Sleep architecture. For current procedures, see [`TESTING.md`](TESTING.md); for focused investigations, see [`spikes/`](spikes/); for durable design decisions, see [`adr/`](adr/).
 
-Enshrouded Sleep is a **multiplayer-server mod**. Local/standalone single-player support is not part of the validated or intended runtime model.
+Enshrouded Sleep is a **multiplayer-server mod**. Local/standalone single-player support is not part of the intended runtime model.
 
 ## Summary
 
-The project has progressed through four major evidence questions:
+The project answered four major pre-alpha questions:
 
 1. can `MinutesPerDay` compress world/calendar time without globally accelerating active simulation? — **yes**;
 2. can the MVP rely on vanilla-instantiated server player/sleep lifecycle and hand full sleep back to vanilla? — **yes**;
 3. can connected clients be paced coherently with authoritative compressed day length? — **yes**;
-4. do health/survival subsystems create unsafe awake-player effects under calendar compression? — **partially classified; final survival-state test pending**.
+4. do health/survival subsystems create an unacceptable awake-player hazard under calendar compression? — **no under the tested conditions; SPIKE-004 returned GO**.
 
-The core sleep/clock architecture is behaviorally validated on Project Zomboid 42.20.3 with two players. Public Alpha remains paused for completion of SPIKE-004.
+The core architecture is behaviorally validated on Project Zomboid 42.20.3. v0.0.10 is the current **Public Alpha** build.
 
 ## v0.0.1 — calendar-compression feasibility
 
@@ -27,13 +27,7 @@ Decision: use `MinutesPerDay` as the partial-sleep primitive. See SPIKE-001 and 
 
 ## v0.0.2 / v0.0.2b — lifecycle and vanilla full sleep
 
-Established:
-
-- server `IsoPlayer:isAsleep()` reflects sleep/wake state;
-- dead player objects may remain during respawn and must be excluded from the denominator;
-- loading clients may exist before an `IsoPlayer` appears;
-- MVP should use instantiated living server players rather than a custom readiness registry;
-- vanilla full sleep leaves `MinutesPerDay` at baseline and uses another acceleration path.
+Established that server `IsoPlayer:isAsleep()` reflects sleep/wake state, dead player objects may persist during respawn and must be excluded, loading clients do not count until an `IsoPlayer` exists, and vanilla full sleep leaves `MinutesPerDay` at baseline while using a separate acceleration path.
 
 Decision: restore baseline and step aside when all living players sleep. See SPIKE-002 and ADR-002.
 
@@ -61,18 +55,11 @@ Wake restoration and disconnect denominator recalculation passed.
 
 ## v0.0.5 — client clock mismatch diagnosed
 
-Read-only diagnostics showed:
-
-```text
-SERVER MinutesPerDay = 4.5
-CLIENT MinutesPerDay = 90
-```
-
-Clients advanced at native day length between server corrections, producing visible clock jumps and contributing to pathological sleep-duration behavior.
+Read-only diagnostics showed the server at `MinutesPerDay=4.5` while clients remained at `90`, producing visible clock corrections.
 
 ## v0.0.6 / v0.0.7 — explicit client pacing and clean regression
 
-Added explicit server-to-client `MinutesPerDay` synchronization plus a low-frequency convergence heartbeat.
+Added explicit server-to-client `MinutesPerDay` synchronization plus a low-frequency heartbeat.
 
 Validated on PZ 42.20.3:
 
@@ -86,129 +73,130 @@ Results included smooth sleeping/awake clocks, normal-speed awake actions, corre
 
 ## v0.0.8 — broad health/time-domain instrumentation
 
-Before Public Alpha, review raised a separate question: what happens to an awake wounded or physiologically stressed player when another player triggers calendar compression?
-
-v0.0.8 added broad server/client health diagnostics.
-
-### One-player-on-server vanilla-full-sleep reference — 2026-08-19
-
-A deliberately injured character slept while it was the only living player connected to the server. Enshrouded Sleep restored `MinutesPerDay=90` and vanilla full-sleep acceleration owned the interval.
-
-Health fell approximately:
+A one-player-on-server vanilla-full-sleep reference showed rapid vanilla health progression while Enshrouded Sleep had restored baseline `MinutesPerDay=90`:
 
 ```text
 81.16 -> 69.68 -> 47.74 -> 25.83 -> 6.03 -> 0
 ```
 
-This established that vanilla full-sleep acceleration can strongly affect health/recovery, but it did not classify awake partial compression.
+This showed why vanilla full-sleep acceleration and Enshrouded partial compression had to be tested separately.
 
-## v0.0.9 — decisive two-player partial-compression run
+## v0.0.9 — two-player health/nutrition classification
 
-Observed transitions included:
+Observed normal real partial-sleep transitions included `90 -> 18 -> 90` and `90 -> 9 -> 90`, with `TrueMultiplier=1.0` during compressed awake play.
 
-```text
-90 -> 18 -> 90
-90 -> 18 -> 90
-90 -> 9 -> 90
-```
-
-The `18` state represented approximately 5x calendar compression with two living / one sleeping. The `9` state represented approximately 10x. `TrueMultiplier` remained `1.0` during partial compression.
-
-### Awake bleeding/injury result
+### Awake bleeding/injury
 
 ```text
-Overall health loss
-baseline:   ~-0.07869 health / real second
-5x partial: ~-0.07810 health / real second
-ratio:      ~0.993x
+baseline health loss:   ~-0.07869 / real second
+5x partial health loss: ~-0.07810 / real second
+ratio:                  ~0.993x
 ```
 
-Measured `BleedingTime` and `ScratchTime` remained approximately `1x`.
+Measured `BleedingTime` and `ScratchTime` also remained approximately `1x`.
 
 Classification: **simulation/real-time bound under tested conditions**.
 
-Safety interpretation: rapid awake-player bleed-out proportional to calendar compression was not observed.
+### Nutrition
 
-### Nutrition result
-
-| Metric | Baseline rate | ~5x partial | Ratio | ~10x partial | Ratio |
-|---|---:|---:|---:|---:|---:|
-| Calories | -0.2583/s | -1.2928/s | 5.01x | -2.5886/s | 10.00x |
-| Carbohydrates | -0.05597/s | -0.27987/s | 5.00x | -0.55972/s | 10.00x |
-| Proteins | -0.01374/s | -0.06877/s | 5.00x | -0.13753/s | 10.01x |
-| Lipids | -0.01807/s | -0.09036/s | 5.00x | -0.18071/s | 10.00x |
+| Metric | ~5x ratio | ~10x ratio |
+|---|---:|---:|
+| Calories | 5.01x | 10.00x |
+| Carbohydrates | 5.00x | 10.00x |
+| Proteins | 5.00x | 10.01x |
+| Lipids | 5.00x | 10.00x |
 
 Classification: **world/calendar-time bound**.
 
-The run also reconfirmed server/client `MinutesPerDay` convergence, baseline restoration, alternate native fast-forward inheritance, and ordinary `TrueMultiplier` during partial compression.
+## v0.0.10 — corrected survival-state diagnostics and final pre-alpha gate
 
-### Remaining observability failure
+v0.0.10 added current Build 42 `CharacterStat`/`MoodleType` instrumentation and a diagnostics-only forced-compression test for exactly one awake living player connected to the multiplayer server.
 
-Hunger, thirst, fatigue, endurance and related continuous values remained `N/A`. Post-run source review established that v0.0.9 used stale API assumptions. Current Build 42.20.3 vanilla Lua uses:
-
-```lua
-player:getStats():get(CharacterStat.HUNGER)
-player:getMoodles():getMoodleLevel(MoodleType.HUNGRY)
-```
-
-## v0.0.10 — corrected survival-state and one-player server test stage
-
-v0.0.10 adds:
+Capability validation succeeded:
 
 ```text
-42/media/lua/shared/EnshroudedSleep/SurvivalStatProbe.lua
-42/media/lua/server/EnshroudedSleep/SurvivalStatDiagnostic_Server.lua
-42/media/lua/client/EnshroudedSleep/SurvivalStatDiagnostic_Client.lua
+CharacterStatsResolved=24/24
+CharacterStatsReadable=24/24
+MoodlesResolved=25/25
+MoodlesReadable=25/25
+NutritionReadable=10/10
 ```
 
-The shared probe reads current Build 42 CharacterStats, Moodles, Nutrition and selected BodyDamage context, emits capability diagnostics, remains guarded/read-only, and avoids the known Kahlua multi-return conversion failure.
+The test exercised baseline plus approximately 5x, 10x and 20x calendar compression while the player remained awake. `TrueMultiplier` remained `1.0` during forced compression.
 
-### Diagnostics-only forced compression
+### Survival rates
 
-`DiagnosticForcedCompressionFactor` is a server-test-only control, default `1.0`.
+Clean baseline-versus-5x comparison:
 
-Activation requires:
+| Metric | Observed ratio | Classification |
+|---|---:|---|
+| Hunger | 4.85x | world/calendar-time bound |
+| Thirst | 4.67x | world/calendar-time bound |
+| Fatigue | 5.46x | world/calendar-time bound |
+| Carbohydrates | 4.99x | world/calendar-time bound |
+| Proteins | 4.99x | world/calendar-time bound |
+| Lipids | 4.99x | world/calendar-time bound |
+
+A short adjacent 10x-versus-baseline control produced approximately:
 
 ```text
-DiagnosticsEnabled = true
-DiagnosticForcedCompressionFactor > 1
-exactly one living player connected to the multiplayer server
-that player awake
+Hunger       9.54x
+Thirst       9.45x
+Fatigue      9.48x
+Proteins     9.48x
+Lipids       9.48x
+Body health  0.95x
 ```
 
-For baseline `90` and factor `5`:
+This reinforced the split between world-time survival needs and real-time acute health loss.
+
+### Endurance
+
+Resting/recovery rates were approximately:
 
 ```text
-living = 1
-sleeping = 0
-MinutesPerDay = 18
-CalendarCompressionFactor = 5
-no intentional global simulation multiplier change
+10x: +0.00176 endurance/sec
+20x: +0.00178 endurance/sec
+10x: +0.00169 endurance/sec
 ```
 
-If that player sleeps or another living player connects, the override restores baseline and suspends itself. With no living players connected, baseline is retained. Returning factor to `1.0`, disabling diagnostics, disabling the mod, or a recoverable failure returns to normal/baseline behavior.
+Classification: **resting endurance recovery is simulation/real-time bound under the tested condition**.
 
-While a factor above `1` is armed, ordinary proportional sleep policy is suppressed to isolate the experiment.
+### Temperature and inactive pathological states
 
-### Corrected scope
+Temperature remained physiologically stable and no hyperthermia/hypothermia hazard appeared. Active sickness, food sickness, poison, zombie infection/fever and extreme thermal injury were not present and remain unclassified.
 
-An intermediate v0.0.10 implementation mistakenly added local/standalone `getPlayer()` fallbacks and a standalone health bridge. Those changes were removed before runtime validation.
+### Diagnostic override safety
 
-The final v0.0.10 test path uses the normal multiplayer server architecture only: `getOnlinePlayers()`, server `GameTime`, server options, server-authoritative `MinutesPerDay`, and the existing server-to-client clock synchronization path.
+The forced-compression path correctly restored baseline and suspended itself when the connected player slept, preventing stacking with vanilla full-sleep acceleration.
 
-### Runtime status
+### Client synchronization observation
 
-The final v0.0.10 one-connected-player server path is **implemented but not yet runtime-validated**. The next run should confirm:
+During repeated live admin/sandbox factor changes, a few isolated client samples temporarily reverted to baseline `MinutesPerDay`. The authoritative server remained compressed and the normal ClockState heartbeat restored the client value within roughly a second. This is retained as a Public Alpha robustness observation, not the historical v0.0.5 failure mode.
 
-- clean server/client load;
-- CharacterStat/Moodle capability readability;
-- baseline factor `1` telemetry;
-- forced factor `5` / expected `MinutesPerDay≈18` with `living=1`, `sleeping=0`;
-- ordinary multiplier context during forced compression;
-- exact restoration after factor returns to `1`;
-- hunger/thirst/fatigue/endurance and other practical survival classifications.
+## SPIKE-004 decision
 
-No health compensation has been implemented.
+**GO — Public Alpha.**
+
+The evidence supports these classifications:
+
+**Simulation/real-time bound under tested conditions**
+
+- awake bleeding/body-health loss;
+- measured bleeding/scratch timers;
+- resting endurance recovery.
+
+**World/calendar-time bound**
+
+- hunger;
+- thirst;
+- fatigue;
+- calories;
+- carbohydrates;
+- proteins;
+- lipids.
+
+No broad health/survival compensation is justified. Faster hunger/thirst/fatigue/nutrition progression is documented as an expected consequence of genuinely faster elapsed game-world time.
 
 ## Current evidence boundary
 
@@ -221,15 +209,17 @@ Well supported:
 - baseline restoration and vanilla full-sleep handoff;
 - wake/disconnect recalculation;
 - sensible vanilla sleep duration when client pacing is synchronized;
-- broad health/body diagnostic integration;
-- awake bleeding/health-loss approximately real-time bound under partial compression;
-- calories/carbohydrates/proteins/lipids world/calendar-time bound;
-- alternate native fast-forward inheritance.
+- awake acute injury/health loss approximately real-time bound;
+- hunger/thirst/fatigue/nutrition world/calendar-time bound;
+- resting endurance recovery approximately real-time bound;
+- alternate native fast-forward inheritance;
+- one-player server diagnostic override safety behavior.
 
-Current pre-alpha blocker:
+Public Alpha characterization targets:
 
-- runtime validation of the corrected v0.0.10 CharacterStat/Moodle probes on the one-connected-player multiplayer-server path;
-- classification of hunger/thirst/fatigue/endurance and other practical high-severity survival variables;
-- final SPIKE-004 GO / CONDITIONAL GO / NO-GO decision.
-
-Public Alpha targets after that gate include 3–12+ player proportional fractions, real join/disconnect/death/respawn behavior, long-session stability, WHG mod-stack interaction, non-health world-time systems, and future B42 regressions.
+- 3–12+ player proportional fractions;
+- live joins/disconnects/deaths/respawns;
+- long-session stability and WHG mod-stack interaction;
+- active sickness/poison/zombie infection/extreme thermal states where safely reproducible;
+- spoilage, farming, generators, corpses, composting and weather;
+- client pacing robustness during live admin/sandbox reconfiguration.
