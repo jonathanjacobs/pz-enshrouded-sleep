@@ -1,7 +1,7 @@
 # Enshrouded Sleep — MVP Requirements
 
-Status: **Public Alpha candidate / pre-deployment validation**  
-Current development version: `v0.0.10`  
+Status: **Public Alpha**  
+Current version: `v0.0.10`  
 Current behaviorally validated Project Zomboid baseline: `42.20.3`
 
 This document defines intended MVP behavior. Enshrouded Sleep is a **multiplayer-server mod**; local/standalone single-player support is out of scope.
@@ -29,7 +29,7 @@ The implementation uses `GameTime:MinutesPerDay`; it does **not** use a global s
 - **CalendarCompressionFactor** — world/calendar pacing factor.
 - **EffectiveMinutesPerDay** — `BaselineMinutesPerDay / CalendarCompressionFactor`.
 - **DiagnosticsEnabled** — support/development telemetry switch; default `false`.
-- **DiagnosticForcedCompressionFactor** — server-test-only factor used by SPIKE-004; default `1.0` (inactive).
+- **DiagnosticForcedCompressionFactor** — server-test-only factor retained for regression/support; default `1.0` (inactive).
 
 ## 3. Core behavioral requirements
 
@@ -49,7 +49,7 @@ The controller must derive baseline from authoritative server `getGameTime():get
 
 Normal partial sleep reads `FastForwardMultiplier`; the mod must not hard-code a presumed native fast-forward value.
 
-### R5 — Normal configuration
+### R5 — Normal Public Alpha configuration
 
 ```lua
 EnshroudedSleep = {
@@ -132,17 +132,23 @@ Changing `MinutesPerDay` intentionally accelerates world/calendar minutes. Syste
 
 No broad compensation may be added from assumption alone. A system must first be measured and its time domain understood.
 
-### R21 — Public Alpha health/survival safety gate
+### R21 — Public Alpha health/survival safety gate — COMPLETE
 
-Before live Public Alpha deployment, [`SPIKE-004`](spikes/SPIKE-004-health-time-domains.md) must characterize high-severity awake-player consequences sufficiently to make a GO / CONDITIONAL GO / NO-GO decision.
+[`SPIKE-004`](spikes/SPIKE-004-health-time-domains.md) completed the pre-alpha health/survival safety gate and returned **GO**.
 
-Current v0.0.9 evidence establishes:
+Measured classifications:
 
-- awake active-bleeding health loss remained approximately `1x` during ~5x partial compression;
-- measured bleeding/scratch timers remained approximately `1x`;
-- calories, carbohydrates, proteins and lipids scaled approximately with observed 5x/10x calendar compression.
+- awake bleeding/body-health loss — approximately simulation/real-time bound under tested conditions;
+- measured bleeding/scratch injury timers — approximately simulation/real-time bound;
+- resting endurance recovery — approximately simulation/real-time bound under the tested condition;
+- hunger — world/calendar-time bound;
+- thirst — world/calendar-time bound;
+- fatigue — world/calendar-time bound;
+- calories/carbohydrates/proteins/lipids — world/calendar-time bound.
 
-Remaining priority variables are hunger, thirst, fatigue, endurance, sickness/food sickness/poison, zombie infection/fever, and temperature/cold state where practical.
+Faster hunger/thirst/fatigue/nutrition progression is accepted and documented as a consequence of genuinely faster elapsed world time. No broad health/survival compensation is required for Public Alpha.
+
+Active sickness/food poisoning, poison, zombie infection/fever and extreme thermal injury remain Public Alpha characterization targets because those states were not active during SPIKE-004.
 
 ## 6. Diagnostic requirements
 
@@ -152,7 +158,7 @@ One-second telemetry must be disabled by default with `DiagnosticsEnabled=false`
 
 ### R23 — Verbose diagnostics remain observational
 
-Health/survival instrumentation may sample once per real second but must not mutate health/survival state. The only permitted diagnostic-time mutation is the explicit v0.0.10 server `MinutesPerDay` test override defined below.
+Health/survival instrumentation may sample once per real second but must not mutate health/survival state. The only permitted diagnostic-time mutation is the explicit server `MinutesPerDay` test override.
 
 ### R24 — Build 42 CharacterStat access
 
@@ -176,11 +182,11 @@ Capture safe-wrapper return values before passing them to `tonumber()`.
 
 ### R29 — Existing injury diagnostics remain available
 
-The broad health/body stream should remain available for detailed injured-body-part state during SPIKE-004.
+The broad health/body stream should remain available for detailed injured-body-part state during support/regression work.
 
 ### R30 — Diagnostic forced compression is server-only, explicit, bounded, and isolated
 
-The v0.0.10 forced-compression test may apply compressed server `MinutesPerDay` only when:
+The forced-compression test may apply compressed server `MinutesPerDay` only when:
 
 ```text
 DiagnosticsEnabled == true
@@ -203,7 +209,7 @@ Requirements:
 - disabling diagnostics or returning factor to `1.0` resumes normal server policy;
 - client synchronization must preserve `diagnostic-forced` only while the exact one-awake-player conditions hold;
 - the control is test-only and must remain `1.0` during normal Public Alpha operation;
-- no standalone/local-game fallback or bridge is permitted for this test.
+- no standalone/local-game fallback or bridge is permitted.
 
 ## 7. Sleep-duration and operational requirements
 
@@ -228,7 +234,7 @@ CalendarCompressionFactor = 20
 EffectiveMinutesPerDay = 4.5
 ```
 
-v0.0.10 one-connected-player server diagnostic:
+Retained one-connected-player server diagnostic reference:
 
 ```text
 BaselineMinutesPerDay = 90
@@ -241,7 +247,7 @@ EffectiveMinutesPerDay = 18
 ## 9. MVP acceptance matrix
 
 1. Baseline inheritance — `PENDING alternate native day-length test`
-2. Native fast-forward inheritance — `VALIDATED in SPIKE-004 with alternate FF behavior`
+2. Native fast-forward inheritance — `VALIDATED`
 3. Neutral scale `1.0` — `VALIDATED`
 4. Non-default scale tuning — `PENDING`
 5. Two-player partial sleep `90/40 -> 4.5` — `VALIDATED`
@@ -256,11 +262,11 @@ EffectiveMinutesPerDay = 18
 14. Sleeping/awake clock continuity — `VALIDATED; issues #1/#2 closed`
 15. Vanilla sleep-duration compatibility — `VALIDATED; issue #3 closed`
 16. Health/body diagnostic integration — `VALIDATED`
-17. Awake bleeding safety under partial compression — `VALIDATED ~1x; PASS`
+17. Awake bleeding safety under compression — `VALIDATED ~1x; PASS`
 18. Nutrition time-domain classification — `VALIDATED; world/calendar-time bound`
-19. Corrected CharacterStat/Moodle telemetry — `IMPLEMENTED v0.0.10; runtime validation pending`
-20. One-connected-player server forced-compression path — `IMPLEMENTED v0.0.10; runtime validation pending`
-21. Hunger/thirst/fatigue/endurance safety classification — `CURRENT PRE-ALPHA BLOCKER`
+19. Corrected CharacterStat/Moodle telemetry — `VALIDATED v0.0.10: 24/24 stats, 25/25 moodles`
+20. One-connected-player server forced-compression path — `VALIDATED v0.0.10`
+21. Hunger/thirst/fatigue/endurance safety classification — `VALIDATED sufficiently for Public Alpha; SPIKE-004 GO`
 22. Public-server stability at larger population — `PUBLIC ALPHA TARGET`
 23. Non-health world-time side effects — `PUBLIC ALPHA TARGET`
 
