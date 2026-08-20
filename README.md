@@ -8,9 +8,9 @@
 
 **Proportional multiplayer sleeping for Project Zomboid Build 42 servers.**
 
-Status: **Public Alpha candidate — pre-deployment health/time-domain validation in progress**  
-Current development version: **v0.0.10**  
-Current behaviorally validated PZ baseline: **42.20.3**
+Status: **Public Alpha**  
+Current version: **v0.0.10**  
+Behaviorally validated PZ baseline: **42.20.3**
 
 Enshrouded Sleep is a **multiplayer-server mod**. It lets some players sleep without requiring every survivor on the server to go to bed at the same time. Local/standalone single-player gameplay is not a target runtime for this project.
 
@@ -40,81 +40,56 @@ Validated reference configuration:
 2 living / 2 sleeping -> restore 90; vanilla owns full sleep
 ```
 
-## Current status
+## Public Alpha evidence
 
-The core server/client sleep and clock architecture has passed controlled two-player multiplayer testing on Project Zomboid 42.20.3.
+The core server/client sleep and clock architecture has passed controlled multiplayer testing on Project Zomboid 42.20.3. Validated behavior includes proportional partial-sleep calendar compression, synchronized server/client day-length pacing, smooth sleeping and awake clocks, normal-speed awake gameplay, exact baseline restoration, vanilla full-sleep handoff, disconnect recalculation, and normal vanilla wake timing after client/server pacing synchronization.
 
-Validated behavior includes proportional partial-sleep calendar compression, synchronized server/client day-length pacing, smooth sleeping and awake clocks, normal-speed awake gameplay, exact baseline restoration, vanilla full-sleep handoff, disconnect recalculation, and normal vanilla wake timing after client/server pacing synchronization.
+### SPIKE-004 health/survival safety result — GO
 
-### SPIKE-004 safety result so far
+SPIKE-004 is complete and the pre-alpha health/survival deployment gate passed.
 
-The v0.0.9 controlled multiplayer run materially narrowed the remaining Public Alpha safety question.
+Measured awake-player injury behavior under compressed `MinutesPerDay` remained approximately real-time bound:
 
-With an awake injured player while another player triggered approximately **5x partial calendar compression**:
+- active bleeding health loss: about **0.993x** baseline rate during ~5x calendar compression;
+- measured `BleedingTime` and scratch-timer progression: approximately **1x**;
+- ongoing overall body-health loss in the v0.0.10 forced-compression run remained approximately **1x** rather than scaling with world time;
+- resting endurance recovery remained approximately **1x** when calendar compression was increased from 10x to 20x.
 
-- active bleeding health loss remained approximately **1x real-time rate** (`~0.993x`);
-- `BleedingTime` and scratch-timer progression remained approximately **1x**;
-- the feared rapid awake-player bleed-out was not observed.
+Survival/nutrition systems intentionally tied to world/calendar time accelerated with compressed world time:
 
-Nutrition behaved differently:
+- Hunger: approximately **4.85x** in the clean 5x comparison;
+- Thirst: approximately **4.67x**;
+- Fatigue: approximately **5.46x**;
+- Calories/carbohydrates/proteins/lipids: approximately proportional to the observed 5x and 10x calendar-compression factors.
 
-- calories scaled approximately **5.01x** at 5x compression and **10.00x** at 10x;
-- carbohydrates scaled approximately **5.00x / 10.00x**;
-- proteins scaled approximately **5.00x / 10.01x**;
-- lipids scaled approximately **5.00x / 10.00x**.
+A short adjacent 10x-versus-baseline comparison produced roughly **9.5x** changes for hunger, thirst, fatigue, proteins and lipids while body-health loss remained about **0.95x**, reinforcing that different player systems use different time domains.
 
-The remaining blocker is classification of hunger, thirst, fatigue, endurance, stress, sickness, temperature and related character state.
+No proportional acute-health acceleration or thermal hazard was observed. Active sickness, poisoning, zombie infection/fever, and extreme thermal injury remain Public Alpha characterization targets because those pathological states were not present during the controlled run.
 
-## v0.0.10 focused survival diagnostics
+## Important design caveat: world time really is passing faster
 
-v0.0.10 uses the Build 42 `CharacterStat`, `MoodleType`, Nutrition and related APIs used by current vanilla Lua. Focused prefixes are:
+Enshrouded Sleep does not merely animate the clock faster. During partial sleep, Project Zomboid world/calendar minutes genuinely elapse faster in real time.
 
-```text
-[EnshroudedSleepSurvivalDiag][SERVER]
-[EnshroudedSleepSurvivalDiag][CLIENT]
-```
+That means an awake survivor experiences compressed-world-time progression for systems such as hunger, thirst, fatigue and nutrition. This is currently considered expected behavior rather than a defect: if several in-game hours pass while another player sleeps, those survival needs also advance through those in-game hours.
 
-The older broad injury/body diagnostic remains available because its wound telemetry is already validated and useful.
+Other world-time systems such as spoilage, farming, generators, corpses, composting and weather remain Public Alpha characterization targets.
 
-### One-connected-player server test mode
+## Diagnostics
 
-v0.0.10 includes a **diagnostics-only multiplayer-server test override** so the remaining time-domain experiment can be run with only one player connected to the server. This is not support for a local single-player game.
+v0.0.10 retains opt-in diagnostic tooling for regression/support work. Normal servers should leave it disabled:
 
 ```lua
 EnshroudedSleep = {
     Enabled = true,
     PartialSleepSpeedScale = 1.0,
-    DiagnosticsEnabled = true,
-    DiagnosticForcedCompressionFactor = 5.0,
+    DiagnosticsEnabled = false,
+    DiagnosticForcedCompressionFactor = 1.0,
 }
 ```
 
-The override activates only when all of these are true:
+Focused survival diagnostics use Build 42 `CharacterStat`, `MoodleType`, Nutrition and related APIs. The controlled one-connected-player forced-compression mode remains available for future regression testing, but it is **server-test-only** and must remain at factor `1.0` during normal Public Alpha play.
 
-```text
-running on the multiplayer server
-DiagnosticsEnabled = true
-DiagnosticForcedCompressionFactor > 1
-exactly one living player is connected
-that player is awake
-```
-
-With a 90-minute baseline and factor `5`, the server applies `MinutesPerDay=18` while the connected player remains awake. The global simulation multiplier is not changed.
-
-If that player sleeps, or another living player connects, the diagnostic override is suspended and native `MinutesPerDay` is restored. This prevents the test state from affecting additional players or stacking with vanilla full-sleep acceleration.
-
-Normal gameplay must use:
-
-```text
-DiagnosticsEnabled = false
-DiagnosticForcedCompressionFactor = 1.0
-```
-
-## Important design caveat: world time really is passing faster
-
-Enshrouded Sleep does not merely animate the clock faster. During partial sleep, Project Zomboid world/calendar minutes genuinely elapse faster in real time. v0.0.9 confirmed that different player systems use different time domains: awake bleeding/injury progression behaved approximately real-time bound, while core nutrition stores followed compressed world time almost exactly.
-
-Other world-time systems such as spoilage, farming, generators, corpses, composting and weather remain later Public Alpha characterization targets.
+The forced override is active only when diagnostics are enabled, the factor is greater than 1, exactly one living player is connected, and that player is awake. If the player sleeps or another living player connects, the override restores baseline and suspends itself.
 
 ## Installation
 
@@ -152,7 +127,7 @@ GitHub **Download ZIP** normally creates `pz-enshrouded-sleep-main`; rename that
 
 ## Configuration
 
-Normal operation:
+Normal Public Alpha operation:
 
 ```lua
 EnshroudedSleep = {
@@ -169,7 +144,7 @@ EnshroudedSleep = {
 
 `DiagnosticsEnabled` controls verbose development/support telemetry.
 
-`DiagnosticForcedCompressionFactor` is **server-test-only**. At `1.0` it is inert. Values above `1.0` require diagnostics and exactly one awake living player connected to the multiplayer server.
+`DiagnosticForcedCompressionFactor` is **server-test-only**. At `1.0` it is inert.
 
 ## How proportional sleep is calculated
 
@@ -200,11 +175,11 @@ For the technical design and rationale, see [`docs/ARCHITECTURE.md`](docs/ARCHIT
 The project roadmap is maintained only in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 - [`docs/README.md`](docs/README.md) — documentation index
-- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — deployment/rollback guidance and current deployment gate
+- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — Public Alpha deployment/rollback guidance
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — canonical roadmap and phase criteria
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — technical architecture
 - [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) — canonical MVP requirements
-- [`docs/TESTING.md`](docs/TESTING.md) — current test procedures
+- [`docs/TESTING.md`](docs/TESTING.md) — smoke/regression and Public Alpha testing procedures
 - [`docs/VALIDATION_HISTORY.md`](docs/VALIDATION_HISTORY.md) — detailed validation chronology
 - [`docs/spikes/`](docs/spikes/) — formal exploratory investigations
 - [`docs/adr/`](docs/adr/) — architecture decision records
