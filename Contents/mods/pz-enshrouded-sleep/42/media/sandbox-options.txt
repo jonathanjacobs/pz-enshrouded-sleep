@@ -27,3 +27,9 @@ option EnshroudedSleep.DiagnosticForcedCompressionFactor = {
     default = 1.0,
     page = EnshroudedSleep,
 }
+
+option EnshroudedSleep.DiagnosticAwakeProtectionPrototype = {
+    type = boolean,
+    default = false,
+    page = EnshroudedSleep,
+}
