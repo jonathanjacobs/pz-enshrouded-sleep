@@ -76,33 +76,25 @@ The spike is not required to make every Tier 2/3 subsystem compensable. It is re
 
 ## Initial source review — before runtime measurement
 
-These are implementation clues, **not runtime classifications**. Measurements remain required.
+These are implementation clues, not substitutes for runtime classification.
 
 ### Farming
 
-Current Build 42 vanilla Lua strongly suggests farming is calendar/hour-event driven. `SFarmingSystem:EveryTenMinutes()` derives the current hour from `getGameTime():getTimeOfDay()`, increments the global `hoursElapsed` counter when that hour changes, advances water/disease bookkeeping from that counter, and checks crop `nextGrowing` against `hoursElapsed`.
+Current Build 42 vanilla Lua strongly suggests farming is calendar/hour-event driven. `SFarmingSystem:EveryTenMinutes()` derives the current hour from `getGameTime():getTimeOfDay()`, increments persistent `hoursElapsed` state when the hour changes, advances water/disease bookkeeping from that counter, and checks crop `nextGrowing` against `hoursElapsed`.
 
-Working hypothesis: crop maturation and several plant-care systems will scale with accelerated world time. Because the farming global object system stores `hoursElapsed`, `nextGrowing`, water, disease and other state persistently, compensation may be more complex than simply multiplying one transient delta. Runtime tests must also include loaded/unloaded behavior.
+Working hypothesis: crop maturation and several plant-care systems will scale with accelerated world time. Because persistent farming global-object state is involved, compensation may be more complex than multiplying one transient delta. Loaded/unloaded behavior must be measured.
 
 ### Vehicles
 
-Current vanilla `Vehicles.lua` updates fuel, battery, engine temperature, headlights, heater and related systems using an `elapsedMinutes` parameter. Fuel consumption subtracts a quantity proportional to `elapsedMinutes`; battery charge/drain and multiple thermal/electrical paths also multiply by it.
-
-Working hypothesis: vehicle resource behavior depends on the time source used by the caller to produce `elapsedMinutes`, so reading the update function alone does **not** establish whether vehicle fuel is world-time- or simulation-time-bound. Runtime measurement is required before compensation design.
-
-This also means vehicle compensation may need to distinguish active-driving mechanics from passive resource clocks rather than treating the whole vehicle subsystem as one policy.
+Current vanilla vehicle logic updates fuel, battery, engine temperature, headlights, heater and related systems using an `elapsedMinutes` value. Runtime measurement is required to establish what time source ultimately controls that value under dynamic `MinutesPerDay` compression.
 
 ### Food
 
-The exposed `Food` API provides age/rot state and explicit `updateAge()` / freezing update paths. This gives us observable state for characterization, but the API surface alone does not establish the time basis used internally.
-
-Working hypothesis: food aging is world/calendar-time driven, with refrigeration/freezing adding a second environmental modifier. Tests should therefore compare identical foods in ambient, refrigerated and frozen conditions rather than measuring one item only.
+The `Food` API exposes age/rot state and refrigeration/freezing-related values. A strict Food-class diagnostic was added after the first broad collector incorrectly treated generic inventory items with sentinel aging values as food.
 
 ### Generators
 
-`IsoGenerator` exposes fuel, condition, activation, connectivity, total power usage and update/sync methods. This is sufficient for non-mutating observation of an existing generator's state.
-
-Working hypothesis: generator fuel is likely straightforward to measure, but no classification is assigned until the actual update delta under 1x/5x/10x is captured.
+`IsoGenerator` exposes fuel, condition, activation, connectivity and power-use state, allowing non-mutating observation of a live generator.
 
 ## Experimental control
 
@@ -113,18 +105,18 @@ DiagnosticsEnabled=true
 DiagnosticForcedCompressionFactor=<factor>
 ```
 
-The controller already suspends forced compression if that player sleeps or if another living player connects, preventing accidental mixing with ordinary proportional sleep.
+The controller suspends forced compression if that player sleeps or if another living player connects, preventing accidental mixing with ordinary proportional sleep.
 
-Initial comparison factors:
+Comparison factors:
 
 ```text
 1x baseline
-5x
+5x when useful
 10x
 20x where safe and informative
 ```
 
-The primary comparison is rate per real elapsed second versus rate per authoritative world-hour.
+The primary comparison is rate per real elapsed second versus rate per authoritative world-hour/world-day.
 
 ## Common telemetry
 
@@ -144,15 +136,13 @@ subsystem identifier / object location or identity
 subsystem-specific state
 ```
 
-Telemetry cadence must remain wall-clock gated so diagnostics do not themselves accelerate with compressed world time.
+Telemetry cadence remains wall-clock gated so diagnostics do not themselves accelerate with compressed world time.
 
 ## Classification model
 
-For each subsystem, assign one primary classification:
-
 ### WORLD/CALENDAR-TIME BOUND
 
-Observed rate scales approximately with `CalendarCompressionFactor` in real time and remains approximately constant per elapsed world-hour.
+Observed rate scales approximately with `CalendarCompressionFactor` in real time and remains approximately constant per elapsed world-hour/world-day.
 
 ### SIMULATION/REAL-TIME BOUND
 
@@ -197,6 +187,118 @@ D — requires replacement/monkey-patching of major vanilla logic or creates sav
 ? — insufficient evidence
 ```
 
+## Runtime result 1 — generator fuel consumption
+
+Controlled dedicated-server testing used one connected awake player, a running connected generator with stable `powerUsing=0.002`, baseline `MinutesPerDay=90`, and diagnostic compression factors of 10x and 20x. `TrueMultiplier` remained `1.0`.
+
+Observed intervals after the generator was filled and stabilized:
+
+| Phase | Real elapsed | World hours elapsed | Fuel consumed | Fuel / real second | Fuel / world hour |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1x baseline | 409.0 s | 1.817 h | 0.0040 | 0.00000978 | 0.00220 |
+| 10x | 45.4 s | 2.016 h | 0.0040 | 0.0000881 | 0.00198 |
+| 20x | 130.9 s | 11.624 h | 0.0220 | 0.0001681 | 0.00189 |
+
+Real-time consumption therefore increased approximately:
+
+```text
+10x phase: ~9.0x baseline real-time rate
+20x phase: ~17.2x baseline real-time rate
+```
+
+The deviation from exact 10x/20x scaling is consistent with the generator's coarse/discrete fuel decrement size and relatively short observation windows. The stronger invariant is that fuel consumed per elapsed world-hour remained close to the baseline rate while real-time consumption accelerated sharply.
+
+**Classification: WORLD/CALENDAR-TIME BOUND — CONFIRMED.**
+
+Generator condition changed from `100` to `99` during the 20x interval. That is evidence that wear may also be calendar-time driven, but there is not yet a sufficiently long baseline comparison to classify generator condition/wear.
+
+Compensation feasibility remains unresolved; classification alone does not justify direct fuel rewrites.
+
+## Runtime result 2 — food aging/spoilage
+
+A second controlled dedicated-server run used newly placed `Base.ChickenWhole` samples at ambient temperature and in a refrigerator. Baseline was `MinutesPerDay=90`; the compressed phase used factor 20 (`MinutesPerDay=4.5`). `TrueMultiplier` remained `1.0`.
+
+The dedicated strict Food-class diagnostic was used for these measurements. Generic `InventoryItem` records from the earlier broad collector are invalid for food analysis and have been removed from that collector.
+
+### Ambient raw chicken
+
+Baseline controlled interval:
+
+```text
+real elapsed:       25.099 s
+world elapsed:      0.111512 h
+food age increase:  0.004424 days
+food age/world day: ~0.952
+```
+
+20x interval:
+
+```text
+real elapsed:       520.2 s
+world elapsed:      46.193146 h
+food age increase:  1.924535 days
+food age/world day: ~0.9999
+```
+
+Ambient food-aging rate per real second increased by approximately `20.99x` between the baseline and 20x intervals, while aging per elapsed world-day remained approximately one food-age day per world day.
+
+**Classification: ambient food aging/spoilage = WORLD/CALENDAR-TIME BOUND — CONFIRMED.**
+
+### Refrigerated raw chicken
+
+After the refrigerator sample reached stable `heat=0.2`, the short baseline interval produced approximately:
+
+```text
+food age/world day: ~0.196
+```
+
+Across the full 20x compressed interval with stable `heat=0.2`:
+
+```text
+real elapsed:       520.2 s
+world elapsed:      46.193146 h
+food age increase:  0.384907 days
+food age/world day: ~0.2000
+```
+
+The refrigeration modifier therefore remained intact under compression: refrigerated food aged at about 20% of the ambient rate per world day. Because world days themselves were passing 20x faster in real time, the refrigerated sample's aging per real second increased approximately `20.4x` relative to the stable baseline sample.
+
+**Classification: refrigerated food aging = WORLD/CALENDAR-TIME BOUND with vanilla refrigeration modifier preserved — CONFIRMED.**
+
+Frozen-food behavior has not yet been measured and remains pending.
+
+## Experimental matrix
+
+| System | Baseline | 5x | 10x | 20x | Classification | Authority | Grade | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Ambient food aging/spoilage | measured | — | — | measured | **WORLD/CALENDAR** | server-observed | ? | ~0.95–1.00 food-age day/world day; ~21x real-time rate at 20x |
+| Refrigerated food aging | measured | — | — | measured | **WORLD/CALENDAR** | server-observed | ? | vanilla ~0.20x refrigeration modifier preserved |
+| Frozen food aging | pending | pending | pending | optional | pending | pending | ? | separate freezing/catch-up behavior still needed |
+| Crop maturation | pending | pending | pending | optional | pending | likely server | ? | source review indicates hour/calendar-driven |
+| Crop water/disease/pests | pending | pending | pending | optional | pending | likely server | ? | persistent farming counters/state involved |
+| Generator fuel | measured | — | measured | measured | **WORLD/CALENDAR** | server-observed | ? | ~9.0x real-time rate at 10x; ~17.2x at 20x; fuel/world-hour near baseline |
+| Generator wear | partial | — | partial | partial | pending | server-observed | ? | condition 100→99 during 20x; no comparable baseline interval yet |
+| Vehicle fuel | pending | pending | pending | optional | pending | pending | ? | vanilla update consumes elapsedMinutes; caller time basis unresolved |
+| Vehicle battery | pending | pending | pending | optional | pending | pending | ? | same elapsedMinutes ambiguity as fuel |
+| Corpse decay/removal | pending | pending | pending | optional | pending | pending | ? | may require longer intervals |
+| Compost | pending | pending | pending | optional | pending | pending | ? | may be chunk/catch-up driven |
+| Cooking/fire | pending | pending | pending | optional | pending | pending | ? | distinguish active heat process from calendar aging |
+| Item removal | pending | pending | pending | optional | pending | pending | ? | sandbox-dependent |
+| Erosion/vegetation | pending | pending | pending | optional | pending | pending | ? | long-duration/catch-up likely |
+| Weather/climate | pending | pending | pending | optional | pending | pending | ? | likely intended to follow calendar |
+| Animals | pending | pending | pending | optional | pending | pending | ? | split husbandry clocks if heterogeneous |
+
+## Current interpretation
+
+Two high-impact resource systems are now confirmed to follow accelerated world/calendar time:
+
+- generator fuel;
+- food aging/spoilage, including refrigerated food after vanilla refrigeration modifiers are applied.
+
+This confirms the gameplay concern motivating SPIKE-005: under current/default behavior, an awake player's generator fuel and perishable food can be consumed/aged much faster in real time while another player sleeps, even though active simulation remains at normal speed.
+
+This is sufficient to justify continuing toward an optional simulation-time policy, but not sufficient to choose an implementation. Safe compensation hooks and vehicle/farming behavior still need investigation.
+
 ## Conceptual compensation
 
 For a world-time-bound subsystem intentionally kept at baseline/simulation pacing during partial sleep, the conceptual inverse rate is:
@@ -205,28 +307,9 @@ For a world-time-bound subsystem intentionally kept at baseline/simulation pacin
 RealTimeCompensationFactor = 1 / CalendarCompressionFactor
 ```
 
-This is a model, not an instruction to multiply arbitrary vanilla fields by that factor.
+This is a model, not an instruction to multiply arbitrary persistent fields by that factor.
 
 Correct implementation may instead require delaying updates, adjusting accumulated elapsed time, controlling subsystem-specific delta values, or using another API-defined mechanism. Directly rewriting persistent state every tick is disfavored.
-
-## Experimental matrix
-
-| System | Baseline | 5x | 10x | 20x | Classification | Authority | Grade | Notes |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Food aging/spoilage | pending | pending | pending | optional | pending | pending | ? | Include fresh/refrigerated/frozen cases |
-| Crop maturation | pending | pending | pending | optional | pending | likely server | ? | Source review: `SFarmingSystem` is hour/calendar driven |
-| Crop water/disease/pests | pending | pending | pending | optional | pending | likely server | ? | Persistent farming counters/state involved |
-| Generator fuel | pending | pending | pending | optional | pending | pending | ? | `IsoGenerator` exposes fuel/load/condition state |
-| Generator wear | pending | pending | pending | optional | pending | pending | ? | If condition state is reliably changing |
-| Vehicle fuel | pending | pending | pending | optional | pending | pending | ? | Vanilla update consumes `elapsedMinutes`; caller time basis unresolved |
-| Vehicle battery | pending | pending | pending | optional | pending | pending | ? | Same `elapsedMinutes` ambiguity as fuel |
-| Corpse decay/removal | pending | pending | pending | optional | pending | pending | ? | May require longer intervals |
-| Compost | pending | pending | pending | optional | pending | pending | ? | May be chunk/catch-up driven |
-| Cooking/fire | pending | pending | pending | optional | pending | pending | ? | Distinguish active heat process from calendar aging |
-| Item removal | pending | pending | pending | optional | pending | pending | ? | Sandbox-dependent |
-| Erosion/vegetation | pending | pending | pending | optional | pending | pending | ? | Long-duration/catch-up likely |
-| Weather/climate | pending | pending | pending | optional | pending | pending | ? | Likely intended to follow calendar |
-| Animals | pending | pending | pending | optional | pending | pending | ? | Split husbandry clocks if heterogeneous |
 
 ## Initial implementation architecture if GO
 
@@ -254,7 +337,7 @@ DEFAULT / WORLD_TIME
     Vanilla world-time progression is untouched.
 
 SIMULATION_TIME preset
-    Supported adapters compensate only while normal partial sleep compression is active.
+    Supported adapters compensate only while normal partial-sleep compression is active.
     Unsupported/excluded systems remain vanilla and are documented.
 
 ADVANCED
@@ -278,33 +361,25 @@ The policy must not alter:
 6. Unloaded-chunk behavior must be characterized before claiming world-wide compensation.
 7. No destructive migration of existing saves.
 
-## Test protocol outline
+## Remaining test protocol
 
-### A. Baseline
+### Vehicle fuel/battery — next
 
-- Native `MinutesPerDay`.
-- Forced factor `1.0`.
-- Record stable environmental/input conditions.
-- Measure subsystem delta over a sufficiently long real interval.
+Use one connected awake player and a controlled stationary-running vehicle. Compare baseline versus 20x while recording fuel and battery state. If fuel usage is too small/noisy at idle, use a reproducible active load without changing other variables.
 
-### B. 5x and 10x
+### Farming
 
-- Change only forced compression factor.
-- Repeat equivalent setup/interval.
-- Compare:
-  - delta per real second;
-  - delta per world-hour;
-  - expected multiplier versus measured multiplier.
+Create known crops and measure `nbOfGrow`, `nextGrowing`, water and disease/pest state across baseline/compressed intervals. Include loaded versus unloaded/catch-up behavior before considering compensation.
 
-### C. 20x stress/visibility test
+### Generator wear
 
-Use only where it makes a slow effect easier to classify and does not create avoidable world/save risk.
+Run a sufficiently long baseline and compressed comparison to determine whether condition loss scales with world time or another mechanism.
 
-### D. Loaded versus unloaded/catch-up
+### Frozen food
 
-For systems capable of progressing off-screen/unloaded, explicitly test whether leaving and reloading the area changes the observed behavior.
+Measure fully frozen food separately from refrigerated food; do not extrapolate the refrigeration result to freezing/catch-up behavior.
 
-### E. Real two-player confirmation
+### Real two-player confirmation
 
 After single-player-on-dedicated-server characterization, confirm representative Tier 1 findings with real partial sleep using at least two living players before making a compensation release decision.
 
@@ -337,15 +412,19 @@ If safe compensation requires broad monkey-patching, state churn, unreliable obj
 
 ## Acceptance criteria
 
-- [ ] Non-mutating instrumentation exists for Tier 1 systems.
-- [ ] Baseline measurements captured.
-- [ ] 5x measurements captured.
-- [ ] 10x measurements captured.
-- [ ] 20x used selectively where useful.
-- [ ] Tier 1 time domains classified.
-- [ ] Authority/catch-up behavior documented.
+- [x] Non-mutating instrumentation exists for generator and strict Food-class observation.
+- [x] Baseline measurements captured for generator fuel and food aging.
+- [x] 10x generator measurement captured.
+- [x] 20x generator and food measurements captured.
+- [x] Generator fuel classified.
+- [x] Ambient and refrigerated food aging classified.
+- [ ] Frozen food characterized.
+- [ ] Farming/crop systems classified.
+- [ ] Vehicle fuel/battery classified.
+- [ ] Generator wear classified or explicitly left unresolved.
+- [ ] Authority/catch-up behavior documented sufficiently for compensation design.
 - [ ] Compensation grades assigned.
 - [ ] Representative real partial-sleep confirmation completed.
 - [ ] Admin policy/preset recommendation finalized.
-- [ ] Architecture/validation/roadmap updated with results.
+- [ ] Architecture/validation/roadmap updated with final results.
 - [ ] GO / PARTIAL GO / NO-GO recorded.
