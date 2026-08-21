@@ -11,10 +11,12 @@ Detailed design, testing, deployment, validation evidence, spikes, architecture 
 - Steam Workshop ID: `3786842301`
 - Public Alpha Workshop validation: dedicated-server/client acquisition and live two-player regression **PASS**
 - SPIKE-004: **complete / GO for Public Alpha**
-- SPIKE-005: **in progress — non-health world-system time domains and compensation feasibility**
+- SPIKE-005: **open / world-system characterization and later compensation feasibility**
+- SPIKE-006: **in progress / awake-player survival protection feasibility for the next release**
 - Health/survival result: awake acute injury/body-health loss approximately real-time bound; hunger/thirst/fatigue and core nutrition stores approximately world/calendar-time bound; resting endurance recovery approximately real-time bound under tested conditions
+- Confirmed external world-time examples: food aging, generator fuel, vehicle fuel, and vehicle battery drain under the tested conditions
 - Repository packaging: Workshop-compatible root with one authoritative runtime tree under `Contents/mods/pz-enshrouded-sleep/`
-- Current focus: SPIKE-005, larger-population field validation, live lifecycle behavior, and pathological survival states not exercised in SPIKE-004
+- Current focus: SPIKE-006, v0.0.11 awake-player protection feasibility, larger-population field validation, and live lifecycle behavior
 
 ## Start here
 
@@ -36,7 +38,9 @@ Detailed design, testing, deployment, validation evidence, spikes, architecture 
 - [`spikes/SPIKE-002-vanilla-sleep-lifecycle.md`](spikes/SPIKE-002-vanilla-sleep-lifecycle.md) — established vanilla population/sleep/full-sleep semantics.
 - [`spikes/SPIKE-003-client-clock-synchronization.md`](spikes/SPIKE-003-client-clock-synchronization.md) — diagnosed/fixed client day-length pacing mismatch.
 - [`spikes/SPIKE-004-health-time-domains.md`](spikes/SPIKE-004-health-time-domains.md) — completed health/survival time-domain investigation; **GO for Public Alpha**.
-- [`spikes/SPIKE-005-world-system-time-domains.md`](spikes/SPIKE-005-world-system-time-domains.md) — **in progress**; characterizes food, farming, generators, vehicles, decay, weather, animals and other non-health world systems and grades compensation feasibility.
+- [`spikes/SPIKE-005-world-system-time-domains.md`](spikes/SPIKE-005-world-system-time-domains.md) — **open**; characterizes non-health world systems and grades later compensation feasibility.
+- [`spikes/SPIKE-006-awake-player-protection.md`](spikes/SPIKE-006-awake-player-protection.md) — **in progress**; investigates safe server-authoritative protection of awake hunger/thirst/fatigue/nutrition/weight during partial-sleep calendar compression.
+- [`spikes/SPIKE-006-FIRST-TEST.md`](spikes/SPIKE-006-FIRST-TEST.md) — first controlled diagnostics-only 1x/20x awake-player protection prototype procedure.
 
 See [`spikes/README.md`](spikes/README.md) for the spike convention.
 
@@ -47,7 +51,7 @@ See [`spikes/README.md`](spikes/README.md) for the spike convention.
 - [`adr/ADR-002-extend-vanilla-sleep-lifecycle.md`](adr/ADR-002-extend-vanilla-sleep-lifecycle.md) — extend vanilla lifecycle and hand full sleep back to vanilla.
 - [`adr/ADR-003-mirror-authoritative-minutes-per-day-to-clients.md`](adr/ADR-003-mirror-authoritative-minutes-per-day-to-clients.md) — explicitly mirror authoritative day-length pacing to clients.
 
-SPIKE-004 did not require a new ADR because its results did not change the chosen architecture. SPIKE-005 may justify a new ADR only after measured evidence establishes a durable compensation-policy architecture.
+SPIKE-006 may justify a new ADR only if runtime evidence supports a durable awake-player protection architecture. SPIKE-005 may later justify a separate world-system progression-policy ADR.
 
 See [`adr/README.md`](adr/README.md) for the ADR convention.
 
