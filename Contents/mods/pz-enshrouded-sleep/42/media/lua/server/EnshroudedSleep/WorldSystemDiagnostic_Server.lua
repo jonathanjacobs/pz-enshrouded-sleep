@@ -1,16 +1,18 @@
 -- Enshrouded Sleep - SPIKE-005 non-mutating world-system diagnostic collector
 -- Public Alpha v0.0.10 / development branch only
 --
--- This file intentionally observes vanilla state only. It does not compensate,
--- rewrite, delay, or otherwise alter food, farming, generator, vehicle, weather,
--- or other world-system behavior.
+-- Food aging is intentionally handled by FoodTimeDomainDiagnostic_Server.lua,
+-- which performs strict Food-class validation. This collector observes only
+-- generators, farming objects and the test player's current vehicle.
+--
+-- Observation only: this file does not compensate, rewrite, delay or otherwise
+-- alter vanilla world-system behavior.
 
 if isClient() then return end
 
 local PREFIX = "[EnshroudedSleepWorldDiag][SERVER]"
 local SAMPLE_INTERVAL_SECONDS = 5
 local SCAN_RADIUS = 3
-local MAX_FOOD_RECORDS = 12
 local MAX_GENERATOR_RECORDS = 8
 local MAX_CROP_RECORDS = 8
 
@@ -83,61 +85,6 @@ local function objectKey(obj)
     return tostring(obj)
 end
 
-local function itemLabel(item)
-    return tostring(safeMethod(item, "getFullType") or safeMethod(item, "getName") or item)
-end
-
-local function addFoodRecord(item, source, records, seen)
-    if not item or #records >= MAX_FOOD_RECORDS then return end
-
-    local age = tonumber(safeMethod(item, "getAge"))
-    local offAge = tonumber(safeMethod(item, "getOffAge"))
-    local offAgeMax = tonumber(safeMethod(item, "getOffAgeMax"))
-
-    -- Food exposes aging thresholds. Requiring age plus at least one threshold
-    -- avoids treating unrelated inventory items with a coincidental getAge method
-    -- as food.
-    if age == nil or (offAge == nil and offAgeMax == nil) then return end
-
-    local key = objectKey(item)
-    if seen[key] then return end
-    seen[key] = true
-
-    records[#records + 1] = {
-        source = source,
-        label = itemLabel(item),
-        age = age,
-        offAge = offAge,
-        offAgeMax = offAgeMax,
-        heat = tonumber(safeMethod(item, "getHeat")),
-        freezingTime = tonumber(safeMethod(item, "getFreezingTime")),
-        frozen = safeMethod(item, "isFrozen"),
-        rotten = safeMethod(item, "isRotten"),
-    }
-end
-
-local function scanContainer(container, source, foodRecords, seenFood, depth)
-    if not container or #foodRecords >= MAX_FOOD_RECORDS then return end
-    depth = depth or 0
-    if depth > 2 then return end
-
-    local items = safeMethod(container, "getItems")
-    if not items then return end
-    local size = tonumber(safeMethod(items, "size")) or 0
-
-    for i = 0, size - 1 do
-        if #foodRecords >= MAX_FOOD_RECORDS then return end
-        local item = safeMethod(items, "get", i)
-        if item then
-            addFoodRecord(item, source, foodRecords, seenFood)
-            local nested = safeMethod(item, "getInventory")
-            if nested then
-                scanContainer(nested, source .. "/nested", foodRecords, seenFood, depth + 1)
-            end
-        end
-    end
-end
-
 local function addGeneratorRecord(obj, x, y, z, records, seen)
     if not obj or #records >= MAX_GENERATOR_RECORDS then return end
 
@@ -192,7 +139,7 @@ local function addCropRecord(obj, x, y, z, records, seen)
     }
 end
 
-local function scanNearbyWorld(player, foodRecords, generatorRecords, cropRecords)
+local function scanNearbyWorld(player, generatorRecords, cropRecords)
     local cell = type(getCell) == "function" and getCell() or nil
     if not cell then return end
 
@@ -200,14 +147,8 @@ local function scanNearbyWorld(player, foodRecords, generatorRecords, cropRecord
     local py = math.floor(tonumber(safeMethod(player, "getY")) or 0)
     local pz = math.floor(tonumber(safeMethod(player, "getZ")) or 0)
 
-    local seenFood = {}
     local seenGenerators = {}
     local seenCrops = {}
-
-    local inventory = safeMethod(player, "getInventory")
-    if inventory then
-        scanContainer(inventory, "player-inventory", foodRecords, seenFood, 0)
-    end
 
     for dx = -SCAN_RADIUS, SCAN_RADIUS do
         for dy = -SCAN_RADIUS, SCAN_RADIUS do
@@ -221,10 +162,6 @@ local function scanNearbyWorld(player, foodRecords, generatorRecords, cropRecord
                 for i = 0, size - 1 do
                     local obj = safeMethod(objects, "get", i)
                     if obj then
-                        local container = safeMethod(obj, "getContainer")
-                        if container then
-                            scanContainer(container, string.format("container@%d,%d,%d", x, y, pz), foodRecords, seenFood, 0)
-                        end
                         addGeneratorRecord(obj, x, y, pz, generatorRecords, seenGenerators)
                         addCropRecord(obj, x, y, pz, cropRecords, seenCrops)
                     end
@@ -264,40 +201,22 @@ local function emitSample()
     local minutesPerDay = tonumber(safeMethod(gameTime, "getMinutesPerDay"))
     local trueMultiplier = tonumber(safeMethod(gameTime, "getTrueMultiplier"))
 
-    local foodRecords = {}
     local generatorRecords = {}
     local cropRecords = {}
-    scanNearbyWorld(player, foodRecords, generatorRecords, cropRecords)
+    scanNearbyWorld(player, generatorRecords, cropRecords)
     local vehicle = vehicleRecord(player)
 
     log(string.format(
-        "SAMPLE | WorldAgeHours=%s | TimeOfDay=%s | MinutesPerDay=%s | DiagnosticForcedCompressionFactor=%s | TrueMultiplier=%s | food=%d | generators=%d | crops=%d | vehicle=%s",
+        "SAMPLE | WorldAgeHours=%s | TimeOfDay=%s | MinutesPerDay=%s | DiagnosticForcedCompressionFactor=%s | TrueMultiplier=%s | generators=%d | crops=%d | vehicle=%s",
         formatNumber(worldAgeHours, 6),
         formatNumber(timeOfDay, 6),
         formatNumber(minutesPerDay, 4),
         formatNumber(diagnosticFactor(), 3),
         formatNumber(trueMultiplier, 4),
-        #foodRecords,
         #generatorRecords,
         #cropRecords,
         vehicle and "yes" or "no"
     ))
-
-    for i, record in ipairs(foodRecords) do
-        log(string.format(
-            "FOOD | n=%d | source=%s | item=%s | age=%s | offAge=%s | offAgeMax=%s | heat=%s | freezingTime=%s | frozen=%s | rotten=%s",
-            i,
-            tostring(record.source),
-            tostring(record.label),
-            formatNumber(record.age, 6),
-            formatNumber(record.offAge, 4),
-            formatNumber(record.offAgeMax, 4),
-            formatNumber(record.heat, 4),
-            formatNumber(record.freezingTime, 4),
-            tostring(record.frozen),
-            tostring(record.rotten)
-        ))
-    end
 
     for i, record in ipairs(generatorRecords) do
         log(string.format(
@@ -359,4 +278,4 @@ end
 
 Events.OnTickEvenPaused.Add(update)
 
-log("Loaded SPIKE-005 non-mutating world-system diagnostic collector; active only while DiagnosticsEnabled=true.")
+log("Loaded SPIKE-005 world-system diagnostic collector (generators/crops/vehicle); food uses the strict Food-class diagnostic.")
