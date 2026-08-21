@@ -13,7 +13,7 @@ Steam Workshop ID: `3786842301`
 
 The pre-alpha technical gates are complete. [`SPIKE-004`](spikes/SPIKE-004-health-time-domains.md) returned **GO** after controlled v0.0.9/v0.0.10 health/survival testing.
 
-Public Alpha v0.0.10 has now been published to Steam Workshop, acquired by the WHG dedicated server and client, and passed a live two-player Workshop-distributed regression including baseline inheritance, proportional partial-sleep compression, live `FastForwardMultiplier` inheritance, client day-length synchronization, and baseline restoration.
+Public Alpha v0.0.10 has been published to Steam Workshop, acquired by the WHG dedicated server and client, and passed a live two-player Workshop-distributed regression including baseline inheritance, proportional partial-sleep compression, live `FastForwardMultiplier` inheritance, client day-length synchronization, and baseline restoration.
 
 The repository uses one authoritative deployable mod tree:
 
@@ -23,7 +23,7 @@ Contents/mods/pz-enshrouded-sleep/
 
 ## Current development focus — SPIKE-005
 
-[`SPIKE-005`](spikes/SPIKE-005-world-system-time-domains.md) is now the primary feature investigation.
+[`SPIKE-005`](spikes/SPIKE-005-world-system-time-domains.md) is the primary feature investigation.
 
 Goal: characterize how non-health world systems behave when `MinutesPerDay` is compressed, then determine whether server administrators can safely choose between:
 
@@ -39,7 +39,27 @@ Initial release-driving systems:
 
 Secondary systems include corpse decay/removal, composting, cooking/fire, world-item removal, erosion/vegetation, weather/climate, and Build 42 animal husbandry clocks.
 
-The project will not assume these systems share one time domain. SPIKE-005 must measure them and separately grade compensation feasibility before production behavior changes.
+The project will not assume these systems share one time domain. SPIKE-005 measures time-domain behavior and separately grades compensation feasibility before production behavior changes.
+
+### SPIKE-005 results established so far
+
+Controlled one-player-on-dedicated-server forced-compression testing has now established:
+
+- **generator fuel is world/calendar-time bound**;
+  - ~9.0x baseline real-time consumption rate during the 10x phase;
+  - ~17.2x baseline real-time consumption rate during the 20x phase;
+  - fuel consumed per elapsed world-hour remained close to baseline;
+- **ambient food aging/spoilage is world/calendar-time bound**;
+  - raw chicken aged ~20.99x faster per real second during 20x compression;
+  - aging remained ~1 food-age day per elapsed world day;
+- **refrigerated food aging is world/calendar-time bound**;
+  - vanilla refrigeration remained effective at ~0.20x ambient aging per elapsed world day;
+  - because world time itself was accelerated, refrigerated food still aged ~20x faster per real second during 20x compression;
+- `TrueMultiplier` remained `1.0` and native `MinutesPerDay` restoration continued to work during these tests.
+
+Generator condition/wear, frozen food, farming, vehicle fuel/battery, unloaded-chunk/catch-up behavior, and safe compensation hooks remain unresolved.
+
+The old broad diagnostic's generic-item food logging has been removed; food measurement now uses the strict Food-class diagnostic only.
 
 ## Evidence established before and during Public Alpha
 
@@ -58,7 +78,10 @@ Validated behavior includes:
 - diagnostic forced-compression safety handoff when the single connected test player sleeps;
 - Steam Workshop server/client acquisition and loading for item `3786842301`;
 - live two-player Workshop-distributed regression on a native 120-minute server day;
-- live inheritance of an administrator change to `FastForwardMultiplier` without restart.
+- live inheritance of an administrator change to `FastForwardMultiplier` without restart;
+- generator fuel world/calendar-time classification;
+- ambient and refrigerated food-aging world/calendar-time classification;
+- preservation of vanilla refrigeration behavior under 20x calendar compression.
 
 SPIKE-004 did not justify broad health/survival compensation. Faster hunger/thirst/fatigue/nutrition progression is accepted as a consequence of genuinely faster elapsed game-world time.
 
@@ -87,6 +110,17 @@ Primary goals:
 - identify compatibility problems with other sleep/recovery or world-time-driven mods;
 - observe client pacing during admin/sandbox changes without the aggressive repeated factor changes used in SPIKE-004;
 - continue validating install/update/rollback through the permanent Steam Workshop item.
+
+### Immediate SPIKE-005 sequence
+
+1. Vehicle fuel consumption while engine is running.
+2. Vehicle battery behavior if measurable in the same controlled run.
+3. Farming/crop maturation and related water/disease/pest timers.
+4. Loaded versus unloaded/catch-up behavior for farming and other persistent systems.
+5. Generator condition/wear with sufficiently long comparable baseline/compressed intervals.
+6. Frozen-food behavior.
+7. Compensation-feasibility investigation for confirmed world-time systems.
+8. Representative real two-player partial-sleep confirmation before any compensation release decision.
 
 ### Public Alpha exit criteria
 
