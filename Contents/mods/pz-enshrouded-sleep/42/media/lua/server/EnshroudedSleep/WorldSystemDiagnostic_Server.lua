@@ -176,15 +176,26 @@ local function vehicleRecord(player)
     if not vehicle then return nil end
 
     local gasTank = safeMethod(vehicle, "getPartById", "GasTank")
-    local batteryPart = safeMethod(vehicle, "getPartById", "Battery")
+    local batteryPart = safeMethod(vehicle, "getBattery") or safeMethod(vehicle, "getPartById", "Battery")
     local batteryItem = batteryPart and safeMethod(batteryPart, "getInventoryItem") or nil
+
+    -- BaseVehicle:getBatteryCharge() is the canonical vehicle charge value used
+    -- by vanilla vehicle electrical logic. The previous diagnostic attempted to
+    -- read InventoryItem:getUsedDelta(), which is not reliably exposed for the
+    -- vehicle battery object in B42 and produced N/A in the first vehicle test.
+    local batteryCharge = tonumber(safeMethod(vehicle, "getBatteryCharge"))
+    local batteryItemCharge = batteryItem and tonumber(safeMethod(batteryItem, "getCurrentUsesFloat")) or nil
 
     return {
         script = safeMethod(vehicle, "getScriptName"),
         running = safeMethod(vehicle, "isEngineRunning"),
         engineSpeed = tonumber(safeMethod(vehicle, "getEngineSpeed")),
         fuel = gasTank and tonumber(safeMethod(gasTank, "getContainerContentAmount")) or nil,
-        battery = batteryItem and tonumber(safeMethod(batteryItem, "getUsedDelta")) or nil,
+        batteryCharge = batteryCharge,
+        batteryItemCharge = batteryItemCharge,
+        headlightsOn = safeMethod(vehicle, "getHeadlightsOn"),
+        lightbarLightsMode = tonumber(safeMethod(vehicle, "getLightbarLightsMode")),
+        lightbarSirenMode = tonumber(safeMethod(vehicle, "getLightbarSirenMode")),
     }
 end
 
@@ -254,12 +265,16 @@ local function emitSample()
 
     if vehicle then
         log(string.format(
-            "VEHICLE | script=%s | running=%s | engineSpeed=%s | fuel=%s | battery=%s",
+            "VEHICLE | script=%s | running=%s | engineSpeed=%s | fuel=%s | batteryCharge=%s | batteryItemCharge=%s | headlightsOn=%s | lightbarLightsMode=%s | lightbarSirenMode=%s",
             tostring(vehicle.script),
             tostring(vehicle.running),
             formatNumber(vehicle.engineSpeed, 3),
             formatNumber(vehicle.fuel, 6),
-            formatNumber(vehicle.battery, 6)
+            formatNumber(vehicle.batteryCharge, 8),
+            formatNumber(vehicle.batteryItemCharge, 8),
+            tostring(vehicle.headlightsOn),
+            tostring(vehicle.lightbarLightsMode),
+            tostring(vehicle.lightbarSirenMode)
         ))
     end
 end
@@ -278,4 +293,4 @@ end
 
 Events.OnTickEvenPaused.Add(update)
 
-log("Loaded SPIKE-005 world-system diagnostic collector (generators/crops/vehicle); food uses the strict Food-class diagnostic.")
+log("Loaded SPIKE-005 world-system diagnostic collector (generators/crops/vehicle); vehicle battery uses BaseVehicle:getBatteryCharge(); food uses the strict Food-class diagnostic.")
