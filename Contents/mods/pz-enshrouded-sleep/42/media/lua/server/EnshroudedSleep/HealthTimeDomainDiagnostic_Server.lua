@@ -56,6 +56,15 @@ local function diagnosticsEnabled()
     return vars ~= nil and vars.DiagnosticsEnabled == true
 end
 
+---Return whether the diagnostics-only forced compression control is armed.
+---This is descriptive only; the authoritative controller owns the mutation.
+---@return boolean configured
+local function diagnosticForcedConfigured()
+    local vars = SandboxVars and SandboxVars.EnshroudedSleep or nil
+    local factor = tonumber(vars and vars.DiagnosticForcedCompressionFactor) or 1.0
+    return vars ~= nil and vars.DiagnosticsEnabled == true and factor > 1.0 + EPSILON
+end
+
 ---Write one namespaced server health diagnostic line.
 ---@param message any
 ---@return nil
@@ -200,11 +209,23 @@ local function collectLivingPlayers()
     return result, #result, sleeping
 end
 
----Derive the ordinary multiplayer sleep phase for broad diagnostic metadata.
+---Derive a descriptive sleep/test phase for broad diagnostic metadata.
 ---@param living integer
 ---@param sleeping integer
+---@param minutesPerDay number|nil
+---@param baseline number|nil
 ---@return string phase
-local function derivePhase(living, sleeping)
+local function derivePhase(living, sleeping, minutesPerDay, baseline)
+    if diagnosticForcedConfigured() then
+        if sleeping > 0 then return "diagnostic-forced-suspended-sleep" end
+        if living <= 0 then return "diagnostic-forced-awaiting-player" end
+        if living ~= 1 then return "diagnostic-forced-suspended-player-count" end
+        if baseline and minutesPerDay and minutesPerDay < baseline - EPSILON then
+            return "diagnostic-forced"
+        end
+        return "diagnostic-forced-armed"
+    end
+
     if living <= 0 or sleeping <= 0 then return "baseline" end
     if sleeping >= living then return "vanilla-full-sleep" end
     return "partial"
@@ -490,7 +511,7 @@ local function sampleHealthTimeDomains()
         compression = baseline / minutesPerDay
     end
 
-    local phase = derivePhase(living, sleeping)
+    local phase = derivePhase(living, sleeping, minutesPerDay, baseline)
     local timeOfDay = safeNumber(gt, "getTimeOfDay")
     local worldAgeHours = safeNumber(gt, "getWorldAgeHours")
     local deltaMinutesPerDay = safeNumber(gt, "getDeltaMinutesPerDay")
