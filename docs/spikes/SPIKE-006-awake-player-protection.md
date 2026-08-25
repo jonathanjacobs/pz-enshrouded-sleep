@@ -2,7 +2,7 @@
 
 Status: **IN PROGRESS**  
 Target release: **v0.0.11 candidate**  
-Validated source baseline: **Project Zomboid 42.20.3**  
+Validated source/runtime baseline: **Project Zomboid 42.20.3**  
 GitHub issue: **#7**
 
 ## Question
@@ -19,7 +19,7 @@ This spike is intentionally narrower than SPIKE-005. External world systems may 
 
 ## Evidence inherited from SPIKE-004
 
-Controlled runtime testing already established that the following scale with compressed world/calendar time:
+Controlled runtime testing established that the following scale with compressed world/calendar time:
 
 - hunger;
 - thirst;
@@ -43,7 +43,7 @@ Therefore v0.0.11 must **not** apply broad health compensation. It should target
 30 / MinutesPerDay
 ```
 
-The decompiled method comment explicitly describes it as the factor used when a value should advance at a fixed **game-time** rather than real-time rate.
+The decompiled method comment describes it as the factor used when a value should advance at a fixed **game-time** rather than real-time rate.
 
 `GameTime.getGameWorldSecondsSinceLastUpdate()` similarly scales the normal update delta by:
 
@@ -57,7 +57,7 @@ Therefore changing a native 90-minute day to 4.5 minutes produces approximately 
 
 `IsoGameCharacter.updateStats_Awake()` applies hunger using the current `ZomboidGlobals` base rates multiplied by `GameTime.getDeltaMinutesPerDay()`.
 
-Relevant base rates:
+Relevant base rates include:
 
 - `HungerIncrease`;
 - `HungerIncreaseWhenWellFed`;
@@ -67,42 +67,19 @@ Vanilla then applies appetite, sandbox, activity, trait, and thermoregulation-re
 
 ### Sleeping hunger
 
-`IsoPlayer.updateStats_Sleeping()` uses the separate:
-
-- `HungerIncreaseWhileAsleep`.
-
-This supports the intended product boundary: **do not normalize sleepers**.
+`IsoPlayer.updateStats_Sleeping()` uses the separate `HungerIncreaseWhileAsleep` path. This supports the intended product boundary: **do not normalize sleepers**.
 
 ### Awake thirst
 
-`IsoGameCharacter.updateThirst()` uses:
+`IsoGameCharacter.updateThirst()` uses `ThirstIncrease`, sandbox stats-decrease multiplier, `GameTime.getDeltaMinutesPerDay()`, thirst traits, running modifiers, and thermoregulation fluids modifiers.
 
-- `ThirstIncrease`;
-- sandbox stats-decrease multiplier;
-- `GameTime.getDeltaMinutesPerDay()`;
-- high-/low-thirst trait multiplier;
-- running modifier;
-- thermoregulation fluids multiplier.
-
-Sleeping thirst takes a separate branch using:
-
-- `ThirstSleepingIncrease`.
-
-Again, awake and sleeping behavior are already separated by vanilla.
+Sleeping thirst uses a separate `ThirstSleepingIncrease` path.
 
 ### Awake fatigue
 
-`IsoGameCharacter.updateStats_Awake()` uses:
+`IsoGameCharacter.updateStats_Awake()` uses `FatigueIncrease`, sandbox stats-decrease multiplier, `GameTime.getDeltaMinutesPerDay()`, endurance-dependent modifiers, sleep traits, resting/sitting state, and thermoregulation fatigue modifiers.
 
-- `FatigueIncrease`;
-- sandbox stats-decrease multiplier;
-- `GameTime.getDeltaMinutesPerDay()`;
-- endurance-dependent modifier;
-- Needs Less Sleep / Needs More Sleep modifiers;
-- resting/sitting modifier;
-- thermoregulation fatigue multiplier.
-
-Sleeping fatigue recovery is implemented separately in `IsoPlayer.updateStats_Sleeping()` using elapsed game-hours, sleep traits, and bed quality.
+Sleeping fatigue recovery is implemented separately in `IsoPlayer.updateStats_Sleeping()`.
 
 ### Nutrition
 
@@ -116,25 +93,13 @@ Proteins      -= 0.00086 * gameWorldSeconds
 
 `updateCalories()` also multiplies every activity branch by `getGameWorldSecondsSinceLastUpdate()`.
 
-The vanilla calorie rate varies with state, including:
-
-- sleeping;
-- stationary awake;
-- ordinary movement;
-- running;
-- sprinting;
-- active character actions;
-- climbing/combat states;
-- body weight;
-- thermoregulation energy multiplier.
-
-This means Enshrouded Sleep should preserve the vanilla formula and remove only the extra calendar-compression component.
+The vanilla calorie rate varies with sleeping/awake state, movement, running, sprinting, character actions, climbing/combat, body weight, and thermoregulation. Enshrouded Sleep should preserve those vanilla modifiers and remove only the extra calendar-compression component.
 
 ### Weight
 
 `Nutrition.updateWeight()` also uses `getGameWorldSecondsSinceLastUpdate()` for weight gain/loss.
 
-Therefore weight progression belongs in the protection boundary with calories/macros. Protecting nutrition stores while leaving weight at compressed world speed would be internally inconsistent.
+Therefore weight progression belongs in the protection boundary with calories/macros.
 
 ## Java/Lua feasibility result
 
@@ -148,13 +113,7 @@ Important details:
 4. B42.20.3 `LuaManager.Exposer` exposes many character classes, including `Nutrition`, but does not expose the Java `zombie.ZomboidGlobals` class.
 5. Ordinary Kahlua exposure does not provide writable access to arbitrary Java class fields.
 
-Consequence:
-
-```text
-ZomboidGlobals.HungerIncrease = ...
-```
-
-changes the Lua table but is not evidence that the already-loaded Java static `hungerIncrease` used by `IsoGameCharacter` changes with it.
+Changing the Lua table after load is therefore not evidence that the Java static rates used by `IsoGameCharacter` change with it.
 
 No core Java patching or custom Java loader will be introduced for this feature. The project remains a normal Workshop-distributable Lua mod.
 
@@ -164,15 +123,13 @@ No core Java patching or custom Java loader will be introduced for this feature.
 
 **NO-GO for ordinary Workshop Lua** based on B42.20.3 exposure.
 
-Would be clean mathematically, but the required Java static fields/class are not exposed as a safe mutable runtime API.
-
 ### B. `CalculateStats` interception/reimplementation
 
-`IsoGameCharacter.calculateStats()` exposes a `CalculateStats` Lua hook. Returning true suppresses the vanilla block that otherwise updates endurance, tripping, thirst, stress, wake-state stats, morale, and fitness.
+`IsoGameCharacter.calculateStats()` exposes a `CalculateStats` Lua hook. Returning true suppresses a broad vanilla block that also updates endurance, tripping, thirst, stress, wake-state stats, morale, and fitness.
 
 **Reject as primary design.**
 
-It is too broad, would require reimplementing substantial vanilla character logic, and creates unnecessary incompatibility risk with PZ updates and other mods.
+It is too broad, would require reimplementing substantial vanilla character logic, and creates unnecessary compatibility risk.
 
 ### C. Post-update normalization
 
@@ -199,7 +156,7 @@ For the first controlled prototype:
 
 Opposite-direction changes are accepted in full so eating/drinking can be exercised later.
 
-This is deliberately a **feasibility prototype**, not yet production-safe. Some legitimate active effects share the same direction as passive decay (for example fatigue from medication/toxic exposure or food that increases thirst), so source-specific regression testing is required before release.
+This is deliberately a **feasibility prototype**, not yet production-safe. Some legitimate active effects share the same direction as passive decay, so source-specific regression testing is required before release.
 
 ## Diagnostics-only prototype
 
@@ -234,13 +191,90 @@ native baseline MinutesPerDay observed first at forced factor 1
 
 It fails open if a required read/write binding is unavailable.
 
-## First validation sequence
+## Runtime validation attempt 1 — callback failure
+
+The first dedicated-server SPIKE-006 run confirmed that the development branch was loaded and that the forced-compression controller behaved correctly:
+
+```text
+native MinutesPerDay = 90
+forced factor        = 20
+compressed MPD       = 4.5
+TrueMultiplier       = 1.0
+living               = 1
+sleeping             = 0
+```
+
+However, the original prototype registered its correction function with:
+
+```lua
+Events.OnPlayerUpdate.Add(onPlayerUpdate)
+```
+
+The server emitted the module load message but produced no `STATUS`, prototype `BASELINE`, or `CORRECTION` records from that callback. At the same time, the ordinary tick-driven Enshrouded Sleep diagnostics continued to run.
+
+The survival stream showed no protection. Representative nutrition depletion remained approximately proportional to the 20x calendar-compression factor.
+
+Conclusion:
+
+**`Events.OnPlayerUpdate` is not a reliable dedicated-server callback for this prototype on the tested B42.20.3 runtime.**
+
+This attempt did **not** test the correction mathematics; it failed before the correction routine was invoked.
+
+## Tick-driven prototype revision
+
+The prototype now registers with:
+
+```lua
+Events.OnTick.Add(onTick)
+```
+
+and explicitly obtains the server player population with `getOnlinePlayers()`.
+
+The same mutation safety gates remain in place. The normalizer still operates only during the single-living-awake-player forced-compression diagnostic test.
+
+Successive server-tick snapshots are used to measure deltas. Even if the Lua `OnTick` callback occurs before the Java character update in a particular frame, the following tick should observe the prior frame's vanilla state change and permit correction.
+
+A diagnostics-only heartbeat now emits approximately every 30 real seconds while diagnostics are enabled:
+
+```text
+[EnshroudedSleepAwakeProtect][SERVER] HEARTBEAT
+```
+
+It reports at least:
+
+- `tickCalls`;
+- whether the prototype is enabled;
+- forced compression factor;
+- living/sleeping counts;
+- current `MinutesPerDay`;
+- captured baseline `MinutesPerDay`.
+
+This prevents a loaded-but-never-called event path from failing silently again.
+
+## Revised first validation sequence
 
 See [`SPIKE-006-FIRST-TEST.md`](SPIKE-006-FIRST-TEST.md).
 
-The first test is intentionally idle/stationary. It asks only whether the normalization mechanism can turn the previously observed ~20x passive progression back toward ~1x.
+The next run repeats the same controlled idle sequence:
 
-If that works, later tests add legitimate state changes:
+```text
+factor 1 -> factor 20 -> factor 1
+```
+
+with exactly one living awake player.
+
+Before interpreting any survival-rate result, the run must first demonstrate:
+
+```text
+HEARTBEAT with increasing tickCalls
+STATUS | prototype-armed-at-baseline
+STATUS | prototype-active
+CORRECTION records during 20x
+```
+
+If those appear, compare the protected 20x survival rates against the native baseline.
+
+If the idle correction succeeds, later tests add legitimate state changes:
 
 1. eat while compressed;
 2. drink while compressed;
