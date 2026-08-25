@@ -56,6 +56,36 @@ Before interpreting any physiology result, confirm the server emits:
 
 The general clock and health diagnostics should label the compressed phase as `diagnostic-forced`, not ordinary `baseline` or `partial`.
 
+## Automatic action/activity telemetry
+
+The current SPIKE-006 branch contains transition-based diagnostics on both the dedicated server and owning client:
+
+```text
+[EnshroudedSleepActionDiag][SERVER]
+[EnshroudedSleepActionDiag][CLIENT]
+```
+
+These log only when relevant player activity changes rather than once per tick. The stream records:
+
+- idle / walking / running / sprinting;
+- resting;
+- sitting on ground/furniture when exposed by the runtime;
+- sleeping/waking;
+- `IsoPlayer:isPerformingAnAction()`;
+- raw network `NetworkCharacterAI:getPerformingAction()`;
+- current `LuaTimedActionNew:getMetaType()` and table `Type` when available;
+- a best-effort action item identifier for common timed-action table fields;
+- player position at the transition;
+- `MinutesPerDay`, `TimeOfDay`, and `TrueMultiplier` at the transition.
+
+B42.20.3 source confirms that `NetworkCharacterAI` exposes `getPerformingAction()` and `LuaTimedActionNew` exposes `getMetaType()`/`getTable()`. The logger records those raw values rather than inferring eating or drinking solely from physiology changes.
+
+The owning-client stream is expected to be the strongest evidence for ordinary Lua timed actions such as eating/drinking, while the server stream provides authoritative movement/sleep/network-action corroboration.
+
+Before starting the measured sequence, perform one harmless short action and move/run briefly. Confirm at least one `ACTION` transition appears. If the action type is not semantically identifiable in either stream, preserve the logs anyway; the physiological discontinuity and raw action metadata can still be correlated by epoch.
+
+**Manual wall-clock notes are no longer required for the standard test.** Only note something manually if a specific action fails to appear in both action diagnostic streams.
+
 ## Prepare nutrition away from clamps
 
 The successful passive test began with Carbohydrates and Lipids already at the vanilla lower clamp (`-500`), so their correction could not be measured.
@@ -103,13 +133,13 @@ Allow at least 30 real seconds after the prototype reports:
 STATUS | prototype-armed-at-baseline
 ```
 
-Then perform the following control actions, leaving enough time between actions to identify their effects in the one-second `SURVIVAL` stream.
+Then perform the following control actions, leaving enough time between actions to identify their effects in the one-second `SURVIVAL` stream and transition-based `ACTION` stream.
 
 ### A1. Eat
 
 Eat a known food portion that produces a visible hunger/nutrition change.
 
-Record:
+Use the action diagnostics to identify the action interval, then compare:
 
 - Hunger immediately before and after;
 - Calories;
@@ -123,13 +153,13 @@ Record:
 
 Drink a known quantity of water.
 
-Record Thirst immediately before and after.
+Use the action diagnostics to identify the interval and compare Thirst immediately before and after.
 
 ### A3. Sustained movement
 
 Run or sprint continuously for approximately **30 real seconds** in a safe area.
 
-Record the per-real-second rates of:
+The action logger should mark the running/sprinting transition automatically. Measure the per-real-second rates of:
 
 - Hunger;
 - Thirst;
@@ -145,7 +175,7 @@ Endurance is useful corroborating telemetry but is **not** a protected SPIKE-006
 
 Rest or sit for approximately **30 real seconds** after movement.
 
-Record the same protected fields plus Endurance for context.
+The action logger should mark the transition automatically. Record the same protected fields plus Endurance for context.
 
 ### A5. Well Fed / rate-modifier state
 
@@ -206,6 +236,8 @@ After the active-effect sequence, keep factor 20 enabled and verify the two susp
 
 Have the only connected player enter vanilla sleep.
 
+The action logger should provide the sleep/wake epoch automatically.
+
 Expected:
 
 ```text
@@ -220,6 +252,8 @@ Wake the player and restore a stable factor-1 state before the next boundary tes
 ### C2. Second-player join
 
 With the test player awake, arm factor 20 and have a second living player connect.
+
+The existing roster logger plus action diagnostic `PLAYER_ACTIVE` transition should identify the population change without a handwritten timestamp.
 
 Expected:
 
@@ -255,18 +289,7 @@ client console/DebugLog for the owning test player
 
 For the second-player suspension check, include the second player's client log only if that client reports a visible anomaly or Enshrouded error.
 
-Also provide a short note with approximate wall-clock times for:
-
-```text
-eating
-drinking
-run/sprint interval
-rest interval
-sleep transition
-second-player join
-```
-
-That makes action-to-log correlation much faster.
+No routine manual action timestamps are required. The analysis should use the `EnshroudedSleepActionDiag` transitions, roster transitions, controller state, and survival telemetry on their common epoch timestamps. If an action unexpectedly fails to appear in both action streams, mention only that missing action when sending the logs.
 
 ## Acceptance criteria
 
