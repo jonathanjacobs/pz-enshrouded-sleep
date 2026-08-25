@@ -36,6 +36,12 @@
 -- changes even if this callback runs before the Java character update in a
 -- particular frame.
 --
+-- The second controlled run demonstrated approximately 1x passive awake-player
+-- progression while world/calendar time ran at approximately 20x. This version
+-- keeps the same correction algorithm but narrows the per-tick read path to the
+-- eight protected fields instead of collecting the full SurvivalStatProbe
+-- snapshot (24 CharacterStats, Moodles, BodyDamage, and auxiliary telemetry).
+--
 -- The correction is deliberately directional:
 --   hunger/thirst/fatigue: scale only increases (worsening)
 --   calories/macros:       scale only decreases (passive depletion)
@@ -60,6 +66,14 @@ local lastLogAt = -1
 local lastHeartbeatAt = -1
 local lastStatus = nil
 local tickCalls = 0
+
+-- Resolve only the three CharacterStat objects used by the correction loop.
+-- Resolution is lazy because Java/Kahlua class exposure is runtime-dependent.
+local protectedCharacterStats = {
+    Hunger = { key = "HUNGER", id = "Hunger", stat = nil },
+    Thirst = { key = "THIRST", id = "Thirst", stat = nil },
+    Fatigue = { key = "FATIGUE", id = "Fatigue", stat = nil },
+}
 
 local function log(message)
     print(PREFIX .. " " .. tostring(message))
@@ -138,24 +152,44 @@ local function captureBaselineIfSafe(config, minutesPerDay)
     end
 end
 
+local function resolveProtectedCharacterStat(name)
+    local descriptor = protectedCharacterStats[name]
+    if not descriptor then return nil end
+    if descriptor.stat == nil then
+        descriptor.stat = Probe.resolveCharacterStat(descriptor.key, descriptor.id)
+    end
+    return descriptor.stat
+end
+
+-- Hot-path reader: intentionally reads only the eight values SPIKE-006 may
+-- correct. Do not call Probe.collect() here; its broad diagnostic snapshot is
+-- useful once per second but unnecessarily expensive at server tick cadence.
 local function readProtectedState(player)
-    local snapshot = Probe.collect(player)
+    local stats = Probe.safeMethod(player, "getStats")
+    local nutrition = Probe.safeMethod(player, "getNutrition")
+
+    local function readStat(name)
+        local stat = resolveProtectedCharacterStat(name)
+        if not stats or not stat then return nil end
+        return Probe.toNumber(Probe.safeMethod(stats, "get", stat))
+    end
+
     return {
-        Hunger = snapshot.characterStats.Hunger,
-        Thirst = snapshot.characterStats.Thirst,
-        Fatigue = snapshot.characterStats.Fatigue,
-        Calories = snapshot.nutrition.Calories,
-        Carbohydrates = snapshot.nutrition.Carbohydrates,
-        Proteins = snapshot.nutrition.Proteins,
-        Lipids = snapshot.nutrition.Lipids,
-        Weight = snapshot.nutrition.Weight,
+        Hunger = readStat("Hunger"),
+        Thirst = readStat("Thirst"),
+        Fatigue = readStat("Fatigue"),
+        Calories = Probe.safeNumber(nutrition, "getCalories"),
+        Carbohydrates = Probe.safeNumber(nutrition, "getCarbohydrates"),
+        Proteins = Probe.safeNumber(nutrition, "getProteins"),
+        Lipids = Probe.safeNumber(nutrition, "getLipids"),
+        Weight = Probe.safeNumber(nutrition, "getWeight"),
     }
 end
 
-local function writeCharacterStat(player, key, id, value)
+local function writeCharacterStat(player, name, value)
     if value == nil then return false end
     local stats = Probe.safeMethod(player, "getStats")
-    local stat = Probe.resolveCharacterStat(key, id)
+    local stat = resolveProtectedCharacterStat(name)
     if not stats or not stat then return false end
     local ok = safeCall(stats, "set", stat, value)
     return ok == true
@@ -194,17 +228,17 @@ local function applyCorrection(player, previous, before, compression)
     local writeFailure = false
 
     corrected.Hunger, changed = retainFraction(previous.Hunger, before.Hunger, compression, "positive")
-    if changed and not writeCharacterStat(player, "HUNGER", "Hunger", corrected.Hunger) then
+    if changed and not writeCharacterStat(player, "Hunger", corrected.Hunger) then
         writeFailure = true
     end
 
     corrected.Thirst, changed = retainFraction(previous.Thirst, before.Thirst, compression, "positive")
-    if changed and not writeCharacterStat(player, "THIRST", "Thirst", corrected.Thirst) then
+    if changed and not writeCharacterStat(player, "Thirst", corrected.Thirst) then
         writeFailure = true
     end
 
     corrected.Fatigue, changed = retainFraction(previous.Fatigue, before.Fatigue, compression, "positive")
-    if changed and not writeCharacterStat(player, "FATIGUE", "Fatigue", corrected.Fatigue) then
+    if changed and not writeCharacterStat(player, "Fatigue", corrected.Fatigue) then
         writeFailure = true
     end
 
@@ -393,4 +427,5 @@ Events.OnTick.Add(onTick)
 
 log("Loaded SPIKE-006 diagnostics-only awake-player protection prototype.")
 log("Correction loop uses dedicated-server Events.OnTick and iterates getOnlinePlayers().")
+log("Protected-state hot path reads only Hunger/Thirst/Fatigue and Nutrition fields targeted by SPIKE-006.")
 log("No mutation occurs unless DiagnosticsEnabled=true, DiagnosticAwakeProtectionPrototype=true, and the one-player forced-compression test path is active.")
