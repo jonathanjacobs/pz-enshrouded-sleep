@@ -22,14 +22,25 @@ if isClient() then return end
 
 local PREFIX = "[EnshroudedSleepDiag][SERVER]"
 local SAMPLE_INTERVAL_SECONDS = 1
+local EPSILON = 0.0001
 local lastSampleAt = -1
 local lastError = nil
+local observedBaselineMinutesPerDay = nil
 
 ---Return whether development/support telemetry is explicitly enabled.
 ---@return boolean enabled
 local function diagnosticsEnabled()
     local vars = SandboxVars and SandboxVars.EnshroudedSleep or nil
     return vars ~= nil and vars.DiagnosticsEnabled == true
+end
+
+---Return whether the diagnostics-only forced compression control is armed.
+---This is descriptive only; the authoritative controller owns the mutation.
+---@return boolean configured
+local function diagnosticForcedConfigured()
+    local vars = SandboxVars and SandboxVars.EnshroudedSleep or nil
+    local factor = tonumber(vars and vars.DiagnosticForcedCompressionFactor) or 1.0
+    return vars ~= nil and vars.DiagnosticsEnabled == true and factor > 1.0 + EPSILON
 end
 
 ---Write one namespaced diagnostic message to the dedicated-server log.
@@ -122,12 +133,25 @@ local function collectPlayers()
     return living, sleeping, playerStates
 end
 
----Derive a human-readable normal sleep phase for diagnostic output only.
+---Derive a human-readable sleep/test phase for diagnostic output only.
 ---@param living integer|nil
 ---@param sleeping integer|nil
+---@param minutesPerDay number|nil
+---@param baseline number|nil
 ---@return string mode
-local function deriveMode(living, sleeping)
+local function deriveMode(living, sleeping, minutesPerDay, baseline)
     if living == nil or sleeping == nil then return "unknown" end
+
+    if diagnosticForcedConfigured() then
+        if sleeping > 0 then return "diagnostic-forced-suspended-sleep" end
+        if living <= 0 then return "diagnostic-forced-awaiting-player" end
+        if living ~= 1 then return "diagnostic-forced-suspended-player-count" end
+        if baseline and minutesPerDay and minutesPerDay < baseline - EPSILON then
+            return "diagnostic-forced"
+        end
+        return "diagnostic-forced-armed"
+    end
+
     if living <= 0 or sleeping <= 0 then return "baseline" end
     if sleeping >= living then return "vanilla-full-sleep" end
     return "partial"
@@ -165,6 +189,18 @@ local function sampleClock()
     lastError = nil
 
     local minutesPerDay = tonumber(safeMethod(gt, "getMinutesPerDay"))
+    if minutesPerDay and minutesPerDay > 0 then
+        if not observedBaselineMinutesPerDay or minutesPerDay > observedBaselineMinutesPerDay then
+            observedBaselineMinutesPerDay = minutesPerDay
+        end
+    end
+
+    local baseline = observedBaselineMinutesPerDay
+    local compression = nil
+    if minutesPerDay and minutesPerDay > 0 and baseline and baseline > 0 then
+        compression = baseline / minutesPerDay
+    end
+
     local timeOfDay = tonumber(safeMethod(gt, "getTimeOfDay"))
     local worldAgeHours = tonumber(safeMethod(gt, "getWorldAgeHours"))
     local multiplier = tonumber(safeMethod(gt, "getMultiplier"))
@@ -173,12 +209,14 @@ local function sampleClock()
     local deltaMinutesPerDay = tonumber(safeMethod(gt, "getDeltaMinutesPerDay"))
 
     log(string.format(
-        "SAMPLE | epoch=%d | mode=%s | living=%s | sleeping=%s | MinutesPerDay=%s | TimeOfDay=%s | WorldAgeHours=%s | DeltaMinutesPerDay=%s | Multiplier=%s | TrueMultiplier=%s | ServerMultiplier=%s",
+        "SAMPLE | epoch=%d | mode=%s | living=%s | sleeping=%s | MinutesPerDay=%s | BaselineMinutesPerDay=%s | CalendarCompressionFactor=%s | TimeOfDay=%s | WorldAgeHours=%s | DeltaMinutesPerDay=%s | Multiplier=%s | TrueMultiplier=%s | ServerMultiplier=%s",
         now,
-        deriveMode(living, sleeping),
+        deriveMode(living, sleeping, minutesPerDay, baseline),
         tostring(living or "N/A"),
         tostring(sleeping or "N/A"),
         formatNumber(minutesPerDay, 4),
+        formatNumber(baseline, 4),
+        formatNumber(compression, 4),
         formatNumber(timeOfDay, 6),
         formatNumber(worldAgeHours, 6),
         formatNumber(deltaMinutesPerDay, 6),
