@@ -15,7 +15,9 @@ The project answered four major pre-alpha questions:
 
 The core architecture is behaviorally validated on Project Zomboid 42.20.3. v0.0.10 is the current **Public Alpha** build.
 
-SPIKE-005 is now extending the evidence boundary into non-health world systems. Generator fuel and food aging/spoilage have both been confirmed as world/calendar-time bound under controlled forced-compression testing.
+SPIKE-005 extended the evidence boundary into non-health world systems. Generator fuel, ambient/refrigerated food aging, vehicle fuel, and vehicle battery drain have been confirmed as world/calendar-time bound under controlled forced-compression testing.
+
+SPIKE-006 has now demonstrated a diagnostics-only tick-driven post-update normalizer that keeps measurable awake-player passive survival progression approximately at native 1x real-time pacing while world/calendar time runs at approximately 20x. The passive mechanism is a **GO for feasibility**; active-effect and multiplayer safety regressions remain before production use.
 
 ## v0.0.1 — calendar-compression feasibility
 
@@ -275,6 +277,57 @@ Classification: **refrigerated food aging = world/calendar-time bound with vanil
 
 Frozen food remains unclassified.
 
+## SPIKE-006 — awake-player passive normalization
+
+### Attempt 1 — callback failure
+
+The first prototype used server-side `Events.OnPlayerUpdate`. The module loaded, but the dedicated server produced no prototype callback/status/correction records while other tick-driven diagnostics continued normally.
+
+The 20x forced-compression phase therefore remained unprotected and survival/nutrition continued to advance at approximately the accelerated world-time rate.
+
+Decision: `Events.OnPlayerUpdate` is not a reliable dedicated-server hook for this prototype on the tested B42.20.3 runtime.
+
+### Attempt 2 — tick-driven passive correction
+
+The prototype was moved to `Events.OnTick` and explicitly iterates `getOnlinePlayers()`. A 30-second heartbeat verifies that the callback remains live.
+
+Controlled state:
+
+```text
+native MinutesPerDay = 90
+forced factor        = 20
+compressed MPD       = 4.5
+TrueMultiplier       = 1.0
+living               = 1
+sleeping             = 0
+```
+
+The server emitted the expected `BASELINE`, `HEARTBEAT`, `prototype-armed-at-baseline`, `prototype-active`, and `CORRECTION` records.
+
+Stable authoritative rate comparison:
+
+| Metric | Protected 20x / native 1x rate |
+|---|---:|
+| Hunger | 0.989x |
+| Thirst | 1.000x |
+| Fatigue | 1.001x |
+| Calories | 1.000x |
+| Proteins | 1.000x |
+| Weight progression | 1.008x |
+| World/calendar clock | 19.997x |
+
+The owning client independently remained close to the same corrected server state and measured approximately 0.98–1.00x baseline rates for the protected fields.
+
+Carbohydrates and Lipids were already at the vanilla lower clamp of `-500`, so their protected depletion rates remain unmeasured.
+
+No Enshrouded Sleep Lua exception, repeated write failure, factor mismatch, or global simulation-multiplier change was observed. Restoring the forced factor to 1 returned `MinutesPerDay` to the native baseline.
+
+Decision: **GO for passive post-update normalization feasibility; active-effect and safety regressions remain required before production use.**
+
+Follow-up implementation cleanup narrowed the per-tick protected-state reader to the eight target fields and aligned clock/broad-health diagnostic phase labels with the forced-compression test state.
+
+Next procedure: [`spikes/SPIKE-006-ACTIVE-EFFECTS-TEST.md`](spikes/SPIKE-006-ACTIVE-EFFECTS-TEST.md).
+
 ## Current evidence boundary
 
 Well supported:
@@ -287,13 +340,15 @@ Well supported:
 - wake/disconnect recalculation;
 - sensible vanilla sleep duration when client pacing is synchronized;
 - awake acute injury/health loss approximately real-time bound;
-- hunger/thirst/fatigue/nutrition world/calendar-time bound;
+- hunger/thirst/fatigue/nutrition world/calendar-time bound without protection;
 - resting endurance recovery approximately real-time bound;
 - alternate native fast-forward inheritance;
 - one-player server diagnostic override safety behavior;
 - generator fuel world/calendar-time bound;
 - ambient and refrigerated food aging world/calendar-time bound;
-- vanilla refrigeration modifier preserved under 20x calendar compression.
+- vanilla refrigeration modifier preserved under 20x calendar compression;
+- SPIKE-006 passive normalization can hold measurable awake hunger/thirst/fatigue/calories/protein/weight progression approximately at 1x while the world clock advances approximately 20x;
+- server and owning-client protected state remain coherent during the successful SPIKE-006 passive run.
 
 Public Alpha characterization targets:
 
@@ -303,8 +358,9 @@ Public Alpha characterization targets:
 - active sickness/poison/zombie infection/extreme thermal states where safely reproducible;
 - frozen food behavior;
 - farming/crop maturation and related timers;
-- vehicle fuel and battery behavior;
 - generator wear/condition;
-- corpses, composting, weather and other secondary world systems;
-- compensation feasibility and save/sync risk for confirmed world-time systems;
-- client pacing robustness during live admin/sandbox reconfiguration.
+- additional world-system compensation feasibility and save/sync risk;
+- client pacing robustness during live admin/sandbox reconfiguration;
+- SPIKE-006 active-effect preservation for eating/drinking/activity/rate modifiers;
+- SPIKE-006 Carbohydrate/Lipid correction away from clamps;
+- SPIKE-006 sleep-transition and second-player-join suspension behavior.
