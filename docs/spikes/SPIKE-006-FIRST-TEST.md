@@ -1,8 +1,14 @@
 # SPIKE-006 — First Awake-Player Protection Prototype Test
 
-Purpose: determine whether the diagnostics-only post-update normalizer can reduce passive awake-player survival progression from approximately 20x back toward baseline real-time pacing.
+Purpose: determine whether the diagnostics-only tick-driven normalizer can reduce passive awake-player survival progression from approximately 20x back toward baseline real-time pacing.
 
 This is **not** a normal gameplay configuration.
+
+## Current prototype revision
+
+The first dedicated-server attempt loaded the SPIKE-006 module correctly, but its original `Events.OnPlayerUpdate` callback never fired on the tested B42.20.3 dedicated server. The forced 20x calendar-compression path worked, while the player's world-time-bound survival state remained unprotected and progressed at approximately the expected 20x rate.
+
+The prototype now uses a server `Events.OnTick` callback and explicitly iterates `getOnlinePlayers()`. A diagnostics-only heartbeat was added so callback execution can be confirmed independently of whether any correction is needed.
 
 ## Branch
 
@@ -57,7 +63,10 @@ Confirm the server log contains:
 ```text
 [EnshroudedSleepAwakeProtect][SERVER] BASELINE
 [EnshroudedSleepAwakeProtect][SERVER] STATUS | prototype-armed-at-baseline
+[EnshroudedSleepAwakeProtect][SERVER] HEARTBEAT
 ```
+
+The heartbeat should report increasing `tickCalls`, `living=1`, `sleeping=0`, `forcedFactor=1`, and native `MinutesPerDay`.
 
 The ordinary focused survival diagnostic should continue to emit:
 
@@ -89,9 +98,10 @@ Confirm the server emits:
 ```text
 [EnshroudedSleepAwakeProtect][SERVER] STATUS | prototype-active
 [EnshroudedSleepAwakeProtect][SERVER] CORRECTION
+[EnshroudedSleepAwakeProtect][SERVER] HEARTBEAT
 ```
 
-The `CORRECTION` record includes before/after values for:
+The `CORRECTION` record includes `TickCalls` plus before/after values for:
 
 ```text
 Hunger
@@ -104,6 +114,8 @@ Lipids
 Weight
 ```
 
+The heartbeat should continue approximately every 30 real seconds while diagnostics are enabled. If the module loads but heartbeat/tick counts do not appear, stop the test because the correction callback is not executing.
+
 ### Phase C — restore
 
 Set:
@@ -112,7 +124,11 @@ Set:
 DiagnosticForcedCompressionFactor=1.0
 ```
 
-Remain connected for approximately **1 real minute** and confirm native `MinutesPerDay` is restored.
+Remain connected for approximately **1 real minute** and confirm native `MinutesPerDay` is restored and the prototype returns to:
+
+```text
+STATUS | prototype-armed-at-baseline
+```
 
 Then set:
 
@@ -130,13 +146,13 @@ server console
 server Logs/DebugLog
 ```
 
-A client DebugLog is optional unless the client reports an error or visibly strange survival state.
+For the first successful tick-driven correction run, also collect the test player's client DebugLog so server-authoritative corrected values can be compared with the owning client's observed state.
 
 ## Analysis
 
 Compare the ordinary focused survival stream at baseline and 20x.
 
-Without protection, SPIKE-004 observed hunger/thirst/fatigue/nutrition scaling approximately with the calendar-compression factor.
+Without protection, SPIKE-004 and the first unsuccessful SPIKE-006 callback run observed hunger/thirst/fatigue/nutrition scaling approximately with the calendar-compression factor.
 
 With the prototype active, the target is:
 
@@ -145,7 +161,7 @@ With the prototype active, the target is:
 ~1x awake passive survival progression
 ```
 
-The prototype's own before/after records will also show whether the correction is actually being applied every player update.
+The prototype's own before/after records will show whether the correction is actually being applied from successive server-tick snapshots.
 
 ## Immediate abort conditions
 
@@ -157,7 +173,8 @@ Restore factor 1 and disable the prototype if:
 - `TrueMultiplier` changes from normal active simulation;
 - an Enshrouded Sleep Lua error occurs;
 - hunger/thirst/fatigue/nutrition visibly jump or oscillate;
-- a `write-failure-fail-open` status appears repeatedly.
+- a `write-failure-fail-open` status appears repeatedly;
+- diagnostics are enabled but the `HEARTBEAT`/`tickCalls` stream does not appear.
 
 ## What this test does *not* prove
 
