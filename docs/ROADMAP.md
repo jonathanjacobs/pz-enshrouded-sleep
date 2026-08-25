@@ -50,6 +50,36 @@ The implementation must preserve vanilla:
 
 No broad health compensation is planned. SPIKE-004 showed that tested bleeding/body-health loss and resting endurance recovery were already approximately simulation/real-time bound.
 
+### Current SPIKE-006 result
+
+The diagnostics-only tick-driven post-update normalizer has now passed its first controlled passive runtime test.
+
+With a native 90-minute day and diagnostic factor 20:
+
+```text
+MinutesPerDay     = 4.5
+world clock       ≈ 20x
+TrueMultiplier    = 1.0
+living            = 1
+sleeping          = 0
+```
+
+Stable authoritative server measurements showed protected passive rates approximately equal to native real-time pacing:
+
+```text
+Hunger            0.989x
+Thirst            1.000x
+Fatigue           1.001x
+Calories          1.000x
+Proteins          1.000x
+Weight progression 1.008x
+World clock       19.997x
+```
+
+Carbohydrates and Lipids were already at their vanilla lower clamp and therefore remain unmeasured in this run.
+
+Decision: **GO for the passive normalization mechanism; not yet a production GO.** The current blocker is the active-effects/safety regression defined in [`SPIKE-006-ACTIVE-EFFECTS-TEST.md`](spikes/SPIKE-006-ACTIVE-EFFECTS-TEST.md).
+
 ### B42.20.3 source finding
 
 The decompiled Build 42.20.3 implementation explains the observed SPIKE-004 behavior:
@@ -112,7 +142,9 @@ Validated behavior includes:
 - ambient and refrigerated food-aging world/calendar-time classification;
 - vehicle fuel world/calendar-time classification;
 - vehicle battery-drain world/calendar-time classification under a stable tested electrical load;
-- preservation of vanilla refrigeration behavior under 20x calendar compression.
+- preservation of vanilla refrigeration behavior under 20x calendar compression;
+- SPIKE-006 tick-driven passive awake-player normalization at approximately 1x while world/calendar time ran at approximately 20x;
+- owning-client survival state tracking remained coherent with the server during the successful SPIKE-006 passive run.
 
 ## Public Alpha configuration
 
@@ -134,17 +166,23 @@ That option is a development-only test control and is not intended for ordinary 
 
 ## Immediate SPIKE-006 sequence
 
-1. Run the diagnostics-only idle/stationary prototype at native 1x then forced 20x.
-2. Determine whether hunger/thirst/fatigue/nutrition/weight return from ~20x progression toward ~1x real-time pacing.
-3. Verify `TrueMultiplier=1.0`, world clock remains compressed, and unrelated health/endurance state is untouched.
-4. Exercise eating and drinking during compression.
-5. Exercise walking/running/sprinting and resting/sitting.
-6. Exercise Well Fed and representative trait/thermoregulation modifiers where practical.
-7. Verify sleeping suspends awake-player normalization.
-8. Verify a second living player joining suspends the forced diagnostic prototype safely.
-9. Characterize legitimate same-direction effects that could be mistaken for passive decay, including thirst/fatigue edge cases.
-10. Decide GO / PARTIAL GO / NO-GO for a production v0.0.11 awake-player protection implementation.
-11. If GO/PARTIAL GO, replace diagnostics-only scaffolding with a production policy/configuration and run real two-player partial-sleep validation.
+Completed:
+
+1. Run the diagnostics-only idle/stationary prototype at native 1x then forced 20x. — **PASS**
+2. Determine whether hunger/thirst/fatigue/nutrition/weight return from ~20x progression toward ~1x real-time pacing. — **PASS for measurable fields; Carbohydrates/Lipids were clamped**
+3. Verify `TrueMultiplier=1.0`, world clock remains compressed, and the correction path is active/server-authoritative. — **PASS**
+
+Next:
+
+4. Exercise eating and drinking during compression and compare direct effect magnitude with baseline.
+5. Exercise walking/running/sprinting and resting/sitting at native 1x and protected 20x.
+6. Exercise Well Fed and representative safe rate modifiers where practical.
+7. Re-test Carbohydrates/Lipids with values away from their clamps.
+8. Verify sleeping suspends awake-player normalization before sleeping physiology is altered.
+9. Verify a second living player joining suspends the forced diagnostic prototype safely and restores native `MinutesPerDay`.
+10. Characterize legitimate same-direction effects that could be mistaken for calendar-driven passive progression where a safe/reproducible test is available.
+11. Decide GO / PARTIAL GO / NO-GO for a production v0.0.11 awake-player protection implementation.
+12. If GO/PARTIAL GO, replace diagnostics-only scaffolding with a production policy/configuration and run real two-player partial-sleep validation.
 
 ## Public Alpha field goals
 
@@ -203,7 +241,7 @@ All living players asleep
     Vanilla full-sleep acceleration owns the state.
 ```
 
-Exact administrator configuration and default value will be chosen only after SPIKE-006 runtime evidence.
+Exact administrator configuration and default value will be chosen only after SPIKE-006 active-effect/safety evidence.
 
 ## Later feature candidate — world-system progression policy
 
