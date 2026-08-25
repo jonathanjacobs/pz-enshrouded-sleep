@@ -1,6 +1,6 @@
 # SPIKE-006 — Awake-Player Survival Protection Feasibility
 
-Status: **IN PROGRESS**  
+Status: **IN PROGRESS — PASSIVE NORMALIZATION GO**  
 Target release: **v0.0.11 candidate**  
 Validated source/runtime baseline: **Project Zomboid 42.20.3**  
 GitHub issue: **#7**
@@ -133,7 +133,7 @@ It is too broad, would require reimplementing substantial vanilla character logi
 
 ### C. Post-update normalization
 
-Prototype under test.
+**PASSIVE-MECHANISM GO; active-effect regressions still required.**
 
 Concept:
 
@@ -148,7 +148,7 @@ of the world-time-driven passive delta
 write corrected authoritative state
 ```
 
-For the first controlled prototype:
+For the controlled prototype:
 
 - hunger/thirst/fatigue: normalize only increases;
 - calories/carbs/proteins/lipids: normalize only decreases;
@@ -156,7 +156,7 @@ For the first controlled prototype:
 
 Opposite-direction changes are accepted in full so eating/drinking can be exercised later.
 
-This is deliberately a **feasibility prototype**, not yet production-safe. Some legitimate active effects share the same direction as passive decay, so source-specific regression testing is required before release.
+The passive test now demonstrates that this mechanism can mathematically remove the extra calendar-compression component. It is still **not production-safe** until legitimate active state changes are tested, especially changes that share the same direction as passive progression.
 
 ## Diagnostics-only prototype
 
@@ -232,9 +232,9 @@ and explicitly obtains the server player population with `getOnlinePlayers()`.
 
 The same mutation safety gates remain in place. The normalizer still operates only during the single-living-awake-player forced-compression diagnostic test.
 
-Successive server-tick snapshots are used to measure deltas. Even if the Lua `OnTick` callback occurs before the Java character update in a particular frame, the following tick should observe the prior frame's vanilla state change and permit correction.
+Successive server-tick snapshots are used to measure deltas. Even if the Lua `OnTick` callback occurs before the Java character update in a particular frame, the following tick observes the prior frame's vanilla state change and permits correction.
 
-A diagnostics-only heartbeat now emits approximately every 30 real seconds while diagnostics are enabled:
+A diagnostics-only heartbeat emits approximately every 30 real seconds while diagnostics are enabled:
 
 ```text
 [EnshroudedSleepAwakeProtect][SERVER] HEARTBEAT
@@ -251,40 +251,81 @@ It reports at least:
 
 This prevents a loaded-but-never-called event path from failing silently again.
 
-## Revised first validation sequence
+## Runtime validation attempt 2 — passive normalization GO
 
-See [`SPIKE-006-FIRST-TEST.md`](SPIKE-006-FIRST-TEST.md).
-
-The next run repeats the same controlled idle sequence:
+The revised tick-driven prototype was tested on a dedicated B42.20.3 server with one living awake player. The test successfully demonstrated all required control-path markers:
 
 ```text
-factor 1 -> factor 20 -> factor 1
-```
-
-with exactly one living awake player.
-
-Before interpreting any survival-rate result, the run must first demonstrate:
-
-```text
+BASELINE
 HEARTBEAT with increasing tickCalls
 STATUS | prototype-armed-at-baseline
 STATUS | prototype-active
 CORRECTION records during 20x
 ```
 
-If those appear, compare the protected 20x survival rates against the native baseline.
+The controller held:
 
-If the idle correction succeeds, later tests add legitimate state changes:
+```text
+native MinutesPerDay       = 90
+forced MinutesPerDay       = 4.5
+world/calendar compression ≈ 20x
+TrueMultiplier             = 1.0
+living                     = 1
+sleeping                   = 0
+```
 
-1. eat while compressed;
-2. drink while compressed;
-3. walk/run/sprint;
-4. rest/sit;
-5. Well Fed;
-6. high-/low-thirst traits where practical;
-7. sleep transition;
-8. second-player join safety;
-9. medication/toxic/other positive-fatigue edge cases where safe.
+Using stable server-side survival samples, the protected 20x rate relative to the native 1x baseline was approximately:
+
+| System | Protected 20x / native 1x rate |
+| --- | ---: |
+| Hunger | 0.989x |
+| Thirst | 1.000x |
+| Fatigue | 1.001x |
+| Calories | 1.000x |
+| Proteins | 1.000x |
+| Weight progression | 1.008x |
+| World/calendar clock | 19.997x |
+
+The owning-client stream independently tracked the same corrected state, with measured rates approximately 0.98–1.00x of its own baseline for the protected fields.
+
+No Enshrouded Sleep Lua error, repeated write failure, factor mismatch, or simulation-multiplier change was observed. Restoring the forced factor to 1 returned `MinutesPerDay` to the native 90-minute baseline.
+
+### Limits of this result
+
+Carbohydrates and lipids were already clamped at the vanilla lower bound of `-500`, so this run could not measure their depletion rates. A later test must begin with both values away from the clamp.
+
+The baseline and compressed measurement intervals were shorter than the original written procedure. The agreement across the six measurable protected fields was nevertheless sufficiently close to 1x to establish feasibility of the passive correction mechanism; repeating a long idle-only run is not currently a priority.
+
+### Decision after attempt 2
+
+**GO for the passive post-update normalization mechanism.**
+
+This is **not yet a production GO**. The next blocker is determining whether the directional correction preserves legitimate player-driven and state-driven changes while compressed.
+
+## Post-validation implementation cleanup
+
+After the successful passive run:
+
+1. the prototype hot path was narrowed so each server tick reads only Hunger, Thirst, Fatigue, Calories, Carbohydrates, Proteins, Lipids, and Weight rather than invoking the full broad `SurvivalStatProbe.collect()` diagnostic snapshot;
+2. clock and broad health diagnostic phase labels were made aware of diagnostic-forced compression so telemetry no longer mislabels the controlled forced test as ordinary `baseline` or `partial` behavior.
+
+These changes do not broaden the prototype's mutation boundary.
+
+## Next validation — active effects
+
+The next controlled regression is defined in [`SPIKE-006-ACTIVE-EFFECTS-TEST.md`](SPIKE-006-ACTIVE-EFFECTS-TEST.md).
+
+It must determine whether the normalizer preserves legitimate effects while compressed, including:
+
+1. eating;
+2. drinking;
+3. walking/running/sprinting;
+4. resting/sitting where relevant;
+5. Well Fed or comparable rate modifiers;
+6. a test with carbohydrate/lipid values away from their clamps;
+7. sleep-transition suspension;
+8. second-player-join suspension;
+9. selected same-direction direct effects where a safe/reproducible test is available.
 
 ## Success criteria
 
