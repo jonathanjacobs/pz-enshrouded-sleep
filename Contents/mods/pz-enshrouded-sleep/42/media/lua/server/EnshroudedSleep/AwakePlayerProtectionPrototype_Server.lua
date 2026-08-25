@@ -29,6 +29,13 @@
 -- cannot directly write the Java ZomboidGlobals static fields used by the
 -- character update. This spike therefore measures a post-update correction path.
 --
+-- The first dedicated-server SPIKE-006 run showed that Events.OnPlayerUpdate
+-- did not fire for this server-side module. This revision uses Events.OnTick,
+-- a callback already demonstrated to run on the dedicated server by the other
+-- Enshrouded Sleep diagnostics. Successive tick snapshots bracket vanilla
+-- changes even if this callback runs before the Java character update in a
+-- particular frame.
+--
 -- The correction is deliberately directional:
 --   hunger/thirst/fatigue: scale only increases (worsening)
 --   calories/macros:       scale only decreases (passive depletion)
@@ -45,12 +52,14 @@ local Probe = require "EnshroudedSleep/SurvivalStatProbe"
 local PREFIX = "[EnshroudedSleepAwakeProtect][SERVER]"
 local EPSILON = 0.0000001
 local LOG_INTERVAL_SECONDS = 1
+local HEARTBEAT_INTERVAL_SECONDS = 30
 
 local baselineMinutesPerDay = nil
 local previousByPlayer = {}
 local lastLogAt = -1
+local lastHeartbeatAt = -1
 local lastStatus = nil
-local playerUpdateCalls = 0
+local tickCalls = 0
 
 local function log(message)
     print(PREFIX .. " " .. tostring(message))
@@ -248,14 +257,37 @@ local function clearPrototypeState(reason)
     if reason then logStatusOnce(reason) end
 end
 
-local function onPlayerUpdate(player)
-    playerUpdateCalls = playerUpdateCalls + 1
+local function maybeHeartbeat(config, minutesPerDay, living, sleeping)
+    if not config.diagnosticsEnabled then return end
+
+    local now = os.time()
+    if lastHeartbeatAt >= 0 and now - lastHeartbeatAt < HEARTBEAT_INTERVAL_SECONDS then
+        return
+    end
+    lastHeartbeatAt = now
+
+    log(
+        "HEARTBEAT | epoch=" .. tostring(now)
+        .. " | tickCalls=" .. tostring(tickCalls)
+        .. " | prototypeEnabled=" .. tostring(config.prototypeEnabled)
+        .. " | forcedFactor=" .. Probe.formatValue(config.forcedFactor)
+        .. " | living=" .. tostring(living)
+        .. " | sleeping=" .. tostring(sleeping)
+        .. " | MinutesPerDay=" .. Probe.formatValue(minutesPerDay)
+        .. " | BaselineMinutesPerDay=" .. Probe.formatValue(baselineMinutesPerDay)
+    )
+end
+
+local function onTick()
+    tickCalls = tickCalls + 1
 
     local config = getConfig()
     local gameTime = type(getGameTime) == "function" and getGameTime() or nil
     local minutesPerDay = Probe.safeNumber(gameTime, "getMinutesPerDay")
+    local players, living, sleeping = collectLivingPlayers()
 
     captureBaselineIfSafe(config, minutesPerDay)
+    maybeHeartbeat(config, minutesPerDay, living, sleeping)
 
     if not config.diagnosticsEnabled or not config.prototypeEnabled then
         clearPrototypeState("prototype-inactive")
@@ -263,9 +295,16 @@ local function onPlayerUpdate(player)
     end
 
     if config.forcedFactor <= 1.0 + EPSILON then
-        local key = playerKey(player)
-        previousByPlayer[key] = readProtectedState(player)
-        logStatusOnce("prototype-armed-at-baseline")
+        if living == 1 and sleeping == 0 and #players == 1 then
+            local player = players[1]
+            previousByPlayer[playerKey(player)] = readProtectedState(player)
+            logStatusOnce("prototype-armed-at-baseline")
+        else
+            clearPrototypeState(
+                "awaiting-baseline-player living=" .. tostring(living)
+                .. " sleeping=" .. tostring(sleeping)
+            )
+        end
         return
     end
 
@@ -274,13 +313,12 @@ local function onPlayerUpdate(player)
         return
     end
 
-    local players, living, sleeping = collectLivingPlayers()
     if living ~= 1 or sleeping ~= 0 or #players ~= 1 then
         clearPrototypeState("suspended-population living=" .. tostring(living) .. " sleeping=" .. tostring(sleeping))
         return
     end
 
-    if player ~= players[1] then return end
+    local player = players[1]
     if Probe.safeMethod(player, "isAsleep") == true or Probe.safeMethod(player, "isDead") == true then
         clearPrototypeState("suspended-player-state")
         return
@@ -293,8 +331,7 @@ local function onPlayerUpdate(player)
 
     local compression = baselineMinutesPerDay / minutesPerDay
     if compression <= 1.0 + EPSILON then
-        local key = playerKey(player)
-        previousByPlayer[key] = readProtectedState(player)
+        previousByPlayer[playerKey(player)] = readProtectedState(player)
         logStatusOnce("waiting-for-compressed-MinutesPerDay")
         return
     end
@@ -345,14 +382,15 @@ local function onPlayerUpdate(player)
             .. " | observedFactor=" .. Probe.formatValue(compression)
             .. " | MinutesPerDay=" .. Probe.formatValue(minutesPerDay)
             .. " | BaselineMinutesPerDay=" .. Probe.formatValue(baselineMinutesPerDay)
-            .. " | OnPlayerUpdateCalls=" .. tostring(playerUpdateCalls)
+            .. " | TickCalls=" .. tostring(tickCalls)
             .. " | " .. formatState("before.", before)
             .. " | " .. formatState("after.", after)
         )
     end
 end
 
-Events.OnPlayerUpdate.Add(onPlayerUpdate)
+Events.OnTick.Add(onTick)
 
 log("Loaded SPIKE-006 diagnostics-only awake-player protection prototype.")
+log("Correction loop uses dedicated-server Events.OnTick and iterates getOnlinePlayers().")
 log("No mutation occurs unless DiagnosticsEnabled=true, DiagnosticAwakeProtectionPrototype=true, and the one-player forced-compression test path is active.")
