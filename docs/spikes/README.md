@@ -13,7 +13,12 @@ The initial directory README was only scaffolding. That was incomplete once the 
 | [`SPIKE-003-client-clock-synchronization.md`](SPIKE-003-client-clock-synchronization.md) | Completed / GO | Why do client clocks jump, and can client pacing be corrected without changing server authority? |
 | [`SPIKE-004-health-time-domains.md`](SPIKE-004-health-time-domains.md) | **Completed / GO for Public Alpha** | Which health/survival systems accelerate with compressed calendar time, and is any effect unsafe for awake players? |
 | [`SPIKE-005-world-system-time-domains.md`](SPIKE-005-world-system-time-domains.md) | Open / deferred next-release priority | Which non-health world systems follow calendar time, and which can later be compensated safely? |
-| [`SPIKE-006-awake-player-protection.md`](SPIKE-006-awake-player-protection.md) | **In progress** | Can awake hunger/thirst/fatigue/nutrition/weight be normalized during partial-sleep calendar compression without distorting vanilla active effects? |
+| [`SPIKE-006-awake-player-protection.md`](SPIKE-006-awake-player-protection.md) | **In progress — passive normalization GO; active-effects regression next** | Can awake hunger/thirst/fatigue/nutrition/weight be normalized during partial-sleep calendar compression without distorting vanilla active effects? |
+
+SPIKE-006 test procedures:
+
+- [`SPIKE-006-FIRST-TEST.md`](SPIKE-006-FIRST-TEST.md) — idle/passive normalization feasibility;
+- [`SPIKE-006-ACTIVE-EFFECTS-TEST.md`](SPIKE-006-ACTIVE-EFFECTS-TEST.md) — eating/drinking/activity/suspension production-readiness regression.
 
 ## Required spike structure
 
