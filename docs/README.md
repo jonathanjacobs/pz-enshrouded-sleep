@@ -12,11 +12,12 @@ Detailed design, testing, deployment, validation evidence, spikes, architecture 
 - Public Alpha Workshop validation: dedicated-server/client acquisition and live two-player regression **PASS**
 - SPIKE-004: **complete / GO for Public Alpha**
 - SPIKE-005: **open / world-system characterization and later compensation feasibility**
-- SPIKE-006: **in progress / awake-player survival protection feasibility for the next release**
+- SPIKE-006: **in progress / passive normalization GO; active-effects and safety regression next**
 - Health/survival result: awake acute injury/body-health loss approximately real-time bound; hunger/thirst/fatigue and core nutrition stores approximately world/calendar-time bound; resting endurance recovery approximately real-time bound under tested conditions
+- Awake-protection result: the diagnostics-only tick-driven normalizer held measurable awake Hunger/Thirst/Fatigue/Calories/Protein/Weight progression approximately at native 1x while world/calendar time ran at approximately 20x; Carbohydrates/Lipids remain to be tested away from clamps
 - Confirmed external world-time examples: food aging, generator fuel, vehicle fuel, and vehicle battery drain under the tested conditions
 - Repository packaging: Workshop-compatible root with one authoritative runtime tree under `Contents/mods/pz-enshrouded-sleep/`
-- Current focus: SPIKE-006, v0.0.11 awake-player protection feasibility, larger-population field validation, and live lifecycle behavior
+- Current focus: SPIKE-006 active-effects/safety regression, v0.0.11 awake-player protection feasibility, larger-population field validation, and live lifecycle behavior
 
 ## Start here
 
@@ -39,8 +40,9 @@ Detailed design, testing, deployment, validation evidence, spikes, architecture 
 - [`spikes/SPIKE-003-client-clock-synchronization.md`](spikes/SPIKE-003-client-clock-synchronization.md) — diagnosed/fixed client day-length pacing mismatch.
 - [`spikes/SPIKE-004-health-time-domains.md`](spikes/SPIKE-004-health-time-domains.md) — completed health/survival time-domain investigation; **GO for Public Alpha**.
 - [`spikes/SPIKE-005-world-system-time-domains.md`](spikes/SPIKE-005-world-system-time-domains.md) — **open**; characterizes non-health world systems and grades later compensation feasibility.
-- [`spikes/SPIKE-006-awake-player-protection.md`](spikes/SPIKE-006-awake-player-protection.md) — **in progress**; investigates safe server-authoritative protection of awake hunger/thirst/fatigue/nutrition/weight during partial-sleep calendar compression.
-- [`spikes/SPIKE-006-FIRST-TEST.md`](spikes/SPIKE-006-FIRST-TEST.md) — first controlled diagnostics-only 1x/20x awake-player protection prototype procedure.
+- [`spikes/SPIKE-006-awake-player-protection.md`](spikes/SPIKE-006-awake-player-protection.md) — **in progress; passive mechanism GO**; investigates safe server-authoritative protection of awake hunger/thirst/fatigue/nutrition/weight during partial-sleep calendar compression.
+- [`spikes/SPIKE-006-FIRST-TEST.md`](spikes/SPIKE-006-FIRST-TEST.md) — idle/passive diagnostics-only 1x/20x prototype procedure used to establish feasibility.
+- [`spikes/SPIKE-006-ACTIVE-EFFECTS-TEST.md`](spikes/SPIKE-006-ACTIVE-EFFECTS-TEST.md) — next regression for eating/drinking/activity, Carbohydrates/Lipids away from clamps, sleep suspension, and second-player-join safety.
 
 See [`spikes/README.md`](spikes/README.md) for the spike convention.
 
