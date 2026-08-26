@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - server-to-client MinutesPerDay replication
--- Public Beta v0.1.0 for Project Zomboid Build 42.20+
+-- Public Beta v0.1.1 for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -134,9 +134,6 @@ end
 local function deriveMode(living, sleeping, currentMinutesPerDay)
     if living == nil or sleeping == nil then return "unknown" end
 
-    -- Diagnostic-forced is valid only for the intentionally isolated support
-    -- state: one living connected server player, awake, and an authoritative
-    -- MinutesPerDay below the captured baseline.
     if diagnosticOverrideConfigured()
         and living == 1
         and sleeping == 0
@@ -172,8 +169,6 @@ local function synchronizeClients()
 
     local living, sleeping = countPlayers()
     if living == 0 then
-        -- No client needs a ClockState packet. Clear the transition guard so the
-        -- next connected population is allowed one settling pass.
         clearError()
         lastObservedPopulationSignature = nil
         return
@@ -182,9 +177,6 @@ local function synchronizeClients()
     local mode = deriveMode(living, sleeping, currentMinutesPerDay)
     local populationSignature = table.concat({mode, tostring(living), tostring(sleeping)}, "|")
 
-    -- One-pass settling guard: on the first observation of a new population/mode,
-    -- return without sending. The next tick sees controller output after its own
-    -- update and is therefore the value safe to publish.
     if populationSignature ~= lastObservedPopulationSignature then
         lastObservedPopulationSignature = populationSignature
         return
@@ -211,12 +203,9 @@ local function synchronizeClients()
         return
     end
 
-    -- Packet schema is deliberately small and versioned. living/sleeping are
-    -- diagnostic/context fields; clients must use minutesPerDay rather than
-    -- independently recalculating a target from those counts.
     local args = {
         protocolVersion = PROTOCOL_VERSION,
-        buildVersion = "0.1.0",
+        buildVersion = "0.1.1",
         mode = mode,
         minutesPerDay = targetMinutesPerDay,
         baselineMinutesPerDay = baselineMinutesPerDay or targetMinutesPerDay,
@@ -235,7 +224,6 @@ local function synchronizeClients()
     lastSentSignature = signature
     lastSentAt = now
 
-    -- Heartbeats are intentionally quiet; only semantic transitions are logged.
     if stateChanged then
         log(string.format(
             "STATE | mode=%s | living=%s | sleeping=%s | currentServerMinutesPerDay=%.4f | broadcastMinutesPerDay=%.4f | broadcast ClockState",
@@ -248,11 +236,10 @@ local function synchronizeClients()
     end
 end
 
--- Continue synchronization through paused/sleep transitions where supported.
 if Events.OnTickEvenPaused then
     Events.OnTickEvenPaused.Add(synchronizeClients)
 else
     Events.OnTick.Add(synchronizeClients)
 end
 
-log("Loaded Public Beta v0.1.0 authoritative MinutesPerDay replication.")
+log("Loaded Public Beta v0.1.1 authoritative MinutesPerDay replication.")
