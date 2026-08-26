@@ -95,13 +95,13 @@ Decision: SPIKE-006 controlled feasibility returned GO for Public Beta field val
 
 ## Public Beta v0.1.0
 
-The validated SPIKE-006 mechanism was promoted from a one-player diagnostic prototype into normal multiplayer partial sleep. The production path now protects all awake living players during partial sleep while never correcting sleepers/dead players. `AwakePlayerProtectionEnabled` provides an independent soft rollback; the one-player forced-compression mechanism remains diagnostic-only.
+The validated SPIKE-006 mechanism was promoted from a one-player diagnostic prototype into normal multiplayer partial sleep. The production path protects all awake living players during partial sleep while never correcting sleepers/dead players. `AwakePlayerProtectionEnabled` provides an independent soft rollback; the one-player forced-compression mechanism remains diagnostic-only.
 
 Public Beta does not claim that larger populations, every lifecycle transition, every mod stack, or every direct survival effect is already proven. Those remaining questions are tracked exclusively in [`ROADMAP.md`](ROADMAP.md).
 
 ## Project Zomboid 42.20.4 compatibility checkpoint — 2026-08-26
 
-Dedicated-server and connected-client logs from Project Zomboid `42.20.4` revision `b0bbce05d5` established a compatibility checkpoint for Public Beta v0.1.0 and Workshop item `3786842301`.
+Dedicated-server and connected-client logs from Project Zomboid `42.20.4` revision `b0bbce05d5` established the compatibility checkpoint used for the v0.1.1 release and Workshop item `3786842301`.
 
 Observed evidence included:
 
@@ -113,12 +113,27 @@ Observed evidence included:
 - connected-client application of the authoritative `MinutesPerDay=240` state;
 - no relevant Enshrouded Sleep Lua exception in the supplied compatibility-session logs.
 
-The 42.20.4 security hotfix removed the Lua `loadstring` and `loadstream` methods. Enshrouded Sleep does not use either method. Its existing networking architecture uses predefined `sendServerCommand` / `OnServerCommand` command names and structured argument tables for clock synchronization and optional notifications, so no dynamic server-supplied code execution migration was required.
+The 42.20.4 security hotfix removed the Lua `loadstring` and `loadstream` methods. Enshrouded Sleep does not use either method. Its networking architecture uses predefined `sendServerCommand` / `OnServerCommand` command names and structured argument tables for clock synchronization and optional notifications, so no dynamic server-supplied code execution migration was required.
 
-**Validation boundary:** the supplied 42.20.4 logs establish startup, baseline, and server/client synchronization compatibility. They do not contain a complete logged natural two-player partial-sleep/all-asleep regression and therefore do not replace Tier 2. The separate opt-in sleep-notification feature also remains pending its dedicated multiplayer smoke test before release promotion.
+**Validation boundary:** the supplied 42.20.4 logs establish startup, baseline, and server/client synchronization compatibility. They do not contain a complete logged natural two-player partial-sleep/all-asleep regression and therefore do not replace Tier 2.
+
+## Public Beta v0.1.1 — live WHG field release
+
+v0.1.1 packages the 42.20.4 compatibility maintenance plus the optional administrator-controlled sleep-status notification path for live Public Beta testing on the WHG server.
+
+The notification implementation is intentionally isolated from sleep/time policy:
+
+- `SleepNotificationsEnabled` defaults to `false` and is controlled by the server administrator;
+- notification state is derived from settled authoritative `MinutesPerDay` plus the living/sleeping roster;
+- messages are transported through the predefined `EnshroudedSleep/SleepNotification` server command with structured arguments;
+- the client only displays server-authored text and does not calculate or alter sleep policy;
+- a client chat-bridge failure is circuit-broken for that session;
+- disabling `SleepNotificationsEnabled` is the first-line notification-only rollback and does not disable proportional sleep, client clock synchronization, or awake-player protection.
+
+**Live-validation status:** v0.1.1 is being deployed specifically so the notification path can be exercised under normal WHG multiplayer conditions. Publication is not being represented as prior proof that notification delivery is already field-validated. The post-deployment checks and success criteria are maintained in [`TESTING.md`](TESTING.md).
 
 ## Evidence boundary
 
 The architecture is strongly supported for proportional calendar compression, server/client day-length synchronization, baseline restoration, vanilla full-sleep handoff, normal-speed awake simulation, the measured SPIKE-004 time domains, the confirmed SPIKE-005 world-system examples, and controlled SPIKE-006 awake-protection feasibility. Project Zomboid 42.20.4 additionally has a recorded startup/baseline/client-sync compatibility checkpoint.
 
-Do not infer compatibility or compensation for untested systems from this summary. Use the detailed SPIKE record when a claim needs exact test conditions or measured ratios.
+The v0.1.1 notification system is a live Public Beta field-validation feature until WHG evidence is collected. Do not infer compatibility or compensation for untested systems from this summary. Use the detailed SPIKE record when a claim needs exact test conditions or measured ratios.
