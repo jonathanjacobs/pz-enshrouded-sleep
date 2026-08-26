@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - broad server health/time-domain diagnostic
--- Public Beta v0.1.0 for Project Zomboid Build 42.20+
+-- Public Beta v0.1.1 for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -26,8 +26,6 @@ local EPSILON = 0.0001
 local lastSampleAt = -1
 local observedBaselineMinutesPerDay = nil
 
--- Historical broad Moodle names retained for continuity with earlier logs. The
--- focused v0.0.10 SurvivalStatProbe uses concrete MoodleType objects instead.
 local TRACKED_MOODLES = {
     Hungry = true,
     Thirst = true,
@@ -49,34 +47,21 @@ local TRACKED_MOODLES = {
     Zombie = true,
 }
 
----Return whether verbose support diagnostics are explicitly enabled.
----@return boolean enabled
 local function diagnosticsEnabled()
     local vars = SandboxVars and SandboxVars.EnshroudedSleep or nil
     return vars ~= nil and vars.DiagnosticsEnabled == true
 end
 
----Return whether the diagnostics-only forced compression control is armed.
----This is descriptive only; the authoritative controller owns the mutation.
----@return boolean configured
 local function diagnosticForcedConfigured()
     local vars = SandboxVars and SandboxVars.EnshroudedSleep or nil
     local factor = tonumber(vars and vars.DiagnosticForcedCompressionFactor) or 1.0
     return vars ~= nil and vars.DiagnosticsEnabled == true and factor > 1.0 + EPSILON
 end
 
----Write one namespaced server health diagnostic line.
----@param message any
----@return nil
 local function log(message)
     print(PREFIX .. " " .. tostring(message))
 end
 
----Best-effort Java/Lua bridge call; failures intentionally become nil/N/A.
----@param obj any
----@param methodName string
----@param ... any
----@return any|nil value
 local function safeMethod(obj, methodName, ...)
     if not obj then return nil end
     local okMethod, method = pcall(function() return obj[methodName] end)
@@ -86,11 +71,6 @@ local function safeMethod(obj, methodName, ...)
     return value
 end
 
----Read a public Java/Kahlua field when exposed. Public-field fallback is kept for
----historical broad telemetry only and is always guarded.
----@param obj any
----@param fieldName string
----@return any|nil value
 local function safeField(obj, fieldName)
     if not obj then return nil end
     local ok, value = pcall(function() return obj[fieldName] end)
@@ -98,20 +78,11 @@ local function safeField(obj, fieldName)
     return value
 end
 
----@param obj any
----@param methodName string
----@param ... any
----@return number|nil value
 local function safeNumber(obj, methodName, ...)
     local value = safeMethod(obj, methodName, ...)
     return tonumber(value)
 end
 
----Try a numeric getter first, then guarded public-field fallbacks.
----@param obj any
----@param methodName string
----@param fieldNames table|nil
----@return number|nil value
 local function safeNumberProbe(obj, methodName, fieldNames)
     local value = safeNumber(obj, methodName)
     if value ~= nil then return value end
@@ -126,11 +97,6 @@ local function safeNumberProbe(obj, methodName, fieldNames)
     return nil
 end
 
----Try a value getter first, then guarded public-field fallbacks.
----@param obj any
----@param methodName string
----@param fieldNames table|nil
----@return any|nil value
 local function safeValueProbe(obj, methodName, fieldNames)
     local value = safeMethod(obj, methodName)
     if value ~= nil then return value end
@@ -144,9 +110,6 @@ local function safeValueProbe(obj, methodName, fieldNames)
     return nil
 end
 
----@param value any
----@param decimals integer|nil
----@return string formatted
 local function formatValue(value, decimals)
     if value == nil then return "N/A" end
     if type(value) == "number" then
@@ -155,18 +118,11 @@ local function formatValue(value, decimals)
     return tostring(value)
 end
 
----Remove the log-field delimiter from arbitrary display values.
----@param value any
----@return string sanitized
 local function sanitize(value)
     local text = tostring(value or "N/A")
     return string.gsub(text, "|", "/")
 end
 
----Track the highest valid server MinutesPerDay observed as the diagnostic
----baseline. This is observational only and never changes GameTime.
----@param current number|nil
----@return number|nil baseline
 local function observeBaseline(current)
     if current and current > 0 then
         if not observedBaselineMinutesPerDay or current > observedBaselineMinutesPerDay then
@@ -176,11 +132,6 @@ local function observeBaseline(current)
     return observedBaselineMinutesPerDay
 end
 
----Collect currently instantiated living server players and the number asleep.
----Dead player objects are excluded to match the controller denominator.
----@return table players
----@return integer living
----@return integer sleeping
 local function collectLivingPlayers()
     local result = {}
     if type(getOnlinePlayers) ~= "function" then return result, 0, 0 end
@@ -209,12 +160,6 @@ local function collectLivingPlayers()
     return result, #result, sleeping
 end
 
----Derive a descriptive sleep/test phase for broad diagnostic metadata.
----@param living integer
----@param sleeping integer
----@param minutesPerDay number|nil
----@param baseline number|nil
----@return string phase
 local function derivePhase(living, sleeping, minutesPerDay, baseline)
     if diagnosticForcedConfigured() then
         if sleeping > 0 then return "diagnostic-forced-suspended-sleep" end
@@ -231,8 +176,6 @@ local function derivePhase(living, sleeping, minutesPerDay, baseline)
     return "partial"
 end
 
----@param moodleType any
----@return string|nil name
 local function canonicalMoodleName(moodleType)
     if not moodleType then return nil end
 
@@ -245,8 +188,6 @@ local function canonicalMoodleName(moodleType)
     return tail or name
 end
 
--- Historical index-scanning Moodle fallback. Current Build 42.20.3 diagnostics
--- should use SurvivalStatProbe/MoodleType for definitive Moodle telemetry.
 local function readMoodles(player)
     local tracked = {}
     local compact = {}
@@ -272,10 +213,6 @@ local function readMoodles(player)
     return tracked, table.concat(compact, ",")
 end
 
----Return true only for body parts worth emitting into the high-volume BODY
----stream. Pristine parts are intentionally suppressed.
----@param part any
----@return boolean interesting
 local function bodyPartIsInteresting(part)
     if not part then return false end
 
@@ -298,12 +235,6 @@ local function bodyPartIsInteresting(part)
     return (fractureTime and fractureTime > 0) or (woundInfection and woundInfection > 0) or false
 end
 
----Emit detailed BODY records for injured/abnormal body parts only.
----@param playerName string
----@param onlineID number|nil
----@param bodyDamage any
----@param epoch integer
----@return nil
 local function logBodyParts(playerName, onlineID, bodyDamage, epoch)
     if not bodyDamage then return end
 
@@ -363,23 +294,6 @@ local function logBodyParts(playerName, onlineID, bodyDamage, epoch)
     end
 end
 
----Emit one broad PLAYER record for a living server player, then detailed BODY
----records for any injured/abnormal body parts.
----@param player any
----@param epoch integer
----@param phase string
----@param living integer
----@param sleeping integer
----@param minutesPerDay number|nil
----@param baseline number|nil
----@param compression number|nil
----@param timeOfDay number|nil
----@param worldAgeHours number|nil
----@param deltaMinutesPerDay number|nil
----@param gameMultiplier number|nil
----@param trueMultiplier number|nil
----@param serverMultiplier number|nil
----@return nil
 local function logPlayer(player, epoch, phase, living, sleeping, minutesPerDay, baseline, compression, timeOfDay, worldAgeHours, deltaMinutesPerDay, gameMultiplier, trueMultiplier, serverMultiplier)
     local playerName = safeMethod(player, "getUsername") or safeMethod(player, "getDisplayName") or "N/A"
     local onlineID = safeNumber(player, "getOnlineID")
@@ -389,8 +303,6 @@ local function logPlayer(player, epoch, phase, living, sleeping, minutesPerDay, 
     local sleepFraction = living > 0 and (sleeping / living) or 0
     local moodles, moodleSummary = readMoodles(player)
 
-    -- Legacy Stats/public-field probes are retained for continuity. Use the
-    -- focused SurvivalStatDiagnostic stream for validated CharacterStat values.
     local hunger = safeNumberProbe(stats, "getHunger", { "hunger" })
     local thirst = safeNumberProbe(stats, "getThirst", { "thirst" })
     local fatigue = safeNumberProbe(stats, "getFatigue", { "fatigue" })
@@ -486,9 +398,6 @@ local function logPlayer(player, epoch, phase, living, sleeping, minutesPerDay, 
     logBodyParts(tostring(playerName), onlineID, bodyDamage, epoch)
 end
 
----Capture one wall-clock-gated server health/time-domain sample for every
----currently instantiated living player.
----@return nil
 local function sampleHealthTimeDomains()
     if not diagnosticsEnabled() then return end
 
@@ -539,11 +448,10 @@ local function sampleHealthTimeDomains()
     end
 end
 
--- Continue through pause/sleep transitions where supported.
 if Events.OnTickEvenPaused then
     Events.OnTickEvenPaused.Add(sampleHealthTimeDomains)
 else
     Events.OnTick.Add(sampleHealthTimeDomains)
 end
 
-log("Loaded Public Beta v0.1.0 broad server health/time-domain diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")
+log("Loaded Public Beta v0.1.1 broad server health/time-domain diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")
