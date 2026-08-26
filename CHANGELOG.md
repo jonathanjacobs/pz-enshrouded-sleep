@@ -6,7 +6,16 @@ This file records **what changed between releases**. Detailed test evidence belo
 
 ## [Unreleased]
 
-No unreleased user-visible changes recorded yet.
+### Added
+
+- Added opt-in `SleepNotificationsEnabled` server setting, disabled by default.
+- When enabled, effective multiplayer sleep-state changes broadcast concise server-chat notifications such as `[Enshrouded Sleep] 50% players are sleeping. Time is 20x faster.`
+- All-awake and all-asleep transitions use short special messages; vanilla full-sleep handoff does not claim an Enshrouded Sleep multiplier.
+
+### Safety
+
+- Notification timing is derived from settled authoritative `MinutesPerDay` and cannot alter sleep/time or awake-player protection behavior.
+- Client chat display is circuit-broken after a bridge failure so notification/UI problems cannot create repeated error spam or affect gameplay.
 
 ## [0.1.0] - 2026-08-26
 
