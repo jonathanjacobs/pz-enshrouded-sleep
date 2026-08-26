@@ -1,53 +1,41 @@
 # Enshrouded Sleep Documentation
 
-Detailed design, testing, deployment, validation evidence, spikes, architecture decisions, and Steam Workshop publication guidance live under `docs/`. The top-level README remains the player/server-admin landing page.
+The top-level [`README.md`](../README.md) is the public/player landing page. Detailed engineering and administration material lives here.
 
-## Current project state
+To prevent documentation drift, [`DOCUMENTATION_OWNERSHIP.md`](DOCUMENTATION_OWNERSHIP.md) defines which file owns each kind of mutable project information. Secondary documents should link to the canonical source instead of maintaining parallel copies of formulas, validation results, roadmaps, or configuration explanations.
 
-- Version: `v0.1.0`
-- Status: **Public Beta / multiplayer field validation**
-- Runtime scope: multiplayer servers only; local/standalone single-player is out of scope
-- Validated platform baseline: Project Zomboid `42.20.3`
-- Steam Workshop ID: `3786842301`
-- Core proportional sleep/client clock architecture: validated
-- SPIKE-004: complete / health-survival time domains characterized sufficiently for release
-- SPIKE-005: open / external world-system characterization and later compensation feasibility
-- SPIKE-006: controlled feasibility **GO**; production awake-player protection promoted for Public Beta field validation
-- Awake protection: Hunger, Thirst, Fatigue, Calories, Carbohydrates, Proteins, Lipids, and Weight for awake living players during normal partial sleep
-- Sleeping players remain vanilla-authoritative; all-living-asleep still hands control to vanilla full-sleep acceleration
-- Current focus: larger-population multiplayer evidence, lifecycle transitions, long sessions, compatibility/mod-stack interactions, and rollback behavior
+## Core documents
 
-## Start here
+- [`REQUIREMENTS.md`](REQUIREMENTS.md) — normative runtime behavior and supported scope.
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) — implementation design, authority boundaries, and component responsibilities.
+- [`DEPLOYMENT.md`](DEPLOYMENT.md) — server installation, configuration, monitoring, diagnostics, and rollback.
+- [`TESTING.md`](TESTING.md) — current smoke, regression, and Public Beta field-test procedures.
+- [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md) — concise validation chronology and decisions.
+- [`ROADMAP.md`](ROADMAP.md) — current work, Public Beta exit criteria, and later goals.
+- [`STEAM_WORKSHOP.md`](STEAM_WORKSHOP.md) — Workshop packaging and publication/update procedure.
+- [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md) — mandatory public-release gate.
 
-- [`DEPLOYMENT.md`](DEPLOYMENT.md) — Public Beta installation, monitoring, diagnostics, soft rollback, and full rollback.
-- [`ROADMAP.md`](ROADMAP.md) — single canonical roadmap and Beta exit criteria.
-- [`STEAM_WORKSHOP.md`](STEAM_WORKSHOP.md) — Workshop update/package workflow.
-- [`ARCHITECTURE.md`](ARCHITECTURE.md) — proportional compression, vanilla handoff, client synchronization, diagnostic forced compression, and time-domain boundaries.
-- [`TESTING.md`](TESTING.md) — smoke/regression and field-testing procedures.
-- [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md) — detailed evidence chronology.
-- [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md) — mandatory release/Workshop publication gate.
+## Evidence and design decisions
 
-## SPIKE investigations
+Detailed experiments belong under [`spikes/`](spikes/). Durable architectural decisions belong under [`adr/`](adr/).
+
+Current major investigations include:
 
 - [`spikes/SPIKE-004-health-time-domains.md`](spikes/SPIKE-004-health-time-domains.md) — health/survival time-domain classification.
-- [`spikes/SPIKE-005-world-system-time-domains.md`](spikes/SPIKE-005-world-system-time-domains.md) — external world-system time domains; still open.
-- [`spikes/SPIKE-006-awake-player-protection.md`](spikes/SPIKE-006-awake-player-protection.md) — controlled awake-player protection investigation; passive and active-effect feasibility passed.
-- [`spikes/SPIKE-006-FIRST-TEST.md`](spikes/SPIKE-006-FIRST-TEST.md) — initial passive test procedure/history.
-- [`spikes/SPIKE-006-ACTIVE-EFFECTS-TEST.md`](spikes/SPIKE-006-ACTIVE-EFFECTS-TEST.md) — active-effect/sleep-safety test procedure used before Beta promotion.
+- [`spikes/SPIKE-005-world-system-time-domains.md`](spikes/SPIKE-005-world-system-time-domains.md) — external world-system time domains and compensation feasibility.
+- [`spikes/SPIKE-006-awake-player-protection.md`](spikes/SPIKE-006-awake-player-protection.md) — awake-player survival protection investigation supporting the Public Beta implementation.
 
-The controlled 20x SPIKE-006 path showed near-native passive survival progression while the world clock remained near 20x and `TrueMultiplier=1.0`. Eating, drinking, running/sprinting, sleep suspension, wake reinitialization, Carbohydrates/Lipids away from their clamps, and clean baseline restoration were observed without a relevant Enshrouded Sleep Lua failure. Real multiplayer partial-sleep behavior is now a Public Beta field-validation target rather than a claim of completed broad validation.
+## Compliance and provenance
 
-## Repository-level files
+- [`PZ_MODDING_POLICY.md`](PZ_MODDING_POLICY.md) — repository development/release rules derived from the current Indie Stone modding-policy requirements.
+- [`../COMPLIANCE.md`](../COMPLIANCE.md) — project compliance entry point.
+- [`../THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md) — redistributed-material and prior-art provenance.
+- [`../ASSET_LICENSE.md`](../ASSET_LICENSE.md) — creative/promotional asset licensing boundary.
+- [`../LICENSE`](../LICENSE) and [`../NOTICE`](../NOTICE) — source licensing and project notices.
 
-- [`../README.md`](../README.md) — public overview/status
-- [`../workshop.txt`](../workshop.txt) — Workshop descriptor
-- [`../workshop-description.bbcode`](../workshop-description.bbcode) — canonical Steam description
-- [`../CHANGELOG.md`](../CHANGELOG.md) — release history
-- [`../COMPLIANCE.md`](../COMPLIANCE.md) — Project Zomboid mod-policy compliance
-- [`../THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md) — provenance/prior-art notices
-- [`../ASSET_LICENSE.md`](../ASSET_LICENSE.md) — creative asset licensing boundary
-- [`../LICENSE`](../LICENSE) and [`../NOTICE`](../NOTICE) — source license/notices
+## Historical/release records
 
-## Documentation policy
+- [`../CHANGELOG.md`](../CHANGELOG.md) — user/release-facing change history.
+- [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md) — technical validation chronology.
 
-Experimental detail belongs in spike/validation documents; server-admin behavior belongs in README/deployment/configuration guidance. Compatibility and validation claims must remain limited to evidence actually collected.
+The changelog should summarize what changed; validation history should summarize what was established; SPIKE documents retain the detailed evidence. Those three records should not reproduce each other verbatim.
