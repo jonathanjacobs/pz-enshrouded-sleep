@@ -103,6 +103,29 @@ Each player's previous corrected snapshot becomes the reference for the next tic
 
 Detailed feasibility evidence and limitations belong in [`spikes/SPIKE-006-awake-player-protection.md`](spikes/SPIKE-006-awake-player-protection.md).
 
+## Optional sleep-status notifications
+
+Sleep notifications are deliberately separated from sleep/time policy.
+
+```text
+EnshroudedSleep_Server.lua
+    -> owns authoritative MinutesPerDay
+
+SleepNotification_Server.lua
+    -> observes living/sleeping population
+    -> waits one observer pass after a population transition
+    -> derives displayed compression from settled BaselineMinutesPerDay / CurrentMinutesPerDay
+    -> broadcasts a versioned SleepNotification server command
+
+SleepNotification_Client.lua
+    -> validates the packet
+    -> displays the server-authored text through ChatManager.showServerChatMessage()
+```
+
+`SleepNotificationsEnabled` defaults to `false`. The server notifier does not announce ordinary all-awake startup state and emits only when the effective sleep state changes. Population changes during partial sleep are included because they can change the active sleep fraction and therefore the displayed acceleration.
+
+The client chat bridge is circuit-broken after a bridge failure. A notification failure cannot change `MinutesPerDay`, player sleep state, or awake-player protection.
+
 ## Diagnostic forced compression
 
 `DiagnosticForcedCompressionFactor` is a support/regression mechanism, not normal gameplay tuning. It can compress `MinutesPerDay` with exactly one living awake player only when verbose diagnostics are enabled.
@@ -113,7 +136,7 @@ Operational use belongs in [`DEPLOYMENT.md`](DEPLOYMENT.md); test procedures bel
 
 ## Observability
 
-Normal operation emits low-volume controller, synchronization, roster, and awake-protection state transitions. High-frequency health/survival/action/world-system telemetry is gated by `DiagnosticsEnabled=true`.
+Normal operation emits low-volume controller, synchronization, roster, awake-protection, and—when explicitly enabled—sleep-notification transitions. High-frequency health/survival/action/world-system telemetry is gated by `DiagnosticsEnabled=true`.
 
 Shared survival-state access is centralized in:
 
@@ -121,7 +144,7 @@ Shared survival-state access is centralized in:
 Contents/mods/pz-enshrouded-sleep/42/media/lua/shared/EnshroudedSleep/SurvivalStatProbe.lua
 ```
 
-Diagnostics are designed to degrade unavailable optional capabilities rather than break gameplay.
+Diagnostics and optional UI bridges are designed to degrade unavailable capabilities rather than break gameplay.
 
 ## Time-domain boundary
 
