@@ -36,12 +36,14 @@ Use this checklist before any public GitHub release or Steam Workshop publicatio
 ## Technical validation
 
 - [ ] Automated/static package checks pass where available.
-- [ ] The documented regression appropriate to the release has been executed.
+- [ ] The documented regression appropriate to the release has been executed or, for an explicitly identified Public Beta live-field feature, its post-deployment validation boundary is documented.
 - [ ] No known high-severity save/world/player/server stability defect is being silently shipped.
 - [ ] Compatibility claims are limited to tested evidence.
 - [ ] Install, update, disable, and rollback instructions are current.
 - [ ] Normal operation uses `DiagnosticsEnabled=false` and `DiagnosticForcedCompressionFactor=1.0`.
-- [ ] For Public Beta v0.1.0, `AwakePlayerProtectionEnabled=true` is intentional and its independent soft-rollback behavior is documented.
+- [ ] `AwakePlayerProtectionEnabled=true` is intentional for Public Beta and its independent soft-rollback behavior is documented.
+- [ ] For v0.1.1, `SleepNotificationsEnabled=false` remains the default; live WHG notification validation and notification-only rollback are documented.
+- [ ] Runtime Lua contains no `loadstring`/`loadstream` dependency after the Project Zomboid 42.20.4 security change.
 
 ## Distribution hygiene
 
@@ -55,6 +57,7 @@ Use this checklist before any public GitHub release or Steam Workshop publicatio
 - [ ] Confirm server/client package version consistency after update.
 - [ ] Confirm native baseline `MinutesPerDay` with all players awake.
 - [ ] Confirm at least one partial-sleep transition and exact baseline restoration when practical.
+- [ ] For v0.1.1 with notifications enabled, confirm one transition-based notification appears without repeated chat spam; disable `SleepNotificationsEnabled` first if the notification path misbehaves.
 - [ ] Preserve early field logs for a new Beta feature rollout.
 
 Release decision: **GO / CONDITIONAL GO / NO-GO**
