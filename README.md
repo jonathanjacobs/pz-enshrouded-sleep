@@ -29,6 +29,7 @@ Local/standalone single-player gameplay is outside the supported scope.
 - exact baseline restoration and vanilla all-asleep handoff;
 - awake-player survival protection during partial sleep;
 - independent protection-disable switch for compatibility testing;
+- optional concise server-chat sleep/time notifications;
 - low-volume operational logging plus opt-in verbose diagnostics.
 
 ## Server setup
@@ -44,9 +45,12 @@ Recommended Public Beta defaults:
 EnshroudedSleep.Enabled=true
 EnshroudedSleep.PartialSleepSpeedScale=1.0
 EnshroudedSleep.AwakePlayerProtectionEnabled=true
+EnshroudedSleep.SleepNotificationsEnabled=false
 EnshroudedSleep.DiagnosticsEnabled=false
 EnshroudedSleep.DiagnosticForcedCompressionFactor=1.0
 ```
+
+`SleepNotificationsEnabled=true` broadcasts short sleep-state messages such as `[Enshrouded Sleep] 50% players are sleeping. Time is 20x faster.` whenever the effective multiplayer sleep state changes.
 
 For option semantics, upgrade procedure, monitoring, diagnostic use, and rollback, use [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). The in-game sandbox tooltips contain the same administrator-facing option guidance.
 
