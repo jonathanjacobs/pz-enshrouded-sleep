@@ -15,8 +15,10 @@ The current priority is broad multiplayer evidence for the awake-player protecti
 - monitor client clock continuity and exact baseline restoration;
 - observe eating/drinking/activity behavior under natural multiplayer partial sleep;
 - characterize CPU/server cost and normal log volume at larger populations;
-- identify conflicts with mods that alter sleep, `MinutesPerDay`, CharacterStats, nutrition, or timed actions;
-- validate protection-only soft rollback and full-mod rollback in normal operations.
+- identify conflicts with mods that alter sleep, `MinutesPerDay`, CharacterStats, nutrition, timed actions, or chat UI;
+- validate protection-only soft rollback and full-mod rollback in normal operations;
+- complete the dedicated opt-in sleep-notification smoke test before promoting that feature out of `Unreleased`;
+- run focused regression checkpoints after relevant Project Zomboid updates, with 42.20.4 currently recorded for startup/baseline/client-sync compatibility.
 
 Verbose diagnostics should be used for focused evidence windows rather than left enabled continuously.
 
@@ -33,6 +35,7 @@ Move toward a stable release candidate when representative field evidence suppor
 - joins/disconnects/deaths/respawns do not leave stale player correction state;
 - CPU/log volume is operationally acceptable;
 - representative mod-stack interaction is stable enough for routine use;
+- opt-in player-facing notifications complete their dedicated smoke test without repeated spam or coupling to sleep/time behavior;
 - major external world-time side effects are documented/accepted or addressed through separate evidence-backed work;
 - Workshop install/update/rollback is repeatable.
 

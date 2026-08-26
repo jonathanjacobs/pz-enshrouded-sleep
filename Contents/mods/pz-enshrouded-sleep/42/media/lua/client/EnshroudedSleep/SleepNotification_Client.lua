@@ -1,9 +1,10 @@
 -- Enshrouded Sleep - client sleep-status notification display
--- Public Beta for Project Zomboid Build 42.20+
+-- Public Beta v0.1.0 for Project Zomboid Build 42.20+
 --
 -- Receives server-authored sleep-state notifications and displays them through
 -- Project Zomboid's client ServerChat path. This module is UI-only and never
--- changes GameTime or player state.
+-- changes GameTime or player state. Whether notifications are emitted is owned
+-- entirely by the server administrator through SleepNotificationsEnabled.
 
 if not isClient() then return end
 
@@ -133,4 +134,4 @@ if Events.OnTick then
     Events.OnTick.Add(deliverPending)
 end
 
-log("Loaded optional sleep-status notification client display.")
+log("Loaded Public Beta v0.1.0 optional sleep-status client display; messages are server-authored and server-admin controlled.")

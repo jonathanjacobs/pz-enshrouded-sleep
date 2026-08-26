@@ -1,10 +1,10 @@
 -- Enshrouded Sleep - optional multiplayer sleep-status notifications
--- Public Beta for Project Zomboid Build 42.20+
+-- Public Beta v0.1.0 for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
 -- Broadcast concise sleep-state/time-compression notifications to connected
--- clients when the administrator enables SleepNotificationsEnabled.
+-- clients when the server administrator enables SleepNotificationsEnabled.
 --
 -- DESIGN BOUNDARY
 -- ---------------
@@ -184,7 +184,7 @@ local function update()
 
     if sleeping <= 0 then
         if hadSleepingState then
-            local message = "[Enshrouded Sleep] All players awake. Time is normal."
+            local message = "[Enshrouded Sleep] All living players are awake. Time is normal."
             if broadcast(message, living, sleeping, 1.0) then
                 hadSleepingState = false
                 lastNotificationSignature = notificationSignature
@@ -200,14 +200,25 @@ local function update()
 
     local message
     if sleeping >= living then
-        message = "[Enshrouded Sleep] 100% players are sleeping. Vanilla fast-forward active."
+        message = string.format(
+            "[Enshrouded Sleep] All %d living player%s sleeping. Vanilla fast-forward active.",
+            living,
+            living == 1 and " is" or "s are"
+        )
     else
         local percent = math.floor(((sleeping / living) * 100.0) + 0.5)
         if compression <= 1.0 + EPSILON then
-            message = string.format("[Enshrouded Sleep] %d%% players are sleeping. Time is normal.", percent)
+            message = string.format(
+                "[Enshrouded Sleep] %d/%d living players sleeping (%d%%). Time is normal.",
+                sleeping,
+                living,
+                percent
+            )
         else
             message = string.format(
-                "[Enshrouded Sleep] %d%% players are sleeping. Time is %s faster.",
+                "[Enshrouded Sleep] %d/%d living players sleeping (%d%%). Time is %s faster.",
+                sleeping,
+                living,
                 percent,
                 formatFactor(compression)
             )
@@ -225,4 +236,4 @@ else
     Events.OnTick.Add(update)
 end
 
-log("Loaded optional sleep-status notification broadcaster; disabled unless SleepNotificationsEnabled=true.")
+log("Loaded Public Beta v0.1.0 optional sleep-status broadcaster; server-admin controlled and disabled unless SleepNotificationsEnabled=true.")

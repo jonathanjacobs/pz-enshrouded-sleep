@@ -69,6 +69,12 @@ ClockStateSync_Client.lua
 
 Clients do not independently recalculate the sleeping fraction or compression target. ADR-003 records this design.
 
+## Command/security boundary
+
+All Enshrouded Sleep multiplayer messages use predefined module/command names and structured argument tables through Project Zomboid's `sendServerCommand` / `OnServerCommand` path. The server does not transmit executable Lua source to clients, and runtime code does not depend on `loadstring` or `loadstream`.
+
+This architecture is intentionally compatible with the Project Zomboid 42.20.4 security change that removed those dynamic-code methods. Package validation rejects future runtime references to either API.
+
 ## Awake-player survival protection
 
 `AwakePlayerProtection_Server.lua` is a server-authoritative post-update normalizer used during normal partial sleep when `AwakePlayerProtectionEnabled=true`.
@@ -105,7 +111,7 @@ Detailed feasibility evidence and limitations belong in [`spikes/SPIKE-006-awake
 
 ## Optional sleep-status notifications
 
-Sleep notifications are deliberately separated from sleep/time policy.
+Sleep notifications are deliberately separated from sleep/time policy and are controlled only by the server administrator through `SleepNotificationsEnabled`.
 
 ```text
 EnshroudedSleep_Server.lua
@@ -115,6 +121,7 @@ SleepNotification_Server.lua
     -> observes living/sleeping population
     -> waits one observer pass after a population transition
     -> derives displayed compression from settled BaselineMinutesPerDay / CurrentMinutesPerDay
+    -> authors concise count/percentage/compression text
     -> broadcasts a versioned SleepNotification server command
 
 SleepNotification_Client.lua
@@ -124,7 +131,7 @@ SleepNotification_Client.lua
 
 `SleepNotificationsEnabled` defaults to `false`. The server notifier does not announce ordinary all-awake startup state and emits only when the effective sleep state changes. Population changes during partial sleep are included because they can change the active sleep fraction and therefore the displayed acceleration.
 
-The client chat bridge is circuit-broken after a bridge failure. A notification failure cannot change `MinutesPerDay`, player sleep state, or awake-player protection.
+The client chat bridge is circuit-broken after a bridge failure. A notification failure cannot change `MinutesPerDay`, player sleep state, client clock policy, or awake-player protection.
 
 ## Diagnostic forced compression
 
@@ -155,6 +162,7 @@ Evidence for individual time domains belongs in SPIKE-004/SPIKE-005 and `VALIDAT
 ## Design constraints
 
 - no global simulation fast-forward for partial sleep;
+- no dynamic execution of server-supplied Lua code;
 - no custom readiness/voting registry;
 - no local/standalone single-player fallback in server policy;
 - no Project Zomboid Java/core patching for ordinary Workshop distribution;

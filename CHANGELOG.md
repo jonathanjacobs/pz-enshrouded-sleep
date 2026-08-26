@@ -8,14 +8,27 @@ This file records **what changed between releases**. Detailed test evidence belo
 
 ### Added
 
-- Added opt-in `SleepNotificationsEnabled` server setting, disabled by default.
-- When enabled, effective multiplayer sleep-state changes broadcast concise server-chat notifications such as `[Enshrouded Sleep] 50% players are sleeping. Time is 20x faster.`
+- Added opt-in, administrator-controlled `SleepNotificationsEnabled` server setting, disabled by default.
+- When enabled, effective multiplayer sleep-state changes broadcast concise server-chat notifications with the living/sleeping count, percentage, and settled calendar acceleration, for example: `[Enshrouded Sleep] 1/2 living players sleeping (50%). Time is 20x faster.`
 - All-awake and all-asleep transitions use short special messages; vanilla full-sleep handoff does not claim an Enshrouded Sleep multiplier.
+
+### Changed
+
+- Recorded a Project Zomboid 42.20.4 (`b0bbce05d5`) compatibility checkpoint from dedicated-server and connected-client logs. Startup, native baseline capture, normal all-awake operation, and authoritative `ClockState` synchronization completed without a relevant Enshrouded Sleep Lua exception.
+- Documented that Enshrouded Sleep does not use the `loadstring` or `loadstream` APIs removed by the 42.20.4 security hotfix; multiplayer synchronization and notifications use predefined named commands with structured arguments.
+- Normalized current runtime/release documentation on Public Beta v0.1.0 terminology and added package-validation guards against reintroducing stale Public Alpha startup banners.
+- Tightened sleep-notification wording to identify the living-player denominator directly.
 
 ### Safety
 
 - Notification timing is derived from settled authoritative `MinutesPerDay` and cannot alter sleep/time or awake-player protection behavior.
 - Client chat display is circuit-broken after a bridge failure so notification/UI problems cannot create repeated error spam or affect gameplay.
+- Package validation rejects runtime Lua references to `loadstring` or `loadstream` so future changes cannot accidentally regress the 42.20.4 security-compatible command architecture.
+
+### Validation boundary
+
+- The 42.20.4 checkpoint establishes startup/baseline/client-sync compatibility, not a new claim that every optional feature or mod-stack interaction has completed full regression.
+- The opt-in sleep-notification path remains unreleased until its dedicated multiplayer smoke test in `docs/TESTING.md` is completed.
 
 ## [0.1.0] - 2026-08-26
 
@@ -91,7 +104,7 @@ Added explicit server-to-client day-length synchronization and a low-frequency c
 
 ## [0.0.5] - 2026-08-14
 
-Read-only client/server diagnostics established that server `MinutesPerDay` compression was not being mirrored reliably to clients, explaining recurring visible clock corrections.
+Read-only client/server diagnostics established that server `MinutesPerDay` changes were not automatically mirrored as stable client pacing, explaining recurring visible clock corrections.
 
 ## [0.0.4] - 2026-08-14
 

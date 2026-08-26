@@ -20,6 +20,7 @@ jobs:
           set -euo pipefail
 
           MOD_ROOT="Contents/mods/pz-enshrouded-sleep"
+          RUNTIME_LUA="$MOD_ROOT/42/media/lua"
           VERSION_VALUE="$(tr -d '\r\n' < VERSION)"
 
           [[ "$VERSION_VALUE" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
@@ -54,17 +55,36 @@ jobs:
           grep -Fq "Public Beta" "$MOD_ROOT/mod.info"
           grep -Fq "Public Beta" "$MOD_ROOT/42/mod.info"
           grep -Fq "Public Beta" README.md
+          grep -Fq "Current version: **v$VERSION_VALUE**" README.md
+          grep -Fq "Validated Project Zomboid baseline: **42.20.4**" README.md
           grep -Fq "Version:[/b] $VERSION_VALUE" workshop-description.bbcode
+          grep -Fq "Tested with:[/b] Project Zomboid 42.20.4" workshop-description.bbcode
           grep -Fq "title=Enshrouded Sleep - Public Beta" workshop.txt
 
           grep -Fq 'option EnshroudedSleep.AwakePlayerProtectionEnabled' "$MOD_ROOT/42/media/sandbox-options.txt"
           grep -Fq 'option EnshroudedSleep.SleepNotificationsEnabled' "$MOD_ROOT/42/media/sandbox-options.txt"
+          grep -A5 -F 'option EnshroudedSleep.SleepNotificationsEnabled' "$MOD_ROOT/42/media/sandbox-options.txt" | grep -Fq 'default = false'
           grep -Fq 'option EnshroudedSleep.DiagnosticsEnabled' "$MOD_ROOT/42/media/sandbox-options.txt"
           grep -Fq 'option EnshroudedSleep.DiagnosticForcedCompressionFactor' "$MOD_ROOT/42/media/sandbox-options.txt"
           ! grep -Fq 'DiagnosticAwakeProtectionPrototype' "$MOD_ROOT/42/media/sandbox-options.txt"
+
           grep -Fq "Loaded Public Beta v$VERSION_VALUE awake-player survival protection." "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/AwakePlayerProtection_Server.lua"
+          grep -Fq "Loaded Public Beta v$VERSION_VALUE multiplayer-server calendar-compression controller." "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/EnshroudedSleep_Server.lua"
           grep -Fq "SleepNotificationsEnabled=true" "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/SleepNotification_Server.lua"
           grep -Fq "showServerChatMessage" "$MOD_ROOT/42/media/lua/client/EnshroudedSleep/SleepNotification_Client.lua"
+
+          # Current runtime must not regress to stale Public Alpha startup labels.
+          if grep -RFn 'Public Alpha v0.0.10' "$RUNTIME_LUA"; then
+            echo "ERROR: stale Public Alpha v0.0.10 runtime label found"
+            exit 1
+          fi
+
+          # PZ 42.20.4 removed dynamic loadstring/loadstream execution. Enshrouded
+          # Sleep uses predefined command handlers and structured arguments only.
+          if grep -RFnE '(^|[^[:alnum:]_])(loadstring|loadstream)([^[:alnum:]_]|$)' "$RUNTIME_LUA"; then
+            echo "ERROR: removed dynamic-code API referenced by runtime Lua"
+            exit 1
+          fi
 
           python - <<'PY'
           from pathlib import Path
@@ -85,4 +105,4 @@ jobs:
           assert Path("preview.png").stat().st_size <= 1000 * 1024
           PY
 
-          echo "Public Beta package structure/version/artwork checks passed for v$VERSION_VALUE."
+          echo "Public Beta package structure/version/artwork/compatibility checks passed for v$VERSION_VALUE."

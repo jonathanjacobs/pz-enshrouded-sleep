@@ -3,7 +3,8 @@
 This document owns server installation, normal configuration, monitoring, diagnostics, and rollback. Product semantics belong in [`REQUIREMENTS.md`](REQUIREMENTS.md); test evidence belongs in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md).
 
 Project Zomboid Mod ID: `pz-enshrouded-sleep`  
-Steam Workshop ID: `3786842301`
+Steam Workshop ID: `3786842301`  
+Current validated compatibility checkpoint: Project Zomboid `42.20.4` (`b0bbce05d5`)
 
 ## Normal server configuration
 
@@ -21,14 +22,14 @@ Administrator meaning:
 - `Enabled` — master Enshrouded Sleep controller switch.
 - `PartialSleepSpeedScale` — scales normal proportional partial-sleep calendar acceleration; `1.0` is neutral.
 - `AwakePlayerProtectionEnabled` — protects supported awake-player survival/metabolism fields during partial sleep; disable this first when isolating a compatibility problem in the protection layer.
-- `SleepNotificationsEnabled` — when enabled, sends concise server-chat messages when the effective multiplayer sleep state changes. Disabled by default and has no effect on sleep/time policy.
+- `SleepNotificationsEnabled` — server-administrator switch for concise player-facing sleep-state messages. Disabled by default and has no effect on sleep/time policy, client clock synchronization, or awake-player protection.
 - `DiagnosticsEnabled` — enables high-volume troubleshooting telemetry; leave off during routine play.
 - `DiagnosticForcedCompressionFactor` — isolated one-player regression tool; keep at `1.0` during normal multiplayer operation.
 
-When notifications are enabled, partial-sleep messages use the settled authoritative compression factor, for example:
+When notifications are enabled, partial-sleep messages use the settled authoritative compression factor and current living-player denominator, for example:
 
 ```text
-[Enshrouded Sleep] 50% players are sleeping. Time is 20x faster.
+[Enshrouded Sleep] 1/2 living players sleeping (50%). Time is 20x faster.
 ```
 
 All-awake and all-asleep transitions use short special messages rather than claiming a misleading multiplier during vanilla full-sleep handoff.
@@ -129,7 +130,7 @@ If the sleep/time mechanic is correct but chat notifications are unwanted or con
 EnshroudedSleep.SleepNotificationsEnabled=false
 ```
 
-This has no effect on time compression or awake-player protection.
+This has no effect on time compression, client clock synchronization, or awake-player protection.
 
 ## Full rollback
 

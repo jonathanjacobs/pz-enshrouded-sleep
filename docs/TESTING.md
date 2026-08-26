@@ -16,6 +16,8 @@ Run after runtime/configuration changes, a new release candidate, or a relevant 
 6. Confirm `DiagnosticForcedCompressionFactor=1.0` is inert.
 7. With `SleepNotificationsEnabled=false`, confirm no Enshrouded Sleep sleep-state chat messages are emitted.
 
+Project Zomboid 42.20.4 (`b0bbce05d5`) has passed this startup/baseline/client-sync compatibility checkpoint for v0.1.0. See [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md) for the evidence boundary.
+
 ## Tier 2 — core two-player sleep regression
 
 Use normal server settings and `AwakePlayerProtectionEnabled=true`.
@@ -37,10 +39,10 @@ The exact expected factor depends on live `FastForwardMultiplier`, `PartialSleep
 Run this once before treating the optional notification feature as release-validated.
 
 1. Start with `SleepNotificationsEnabled=true`, at least two living players, and no sleepers. Confirm no startup/all-awake notification is sent.
-2. Put one player to sleep. Confirm every connected client receives exactly one concise server-chat message such as `[Enshrouded Sleep] 50% players are sleeping. Time is 20x faster.`
+2. Put one player to sleep. Confirm every connected client receives exactly one concise server-chat message such as `[Enshrouded Sleep] 1/2 living players sleeping (50%). Time is 20x faster.`
 3. Change the sleep fraction by sleeping/waking another player or changing the connected living population. Confirm exactly one updated message is sent after the authoritative clock state settles.
-4. Wake all players. Confirm one `[Enshrouded Sleep] All players awake. Time is normal.` message.
-5. Put all living players to sleep. Confirm the message identifies vanilla full-sleep fast-forward rather than claiming an Enshrouded Sleep compression multiplier.
+4. Wake all players. Confirm one `[Enshrouded Sleep] All living players are awake. Time is normal.` message.
+5. Put all living players to sleep. Confirm the message reports the living-player count and identifies vanilla full-sleep fast-forward rather than claiming an Enshrouded Sleep compression multiplier.
 6. Confirm there is no per-tick/repeated chat spam and no Enshrouded Sleep Lua exception.
 7. Set `SleepNotificationsEnabled=false` and confirm subsequent sleep-state changes no longer emit messages while proportional sleep continues normally.
 
@@ -139,8 +141,9 @@ Packaging/publication checks are intentionally not duplicated here. Use:
 
 For a new Build 42 release:
 
-1. review changes affecting `GameTime`, multiplayer sleep/lifecycle, CharacterStats, Nutrition, and any subsystem touched by the release;
-2. run Tier 1;
-3. run Tier 2 if clock/sleep/network behavior may have changed;
-4. run Tier 3 or a focused SPIKE only when the changed engine area justifies it;
-5. update validation claims only after evidence is collected.
+1. review changes affecting `GameTime`, multiplayer sleep/lifecycle, CharacterStats, Nutrition, networking/command APIs, and any subsystem touched by the release;
+2. check runtime Lua for removed/restricted APIs introduced by the game update;
+3. run Tier 1;
+4. run Tier 2 if clock/sleep/network behavior may have changed;
+5. run Tier 3 or a focused SPIKE only when the changed engine area justifies it;
+6. update validation claims only after evidence is collected.

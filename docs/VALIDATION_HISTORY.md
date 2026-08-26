@@ -99,8 +99,26 @@ The validated SPIKE-006 mechanism was promoted from a one-player diagnostic prot
 
 Public Beta does not claim that larger populations, every lifecycle transition, every mod stack, or every direct survival effect is already proven. Those remaining questions are tracked exclusively in [`ROADMAP.md`](ROADMAP.md).
 
+## Project Zomboid 42.20.4 compatibility checkpoint — 2026-08-26
+
+Dedicated-server and connected-client logs from Project Zomboid `42.20.4` revision `b0bbce05d5` established a compatibility checkpoint for Public Beta v0.1.0 and Workshop item `3786842301`.
+
+Observed evidence included:
+
+- both server and client running `42.20.4 b0bbce05d5`;
+- the Workshop item installed and loaded through the normal multiplayer path;
+- authoritative baseline capture at `MinutesPerDay=240`;
+- normal all-awake controller state with one living/awake player;
+- server publication of a baseline `ClockState` packet;
+- connected-client application of the authoritative `MinutesPerDay=240` state;
+- no relevant Enshrouded Sleep Lua exception in the supplied compatibility-session logs.
+
+The 42.20.4 security hotfix removed the Lua `loadstring` and `loadstream` methods. Enshrouded Sleep does not use either method. Its existing networking architecture uses predefined `sendServerCommand` / `OnServerCommand` command names and structured argument tables for clock synchronization and optional notifications, so no dynamic server-supplied code execution migration was required.
+
+**Validation boundary:** the supplied 42.20.4 logs establish startup, baseline, and server/client synchronization compatibility. They do not contain a complete logged natural two-player partial-sleep/all-asleep regression and therefore do not replace Tier 2. The separate opt-in sleep-notification feature also remains pending its dedicated multiplayer smoke test before release promotion.
+
 ## Evidence boundary
 
-The architecture is strongly supported for proportional calendar compression, server/client day-length synchronization, baseline restoration, vanilla full-sleep handoff, normal-speed awake simulation, the measured SPIKE-004 time domains, the confirmed SPIKE-005 world-system examples, and controlled SPIKE-006 awake-protection feasibility.
+The architecture is strongly supported for proportional calendar compression, server/client day-length synchronization, baseline restoration, vanilla full-sleep handoff, normal-speed awake simulation, the measured SPIKE-004 time domains, the confirmed SPIKE-005 world-system examples, and controlled SPIKE-006 awake-protection feasibility. Project Zomboid 42.20.4 additionally has a recorded startup/baseline/client-sync compatibility checkpoint.
 
 Do not infer compatibility or compensation for untested systems from this summary. Use the detailed SPIKE record when a claim needs exact test conditions or measured ratios.

@@ -172,9 +172,9 @@ The Project Zomboid Mod ID remains `pz-enshrouded-sleep`. Steam Workshop publica
 
 ## Optional sleep-status notifications
 
-### R31 — Notifications are independently configurable and opt-in
+### R31 — Notifications are independently configurable, administrator-controlled, and opt-in
 
-`SleepNotificationsEnabled` controls only player-facing sleep-status messages. It must default to `false`, and disabling it must not alter proportional sleep, client clock synchronization, or awake-player protection.
+`SleepNotificationsEnabled` is a server-administrator setting that controls only player-facing sleep-status messages. It must default to `false`, and disabling it must not alter proportional sleep, client clock synchronization, or awake-player protection. Clients must not independently enable notification broadcasts.
 
 ### R32 — Notifications describe settled authoritative state
 
@@ -182,15 +182,19 @@ When enabled, notifications must be derived from the authoritative server's sett
 
 ### R33 — Notifications are transition-based and concise
 
-Notifications must be emitted only when the effective multiplayer sleep state changes, including sleep/wake changes and population changes that alter the active sleep fraction. Routine all-awake startup state must not generate a message. Normal partial-sleep messages use the form:
+Notifications must be emitted only when the effective multiplayer sleep state changes, including sleep/wake changes and population changes that alter the active sleep fraction. Routine all-awake startup state must not generate a message. Normal partial-sleep messages report both the actual living/sleeping count and percentage, for example:
 
 ```text
-[Enshrouded Sleep] X% players are sleeping. Time is Yx faster.
+[Enshrouded Sleep] 1/2 living players sleeping (50%). Time is 20x faster.
 ```
 
-When all players are awake, the message must report normal time. When all living players are asleep, the message must identify vanilla full-sleep fast-forward rather than claim a specific Enshrouded Sleep compression factor.
+When all living players are awake, the message must report normal time. When all living players are asleep, the message must identify vanilla full-sleep fast-forward rather than claim a specific Enshrouded Sleep compression factor.
 
 A chat/UI bridge failure must degrade independently and must never affect the sleep/time controller.
+
+### R34 — Multiplayer messages use predefined commands, not executable payloads
+
+Server/client synchronization and optional notifications must use predefined named command handlers and structured data. Runtime code must not depend on dynamic execution APIs such as `loadstring` or `loadstream` for server-supplied code. This preserves the command architecture required by Project Zomboid 42.20.4 and later security behavior.
 
 ## Out of scope
 
