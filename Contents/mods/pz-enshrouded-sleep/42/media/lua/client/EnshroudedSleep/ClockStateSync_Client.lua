@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - client MinutesPerDay synchronization
--- Public Alpha v0.0.10 for Project Zomboid Build 42.20+
+-- Public Beta v0.1.0 for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -14,7 +14,7 @@
 -- clients retained their native day length and visibly snapped when vanilla
 -- corrected TimeOfDay. v0.0.6 introduced explicit ClockState replication, and
 -- v0.0.7 fixed a Kahlua multi-return conversion bug. That synchronization model
--- remains the validated design used by Public Alpha v0.0.10.
+-- remains the validated design used by Public Beta v0.1.0.
 --
 -- MUTATION BOUNDARY
 -- -----------------
@@ -33,42 +33,23 @@ local EPSILON = 0.0001
 local MIN_VALID_MINUTES_PER_DAY = 0.01
 local MAX_VALID_MINUTES_PER_DAY = 1440.0
 
--- State used only to deduplicate logs and restore the last authoritative
--- baseline if the client disconnects while locally paced at a compressed value.
 local lastStateSignature = nil
 local lastError = nil
 local cachedBaselineMinutesPerDay = nil
 
----Write one namespaced synchronization message to the client log.
----@param message any Value to stringify.
----@return nil
 local function log(message)
     print(PREFIX .. " " .. tostring(message))
 end
 
----Safely call a Java/Lua method and convert bridge failures into ordinary
----client-side synchronization errors rather than allowing a support path to
----break the gameplay session.
----@param obj any Object expected to expose methodName.
----@param methodName string Method name.
----@param ... any Method arguments.
----@return any|nil value
----@return string|nil errorMessage
 local function safeMethod(obj, methodName, ...)
     if not obj then return nil, "nil object" end
-
     local okMethod, method = pcall(function() return obj[methodName] end)
     if not okMethod or not method then return nil, methodName .. " unavailable" end
-
     local ok, value = pcall(method, obj, ...)
     if not ok then return nil, tostring(value) end
-
     return value, nil
 end
 
----Log a client synchronization error once per distinct failure episode.
----@param message any Error description.
----@return nil
 local function logErrorOnce(message)
     message = tostring(message)
     if message == lastError then return end
@@ -76,21 +57,10 @@ local function logErrorOnce(message)
     log("ERROR | " .. message)
 end
 
----Clear the remembered synchronization error after a successful packet.
----@return nil
 local function clearError()
     lastError = nil
 end
 
----Validate and apply one authoritative ClockState packet.
----
----Only the namespaced protocol-1 EnshroudedSleep/ClockState message is handled.
----The packet's MinutesPerDay is range-checked before application. The client
----does not infer or recalculate the target from sleeping/living counts.
----@param module string Server-command module name.
----@param command string Server-command command name.
----@param args any Command arguments supplied by Project Zomboid.
----@return nil
 local function onServerCommand(module, command, args)
     if module ~= MODULE or command ~= COMMAND then return end
 
@@ -111,8 +81,6 @@ local function onServerCommand(module, command, args)
         return
     end
 
-    -- Cache a separately validated baseline so disconnect cleanup cannot restore
-    -- an untrusted/malformed value supplied by a bad packet.
     local baseline = tonumber(args.baselineMinutesPerDay)
     if baseline and baseline >= MIN_VALID_MINUTES_PER_DAY and baseline <= MAX_VALID_MINUTES_PER_DAY then
         cachedBaselineMinutesPerDay = baseline
@@ -124,8 +92,6 @@ local function onServerCommand(module, command, args)
         return
     end
 
-    -- Capture only the first safeMethod return before tonumber(). This preserves
-    -- the v0.0.7 fix for Kahlua's multi-return argument propagation behavior.
     local currentValue, readErr = safeMethod(gt, "getMinutesPerDay")
     local current = tonumber(currentValue)
     if current == nil then
@@ -134,9 +100,6 @@ local function onServerCommand(module, command, args)
     end
 
     local changed = math.abs(current - target) > EPSILON
-
-    -- Avoid redundant Java bridge writes when the local client is already paced
-    -- at the authoritative value. The heartbeat can therefore be low cost.
     if changed then
         local _, setErr = safeMethod(gt, "setMinutesPerDay", target)
         if setErr then
@@ -145,8 +108,6 @@ local function onServerCommand(module, command, args)
         end
     end
 
-    -- Always verify the post-apply value. This makes support logs distinguish a
-    -- successfully received packet from an actually successful local clock write.
     local afterValue, afterReadErr = safeMethod(gt, "getMinutesPerDay")
     local after = tonumber(afterValue)
     if after == nil then
@@ -164,8 +125,6 @@ local function onServerCommand(module, command, args)
 
     clearError()
 
-    -- Transition logs are emitted only when the value changed or the semantic
-    -- state changed, avoiding one log line for every two-second heartbeat.
     if changed or signature ~= lastStateSignature then
         log(string.format(
             "APPLY | mode=%s | living=%s | sleeping=%s | beforeMinutesPerDay=%.4f | targetMinutesPerDay=%.4f | afterMinutesPerDay=%.4f | baselineMinutesPerDay=%s | serverEpoch=%s",
@@ -183,13 +142,8 @@ local function onServerCommand(module, command, args)
     lastStateSignature = signature
 end
 
----Restore the last server-advertised baseline on disconnect when practical.
----
----This is local cleanup only; it does not alter authoritative server world time.
----@return nil
 local function onDisconnect()
     if not cachedBaselineMinutesPerDay then return end
-
     local gt = getGameTime()
     if not gt then return end
 
@@ -203,16 +157,13 @@ local function onDisconnect()
     end
 end
 
--- Server commands are the authoritative normal synchronization path.
 if Events.OnServerCommand then
     Events.OnServerCommand.Add(onServerCommand)
-    log("Loaded Public Alpha v0.0.10 client MinutesPerDay synchronization.")
+    log("Loaded Public Beta v0.1.0 client MinutesPerDay synchronization.")
 else
     log("ERROR | Events.OnServerCommand unavailable; client clock replication disabled")
 end
 
--- Disconnect cleanup is best-effort and intentionally independent of packet
--- handling so an unavailable event cannot disable the normal sync path.
 if Events.OnDisconnect then
     Events.OnDisconnect.Add(onDisconnect)
 end
