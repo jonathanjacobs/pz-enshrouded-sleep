@@ -4,13 +4,74 @@ Human-readable history of notable Enshrouded Sleep changes. Git remains authorit
 
 ## [Unreleased]
 
-### Public Alpha characterization targets
+### Public Beta field targets
 
-- 3–12+ player proportional fractions and long-session stability.
-- joins/disconnects/deaths/respawns under live population changes.
-- non-health world-time systems: spoilage, farming, generators, corpses, composting and weather.
-- pathological survival states not exercised in SPIKE-004: active sickness/food poisoning, poison, zombie infection/fever, and extreme thermal injury.
-- client clock robustness during live admin/sandbox reconfiguration.
+- 3–12+ player proportional fractions and long-session stability with awake-player protection enabled.
+- joins/disconnects/deaths/respawns while protection is active.
+- representative live mod-stack interaction and performance.
+- uncommon/pathological survival states and same-direction gameplay effects not covered by controlled SPIKE-006 runs.
+- continued external world-system characterization under SPIKE-005.
+
+## [0.1.0] - 2026-08-26
+
+**Public Beta.** v0.1.0 promotes the SPIKE-006 awake-player survival normalizer from a one-player diagnostic prototype into the normal multiplayer partial-sleep gameplay path.
+
+### Awake-player protection
+
+Added `AwakePlayerProtectionEnabled=true` as the Public Beta default. During normal partial sleep, all awake living players are normalized toward native-day-length progression for:
+
+- Hunger;
+- Thirst;
+- Fatigue;
+- Calories;
+- Carbohydrates;
+- Proteins;
+- Lipids;
+- Weight progression.
+
+Sleeping players are never corrected. All-living-asleep still restores native `MinutesPerDay` and leaves vanilla full-sleep acceleration authoritative.
+
+The correction remains server-authoritative and directional: worsening Hunger/Thirst/Fatigue and depleting nutrition deltas are scaled by the observed calendar-compression factor, favorable opposite-direction effects are retained in full, and Weight is normalized in either direction. A per-player read/write failure fails open and clears that player's reference snapshot rather than applying a later catch-up correction.
+
+`AwakePlayerProtectionEnabled=false` is the first-line compatibility rollback: it restores the older Alpha survival behavior while leaving proportional partial-sleep calendar compression active.
+
+### SPIKE-006 validation supporting Beta promotion
+
+Controlled dedicated-server testing on PZ 42.20.3 established:
+
+- native 90-minute day forced to `MinutesPerDay=4.5` with world/calendar time near 20x while `TrueMultiplier=1.0`;
+- passive awake Hunger/Thirst/Fatigue/Calories/Protein/Weight progression approximately near native 1x in the first successful correction run;
+- later Carbohydrates/Lipids testing away from their lower clamps also remained near native pacing;
+- eating and drinking favorable effects were preserved;
+- running/sprinting retained active effects including endurance loss and increased expenditure;
+- sleeping immediately suspended awake correction and returned the one-player forced test to native day length for vanilla sleep;
+- waking reinitialized the correction snapshot before protection resumed;
+- no relevant Enshrouded Sleep Lua exception occurred in the successful controlled run.
+
+These are feasibility/regression results, not a claim that every larger multiplayer population or mod combination is already proven. Public Beta intentionally moves those remaining questions into normal field validation.
+
+### Diagnostics and administrator UX
+
+- Added low-volume server/client action/activity transition diagnostics for correlating timed actions with survival telemetry.
+- Fixed an early action-diagnostic Java/Kahlua bridge probe that could emit an error every tick; optional bridge capabilities are now circuit-broken after one failed probe.
+- Added/expanded sandbox tooltips explaining proportional sleep math, awake-player protection, verbose log volume, and the one-player-only forced-compression diagnostic.
+- Removed the SPIKE-only `DiagnosticAwakeProtectionPrototype` sandbox switch from the production UI.
+- `DiagnosticForcedCompressionFactor` remains a one-player support/regression tool and should stay at `1.0` during normal multiplayer operation.
+- Deployment documentation now distinguishes protection-only soft rollback from full mod rollback.
+
+### Public Beta configuration
+
+```text
+EnshroudedSleep.Enabled=true
+EnshroudedSleep.PartialSleepSpeedScale=1.0
+EnshroudedSleep.AwakePlayerProtectionEnabled=true
+EnshroudedSleep.DiagnosticsEnabled=false
+EnshroudedSleep.DiagnosticForcedCompressionFactor=1.0
+```
+
+### Scope boundary
+
+v0.1.0 does not compensate external world systems. Food aging/spoilage, generators, farming/crops, vehicle resources, corpses, weather, and other world-time-driven or modded systems continue following vanilla game-world time unless separately addressed in future evidence-backed work.
 
 ## [0.0.10] - 2026-08-19
 
