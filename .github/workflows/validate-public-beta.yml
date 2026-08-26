@@ -70,12 +70,22 @@ jobs:
 
           grep -Fq "Loaded Public Beta v$VERSION_VALUE awake-player survival protection." "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/AwakePlayerProtection_Server.lua"
           grep -Fq "Loaded Public Beta v$VERSION_VALUE multiplayer-server calendar-compression controller." "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/EnshroudedSleep_Server.lua"
+          grep -Fq "Loaded Public Beta v$VERSION_VALUE authoritative MinutesPerDay replication." "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/ClockStateSync_Server.lua"
+          grep -Fq "Loaded Public Beta v$VERSION_VALUE client MinutesPerDay synchronization." "$MOD_ROOT/42/media/lua/client/EnshroudedSleep/ClockStateSync_Client.lua"
+          grep -Fq "Loaded Public Beta v$VERSION_VALUE optional sleep-status broadcaster" "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/SleepNotification_Server.lua"
+          grep -Fq "Loaded Public Beta v$VERSION_VALUE optional sleep-status client display" "$MOD_ROOT/42/media/lua/client/EnshroudedSleep/SleepNotification_Client.lua"
+          grep -Fq "buildVersion = \"$VERSION_VALUE\"" "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/ClockStateSync_Server.lua"
+          grep -Fq "BUILD_VERSION = \"$VERSION_VALUE\"" "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/SleepNotification_Server.lua"
           grep -Fq "SleepNotificationsEnabled=true" "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/SleepNotification_Server.lua"
           grep -Fq "showServerChatMessage" "$MOD_ROOT/42/media/lua/client/EnshroudedSleep/SleepNotification_Client.lua"
 
-          # Current runtime must not regress to stale Public Alpha startup labels.
+          # Current runtime must not regress to stale release banners.
           if grep -RFn 'Public Alpha v0.0.10' "$RUNTIME_LUA"; then
             echo "ERROR: stale Public Alpha v0.0.10 runtime label found"
+            exit 1
+          fi
+          if grep -RFn 'Public Beta v0.1.0' "$RUNTIME_LUA"; then
+            echo "ERROR: stale Public Beta v0.1.0 runtime label found after v$VERSION_VALUE bump"
             exit 1
           fi
 
