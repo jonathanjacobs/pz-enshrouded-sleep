@@ -27,11 +27,14 @@ Recommended Public Beta settings:
 EnshroudedSleep.Enabled=true
 EnshroudedSleep.PartialSleepSpeedScale=1.0
 EnshroudedSleep.AwakePlayerProtectionEnabled=true
+EnshroudedSleep.SleepNotificationsEnabled=false
 EnshroudedSleep.DiagnosticsEnabled=false
 EnshroudedSleep.DiagnosticForcedCompressionFactor=1.0
 [/code]
 
 [b]AwakePlayerProtectionEnabled[/b] can be turned off independently if a compatibility issue is suspected. This returns awake survival progression to the older Alpha behavior while leaving proportional partial-sleep calendar compression active.
+
+[b]SleepNotificationsEnabled[/b] optionally posts short sleep-state messages to connected players, such as [i][Enshrouded Sleep] 50% players are sleeping. Time is 20x faster.[/i] It is disabled by default and does not affect sleep/time behavior.
 
 [b]DiagnosticsEnabled[/b] is a support/testing option and can generate very large logs, especially with multiple players. Leave it off for ordinary play unless collecting a focused dataset.
 
@@ -44,7 +47,7 @@ Mods=pz-enshrouded-sleep
 [/code]
 
 [h2]Compatibility[/h2]
-Other mods that alter multiplayer sleep, MinutesPerDay, GameTime pacing, player hunger/thirst/fatigue/nutrition, or sleep fast-forward may conflict. Compatibility claims are limited to configurations actually tested. If a survival-state compatibility problem appears, disable AwakePlayerProtectionEnabled first and collect logs before removing the entire mod.
+Other mods that alter multiplayer sleep, MinutesPerDay, GameTime pacing, player hunger/thirst/fatigue/nutrition, chat UI, or sleep fast-forward may conflict. Compatibility claims are limited to configurations actually tested. If a survival-state compatibility problem appears, disable AwakePlayerProtectionEnabled first and collect logs before removing the entire mod. If only notifications misbehave, disable SleepNotificationsEnabled.
 
 [h2]Source code, documentation, issues, and test results[/h2]
 [url=https://github.com/jonathanjacobs/pz-enshrouded-sleep]GitHub — Enshrouded Sleep repository[/url]
