@@ -2,7 +2,7 @@
 
 Proportional multiplayer sleeping for Project Zomboid Build 42 servers.
 
-[b]Version:[/b] 0.1.0
+[b]Version:[/b] 0.1.1
 [b]Tested with:[/b] Project Zomboid 42.20.4
 [b]Workshop ID:[/b] 3786842301
 [b]Mod ID:[/b] pz-enshrouded-sleep
@@ -10,20 +10,28 @@ Proportional multiplayer sleeping for Project Zomboid Build 42 servers.
 [h2]What it does[/h2]
 When some, but not all, living players are asleep, Enshrouded Sleep proportionally compresses world/calendar time while awake players continue moving, fighting, driving, crafting, and interacting at normal active-simulation speed.
 
-Public Beta v0.1.0 also protects awake players from the extra survival-needs/metabolism progression caused by that calendar compression. Hunger, thirst, fatigue, calories, carbohydrates, proteins, lipids, and weight progression are normalized toward the rate expected at the server's native day length. Sleeping players are never corrected.
+Public Beta v0.1.1 protects awake players from the extra survival-needs/metabolism progression caused by that calendar compression. Hunger, thirst, fatigue, calories, carbohydrates, proteins, lipids, and weight progression are normalized toward the rate expected at the server's native day length. Sleeping players are never corrected.
 
 When all living players are asleep, Enshrouded Sleep restores the native day length and vanilla Project Zomboid full-sleep fast-forward takes over.
 
+[h2]What's new in v0.1.1[/h2]
+- Adds optional server-admin sleep-status broadcasts to connected players.
+- Reports the sleeping/living count, percentage, and effective settled calendar acceleration during partial sleep.
+- Records compatibility with Project Zomboid 42.20.4.
+- Cleans up Public Beta version/compatibility metadata and adds guards against removed 42.20.4 Lua dynamic-code APIs.
+
+The notification feature is being field-tested live during Public Beta. It is disabled by default and can be switched off independently without affecting proportional sleep, client clock sync, or awake-player protection.
+
 [h2]Public Beta[/h2]
-This is a Public Beta release. Back up your server before installing or updating. Controlled SPIKE-006 tests passed passive and active-effect validation, but broader multiplayer populations, mod-stack interactions, and long-session behavior are still being field-tested.
+This is a Public Beta release. Back up your server before installing or updating. Controlled SPIKE-006 tests passed passive and active-effect validation, but broader multiplayer populations, mod-stack interactions, notification behavior, and long-session behavior are still being field-tested.
 
 [h2]Build 42.20.4 compatibility[/h2]
-Public Beta v0.1.0 has a dedicated-server/client compatibility checkpoint on Project Zomboid 42.20.4 (b0bbce05d5): startup, baseline capture, normal all-awake operation, and server-to-client clock-state synchronization completed without a relevant Enshrouded Sleep Lua exception.
+Public Beta v0.1.1 has a dedicated-server/client compatibility checkpoint on Project Zomboid 42.20.4 (b0bbce05d5): startup, baseline capture, normal all-awake operation, and server-to-client clock-state synchronization completed without a relevant Enshrouded Sleep Lua exception.
 
 The 42.20.4 security hotfix removed Lua loadstring/loadstream. Enshrouded Sleep does not use either API; its multiplayer messages use predefined named commands and structured arguments rather than executable code sent by the server.
 
 [h2]Important time behavior[/h2]
-World/calendar time genuinely passes faster during partial sleep. External world systems such as spoilage, generators, farming, vehicles, weather, and other systems keyed to game-world time continue following vanilla world time. v0.1.0 only normalizes the explicitly supported awake-player survival fields listed above; it does not globally slow the world or compensate every subsystem.
+World/calendar time genuinely passes faster during partial sleep. External world systems such as spoilage, generators, farming, vehicles, weather, and other systems keyed to game-world time continue following vanilla world time. v0.1.1 only normalizes the explicitly supported awake-player survival fields listed above; it does not globally slow the world or compensate every subsystem.
 
 [h2]Configuration[/h2]
 Recommended Public Beta settings:
