@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - authoritative proportional calendar/world-time controller
--- Public Beta v0.1.0 for Project Zomboid Build 42.20+
+-- Public Beta v0.1.1 for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -46,8 +46,6 @@ local PREFIX = "[EnshroudedSleep]"
 local EPSILON = 0.0001
 local MAX_DIAGNOSTIC_COMPRESSION_FACTOR = 20.0
 
--- Runtime controller state. baselineMinutesPerDay is captured once from the
--- authoritative server GameTime rather than inferred from sandbox presets.
 local baselineMinutesPerDay = nil
 local cachedNativeConfig = nil
 local lastConfigRefreshAt = -1
@@ -55,29 +53,15 @@ local lastStateSignature = nil
 local lastError = nil
 local startupConfigLogged = false
 
----Write one low-volume controller message to the dedicated-server log.
----@param message any Value to stringify.
----@return nil
 local function log(message)
     print(PREFIX .. " " .. tostring(message))
 end
 
----Format a numeric controller value for stable diagnostic/state logging.
----@param value any
----@param decimals integer|nil
----@return string formattedValue
 local function formatNumber(value, decimals)
     if type(value) ~= "number" then return tostring(value) end
     return string.format("%." .. tostring(decimals or 3) .. "f", value)
 end
 
----Safely call a Java/Lua method and return a value plus an ordinary error string.
----Core policy treats bridge failures as recoverable fail-safe conditions.
----@param obj any
----@param methodName string
----@param ... any
----@return any|nil value
----@return string|nil errorMessage
 local function safeMethod(obj, methodName, ...)
     if not obj then return nil, "nil object" end
     local okMethod, method = pcall(function() return obj[methodName] end)
@@ -87,9 +71,6 @@ local function safeMethod(obj, methodName, ...)
     return value, nil
 end
 
----Log one distinct controller error once per failure episode.
----@param message any
----@return nil
 local function logErrorOnce(message)
     if message ~= lastError then
         lastError = message
@@ -97,16 +78,10 @@ local function logErrorOnce(message)
     end
 end
 
----Clear the remembered controller error after a successful cycle.
----@return nil
 local function clearError()
     lastError = nil
 end
 
----Read and normalize Enshrouded Sleep sandbox options.
----Diagnostic factor is additionally clamped in code because it is a safety/test
----control; normal PartialSleepSpeedScale continues to use the sandbox UI range.
----@return table config
 local function getModConfig()
     local vars = SandboxVars and SandboxVars.EnshroudedSleep or nil
     local scale = tonumber(vars and vars.PartialSleepSpeedScale) or 1.0
@@ -126,14 +101,6 @@ local function getModConfig()
     }
 end
 
----Read live native multiplayer server sleep/time configuration.
----
----FastForwardMultiplier is deliberately inherited at runtime rather than
----hard-coded. A one-second cache avoids repeatedly traversing ServerOptions while
----still allowing live admin changes to be observed promptly.
----@param force boolean|nil Ignore the one-second cache when true.
----@return table|nil config
----@return string|nil errorMessage
 local function readNativeConfig(force)
     local now = os.time()
     if cachedNativeConfig and not force and now == lastConfigRefreshAt then
@@ -168,8 +135,6 @@ local function readNativeConfig(force)
         return nil, "could not read FastForwardMultiplier: " .. tostring(errFastForward)
     end
 
-    -- Sandbox day length is informational only. The actual baseline is captured
-    -- from GameTime:getMinutesPerDay(), which is the runtime authority.
     local sandboxDayLengthMinutes = nil
     if type(getSandboxOptions) == "function" then
         local okSandbox, sandboxOptions = pcall(getSandboxOptions)
@@ -190,9 +155,6 @@ local function readNativeConfig(force)
     return cachedNativeConfig, nil
 end
 
----Capture the authoritative runtime MinutesPerDay baseline exactly once.
----@return boolean success
----@return string|nil errorMessage
 local function ensureBaseline()
     if baselineMinutesPerDay ~= nil then return true end
 
@@ -209,11 +171,6 @@ local function ensureBaseline()
     return true, nil
 end
 
----Apply an authoritative server MinutesPerDay target only when it differs from
----the current value. This is the normal controller's only GameTime mutation.
----@param target number
----@return boolean success
----@return string|nil errorMessage
 local function setMinutesPerDay(target)
     if type(target) ~= "number" or target <= 0 then
         return false, "invalid target MinutesPerDay: " .. tostring(target)
@@ -235,20 +192,11 @@ local function setMinutesPerDay(target)
     return true, nil
 end
 
----Restore the exact captured runtime baseline when one is available.
----@return boolean success
----@return string|nil errorMessage
 local function restoreBaseline()
     if baselineMinutesPerDay == nil then return true, nil end
     return setMinutesPerDay(baselineMinutesPerDay)
 end
 
----Count instantiated living and sleeping multiplayer-server players.
----Dead character objects are excluded; connecting clients do not enter the
----denominator until vanilla exposes an IsoPlayer through getOnlinePlayers().
----@return integer|nil living
----@return integer|nil sleeping
----@return string|nil errorMessage
 local function countLivingAndSleepingPlayers()
     if type(getOnlinePlayers) ~= "function" then
         return nil, nil, "getOnlinePlayers() unavailable"
@@ -290,12 +238,6 @@ local function countLivingAndSleepingPlayers()
     return living, sleeping, nil
 end
 
----Calculate normal gameplay policy without mutating GameTime.
----@param nativeConfig table
----@param modConfig table
----@param living integer
----@param sleeping integer
----@return table decision
 local function calculateDecision(nativeConfig, modConfig, living, sleeping)
     local nativeFF = nativeConfig.nativeFastForward
     local scale = modConfig.partialSleepSpeedScale
@@ -314,8 +256,6 @@ local function calculateDecision(nativeConfig, modConfig, living, sleeping)
 
     local sleepFraction = math.min(1.0, sleeping / living)
 
-    -- All living players asleep is deliberately *not* represented by a compressed
-    -- target. Restore baseline before vanilla's separate full-sleep mechanism runs.
     if sleeping >= living then
         local theoreticalFactor = math.max(1.0, effectivePartialSleepCap)
         return {
@@ -340,12 +280,6 @@ local function calculateDecision(nativeConfig, modConfig, living, sleeping)
     }
 end
 
----Calculate diagnostics-only forced-compression policy without mutating GameTime.
----All states except exactly one connected, living, awake player target baseline.
----@param modConfig table
----@param living integer
----@param sleeping integer
----@return table decision
 local function calculateDiagnosticDecision(modConfig, living, sleeping)
     local factor = modConfig.diagnosticForcedCompressionFactor
 
@@ -392,10 +326,6 @@ local function calculateDiagnosticDecision(modConfig, living, sleeping)
     }
 end
 
----Emit the captured runtime/native configuration once for support visibility.
----@param nativeConfig table
----@param modConfig table
----@return nil
 local function maybeLogStartupConfig(nativeConfig, modConfig)
     if startupConfigLogged or baselineMinutesPerDay == nil then return end
     startupConfigLogged = true
@@ -414,13 +344,6 @@ local function maybeLogStartupConfig(nativeConfig, modConfig)
     ))
 end
 
----Log semantic controller transitions only when the effective state changes.
----@param mode string
----@param living integer
----@param sleeping integer
----@param decision table|nil
----@param extra any|nil
----@return nil
 local function logStateIfChanged(mode, living, sleeping, decision, extra)
     local signature = table.concat({
         tostring(mode),
@@ -487,13 +410,6 @@ local function logStateIfChanged(mode, living, sleeping, decision, extra)
     end
 end
 
----Evaluate and apply one authoritative controller cycle.
----
----The tick order is intentionally defensive: establish baseline, read mod/native
----configuration, count vanilla-visible players, then choose either the isolated
----diagnostic path or normal sleep policy. Every failure path attempts baseline
----restoration before returning.
----@return nil
 local function update()
     local baselineOK, baselineErr = ensureBaseline()
     if not baselineOK then
@@ -510,9 +426,6 @@ local function update()
         return
     end
 
-    -- Native multiplayer ServerOptions are part of the required runtime contract
-    -- even for the one-connected-player diagnostic path. There is deliberately no
-    -- standalone/local-game fallback.
     local nativeConfig, nativeErr = readNativeConfig(false)
     if not nativeConfig then
         restoreBaseline()
@@ -531,8 +444,6 @@ local function update()
         return
     end
 
-    -- While the forced diagnostic factor is armed, normal proportional sleep is
-    -- intentionally suppressed. This keeps the controlled test state isolated.
     if modConfig.diagnosticsEnabled
         and modConfig.diagnosticForcedCompressionFactor > 1.0 + EPSILON then
         local decision = calculateDiagnosticDecision(modConfig, living, sleeping)
@@ -549,8 +460,6 @@ local function update()
         return
     end
 
-    -- Respect native sleep policy. If sleeping is disabled, Enshrouded Sleep does
-    -- not create an alternate sleep mechanism and simply maintains baseline.
     if not nativeConfig.sleepAllowed then
         local restored, restoreErr = restoreBaseline()
         if not restored then logErrorOnce(restoreErr) else clearError() end
@@ -571,11 +480,9 @@ local function update()
     logStateIfChanged(decision.mode, living, sleeping, decision, nil)
 end
 
--- Per-tick observation is intentional because sleep/wake/death/disconnect state
--- can change between slower periodic events. setMinutesPerDay() deduplicates writes.
 Events.OnTickEvenPaused.Add(update)
 
-log("Loaded Public Beta v0.1.0 multiplayer-server calendar-compression controller.")
+log("Loaded Public Beta v0.1.1 multiplayer-server calendar-compression controller.")
 log("Normal partial sleep changes MinutesPerDay only; global simulation multiplier is never modified.")
 log("Diagnostic forced compression is SERVER TEST ONLY and requires exactly one awake living player connected to the multiplayer server.")
 log("If that player sleeps or another living player connects, the diagnostic override restores native MinutesPerDay.")
