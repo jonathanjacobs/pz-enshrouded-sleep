@@ -10,10 +10,11 @@ Run after runtime/configuration changes, a new release candidate, or a relevant 
 
 1. Start the dedicated server and confirm no Enshrouded Sleep Lua exception.
 2. Connect at least one client and confirm no Enshrouded Sleep client exception.
-3. Confirm the core controller, client clock sync, roster logger, and awake-protection module load.
+3. Confirm the core controller, client clock sync, roster logger, awake-protection module, and sleep-notification modules load.
 4. With all living players awake, confirm authoritative/client `MinutesPerDay` remains at the native baseline.
 5. Confirm `DiagnosticsEnabled=false` does not produce high-frequency diagnostic telemetry.
 6. Confirm `DiagnosticForcedCompressionFactor=1.0` is inert.
+7. With `SleepNotificationsEnabled=false`, confirm no Enshrouded Sleep sleep-state chat messages are emitted.
 
 ## Tier 2 — core two-player sleep regression
 
@@ -30,6 +31,20 @@ Use normal server settings and `AwakePlayerProtectionEnabled=true`.
 9. If practical, disconnect/reconnect a player and confirm population/state recalculation.
 
 The exact expected factor depends on live `FastForwardMultiplier`, `PartialSleepSpeedScale`, and the sleeping fraction; use [`REQUIREMENTS.md`](REQUIREMENTS.md) for the canonical formula rather than duplicating it here.
+
+## Sleep-notification smoke test
+
+Run this once before treating the optional notification feature as release-validated.
+
+1. Start with `SleepNotificationsEnabled=true`, at least two living players, and no sleepers. Confirm no startup/all-awake notification is sent.
+2. Put one player to sleep. Confirm every connected client receives exactly one concise server-chat message such as `[Enshrouded Sleep] 50% players are sleeping. Time is 20x faster.`
+3. Change the sleep fraction by sleeping/waking another player or changing the connected living population. Confirm exactly one updated message is sent after the authoritative clock state settles.
+4. Wake all players. Confirm one `[Enshrouded Sleep] All players awake. Time is normal.` message.
+5. Put all living players to sleep. Confirm the message identifies vanilla full-sleep fast-forward rather than claiming an Enshrouded Sleep compression multiplier.
+6. Confirm there is no per-tick/repeated chat spam and no Enshrouded Sleep Lua exception.
+7. Set `SleepNotificationsEnabled=false` and confirm subsequent sleep-state changes no longer emit messages while proportional sleep continues normally.
+
+The relevant low-volume prefixes are `[EnshroudedSleepNotify][SERVER]` and `[EnshroudedSleepNotify][CLIENT]`. A client chat-bridge failure should circuit-break notification display for that client session without affecting sleep/time behavior.
 
 ## Tier 3 — Public Beta multiplayer protection field test
 
@@ -69,6 +84,8 @@ Useful prefixes include:
 [EnshroudedSleepSync][SERVER]
 [EnshroudedSleepSync][CLIENT]
 [EnshroudedSleepAwakeProtect][SERVER]
+[EnshroudedSleepNotify][SERVER]
+[EnshroudedSleepNotify][CLIENT]
 [EnshroudedSleepActionDiag][SERVER]
 [EnshroudedSleepActionDiag][CLIENT]
 [EnshroudedSleepSurvivalDiag][SERVER]
