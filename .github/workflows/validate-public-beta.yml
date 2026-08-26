@@ -59,14 +59,16 @@ jobs:
           grep -Fq 'option EnshroudedSleep.DiagnosticsEnabled' "$MOD_ROOT/42/media/sandbox-options.txt"
           grep -Fq 'option EnshroudedSleep.DiagnosticForcedCompressionFactor' "$MOD_ROOT/42/media/sandbox-options.txt"
           ! grep -Fq 'DiagnosticAwakeProtectionPrototype' "$MOD_ROOT/42/media/sandbox-options.txt"
-          grep -Fq 'Loaded Public Beta v0.1.0 awake-player survival protection.' "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/AwakePlayerProtection_Server.lua"
+          grep -Fq "Loaded Public Beta v$VERSION_VALUE awake-player survival protection." "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/AwakePlayerProtection_Server.lua"
 
           python - <<'PY'
           from pathlib import Path
           import struct
           expected = {
               Path("preview.png"): (256, 256),
-              Path("Contents/mods/pz-enshrouded-sleep/42/poster.png"): (256, 256),
+              # Current Project Zomboid mod-manager poster artwork is intentionally
+              # 743x743; do not silently resize it as part of a code release.
+              Path("Contents/mods/pz-enshrouded-sleep/42/poster.png"): (743, 743),
               Path("Contents/mods/pz-enshrouded-sleep/42/icon.png"): (32, 32),
           }
           for path, wanted in expected.items():
