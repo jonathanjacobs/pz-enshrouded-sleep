@@ -1,38 +1,30 @@
 # Project Compliance
 
-Enshrouded Sleep follows the shared Willow Hill Games Project Zomboid mod-development compliance baseline.
+Enshrouded Sleep follows the repository rules in [`docs/PZ_MODDING_POLICY.md`](docs/PZ_MODDING_POLICY.md), which is the canonical engineering/release interpretation of The Indie Stone's current Project Zomboid Modding Policy for this project.
 
-Before adding third-party material or preparing any release, review:
+Before adding third-party material or publishing a release, review:
 
-- [`docs/PZ_MODDING_POLICY.md`](docs/PZ_MODDING_POLICY.md) — mandatory Indie Stone policy and provenance rules.
-- [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md) — release gate and publication checklist.
-- [`docs/STEAM_WORKSHOP.md`](docs/STEAM_WORKSHOP.md) — Workshop package/publication procedure.
-- [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) — redistributed third-party material and research/prior-art provenance.
-- [`ASSET_LICENSE.md`](ASSET_LICENSE.md) — licensing boundary for non-code creative assets.
-- [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE) — licensing and project notices.
+- [`docs/PZ_MODDING_POLICY.md`](docs/PZ_MODDING_POLICY.md) — mandatory mod-policy/provenance rules;
+- [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md) — release gate;
+- [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) — redistributed-material/prior-art provenance;
+- [`ASSET_LICENSE.md`](ASSET_LICENSE.md) — non-code creative-asset licensing boundary;
+- [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE) — source licensing/project notices;
+- [`docs/STEAM_WORKSHOP.md`](docs/STEAM_WORKSHOP.md) — publication mechanics.
 
-## Project Zomboid / The Indie Stone
+This file intentionally does not duplicate the detailed policy rules or release checklist.
 
-The authoritative external policy is The Indie Stone's Project Zomboid Modding Policy. The live policy and applicable Project Zomboid terms must be rechecked before first Steam Workshop publication and periodically thereafter.
+## Project-specific public disclosures
 
-Project Zomboid is developed by The Indie Stone. Enshrouded Sleep is an **unofficial independent community mod**. It is not developed by, affiliated with, sponsored by, endorsed by, or otherwise official to The Indie Stone.
+Enshrouded Sleep is an unofficial independent community mod. It is not developed by, affiliated with, sponsored by, endorsed by, or otherwise official to The Indie Stone.
 
-The project must not redistribute Project Zomboid code/assets without an explicit rights basis, must not incorporate third-party/mod content without required permission/licensing, must not present itself as Official, and must comply with the Modding Policy's restrictions on commercialisation, hidden/unexpected content, and other prohibited material.
+The project name refers to general multiplayer-sleep design inspiration associated with *Enshrouded*. Enshrouded Sleep is not developed by, affiliated with, sponsored by, or endorsed by Keen Games, and the project does not redistribute *Enshrouded* code, assets, models, sounds, text, or game content.
 
-## Enshrouded / Keen Games
+## Distribution boundary
 
-The project name refers to the general multiplayer-sleep design inspiration associated with the game *Enshrouded*.
-
-Enshrouded Sleep is **not** developed by, affiliated with, sponsored by, endorsed by, or otherwise official to Keen Games. The project does not include or redistribute *Enshrouded* code, assets, models, sounds, text, or other game content. Any future use of Keen Games material would require an independently verified rights basis and explicit provenance review before inclusion.
-
-## Workshop distribution boundary
-
-The Git repository is intentionally Workshop-package compatible. Public project documentation may be distributed with the Workshop item, but only files intended to be public may be included.
-
-The authoritative runtime tree is:
+The repository is intentionally Workshop-package compatible. The only deployable Project Zomboid runtime tree is:
 
 ```text
 Contents/mods/pz-enshrouded-sleep/
 ```
 
-Source-control metadata (`.git/`), private logs, credentials, local test artifacts, and other non-public material must not be copied into the Project Zomboid Workshop authoring directory.
+Only intentionally public files may be placed in the Workshop authoring directory. Source-control metadata, private logs/data, credentials, local test artifacts, backups, and other non-public material must be excluded.
