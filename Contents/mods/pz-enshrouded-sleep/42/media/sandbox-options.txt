@@ -14,6 +14,12 @@ option EnshroudedSleep.PartialSleepSpeedScale = {
     page = EnshroudedSleep,
 }
 
+option EnshroudedSleep.AwakePlayerProtectionEnabled = {
+    type = boolean,
+    default = true,
+    page = EnshroudedSleep,
+}
+
 option EnshroudedSleep.DiagnosticsEnabled = {
     type = boolean,
     default = false,
@@ -25,11 +31,5 @@ option EnshroudedSleep.DiagnosticForcedCompressionFactor = {
     min = 1.0,
     max = 20.0,
     default = 1.0,
-    page = EnshroudedSleep,
-}
-
-option EnshroudedSleep.DiagnosticAwakeProtectionPrototype = {
-    type = boolean,
-    default = false,
     page = EnshroudedSleep,
 }
