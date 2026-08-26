@@ -20,6 +20,12 @@ option EnshroudedSleep.AwakePlayerProtectionEnabled = {
     page = EnshroudedSleep,
 }
 
+option EnshroudedSleep.SleepNotificationsEnabled = {
+    type = boolean,
+    default = false,
+    page = EnshroudedSleep,
+}
+
 option EnshroudedSleep.DiagnosticsEnabled = {
     type = boolean,
     default = false,
