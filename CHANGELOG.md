@@ -6,6 +6,12 @@ This file records **what changed between releases**. Detailed test evidence belo
 
 ## [Unreleased]
 
+No unreleased changes currently recorded.
+
+## [0.1.1] - 2026-08-26
+
+**Public Beta live-field release.** Adds optional administrator-controlled sleep-state notifications and records the Project Zomboid 42.20.4 compatibility checkpoint. Notification behavior is being validated live on the WHG server rather than treated as pre-qualified before Workshop deployment.
+
 ### Added
 
 - Added opt-in, administrator-controlled `SleepNotificationsEnabled` server setting, disabled by default.
@@ -16,7 +22,7 @@ This file records **what changed between releases**. Detailed test evidence belo
 
 - Recorded a Project Zomboid 42.20.4 (`b0bbce05d5`) compatibility checkpoint from dedicated-server and connected-client logs. Startup, native baseline capture, normal all-awake operation, and authoritative `ClockState` synchronization completed without a relevant Enshrouded Sleep Lua exception.
 - Documented that Enshrouded Sleep does not use the `loadstring` or `loadstream` APIs removed by the 42.20.4 security hotfix; multiplayer synchronization and notifications use predefined named commands with structured arguments.
-- Normalized current runtime/release documentation on Public Beta v0.1.0 terminology and added package-validation guards against reintroducing stale Public Alpha startup banners.
+- Normalized runtime/release metadata on Public Beta v0.1.1 terminology and added package-validation guards against reintroducing stale prior-release startup banners.
 - Tightened sleep-notification wording to identify the living-player denominator directly.
 
 ### Safety
@@ -24,11 +30,12 @@ This file records **what changed between releases**. Detailed test evidence belo
 - Notification timing is derived from settled authoritative `MinutesPerDay` and cannot alter sleep/time or awake-player protection behavior.
 - Client chat display is circuit-broken after a bridge failure so notification/UI problems cannot create repeated error spam or affect gameplay.
 - Package validation rejects runtime Lua references to `loadstring` or `loadstream` so future changes cannot accidentally regress the 42.20.4 security-compatible command architecture.
+- `SleepNotificationsEnabled=false` provides an immediate notification-only rollback without disabling proportional sleep or awake-player protection.
 
 ### Validation boundary
 
-- The 42.20.4 checkpoint establishes startup/baseline/client-sync compatibility, not a new claim that every optional feature or mod-stack interaction has completed full regression.
-- The opt-in sleep-notification path remains unreleased until its dedicated multiplayer smoke test in `docs/TESTING.md` is completed.
+- The 42.20.4 checkpoint establishes startup/baseline/client-sync compatibility, not a claim that every mod-stack interaction has completed full regression.
+- The v0.1.1 notification path is intentionally entering live Public Beta field validation on WHG. Its dedicated multiplayer smoke-test procedure remains in `docs/TESTING.md` for post-deployment confirmation.
 
 ## [0.1.0] - 2026-08-26
 
