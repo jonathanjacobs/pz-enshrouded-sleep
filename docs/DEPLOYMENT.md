@@ -1,205 +1,122 @@
-# Public Alpha Deployment Guide
+# Public Beta Deployment Guide
 
-Current deployment status: **Steam Workshop Public Alpha published; Workshop-distributed server validation pending**  
-Current version: `v0.0.10`  
+Current deployment status: **Public Beta v0.1.0 / multiplayer field validation**  
 Validated core platform: Project Zomboid `42.20.3`  
 Project Zomboid Mod ID: `pz-enshrouded-sleep`  
 Steam Workshop ID: `3786842301`
 
-Workshop page:
+Enshrouded Sleep is a multiplayer-server mod. Local/standalone single-player is outside project scope.
+
+## Recommended Public Beta configuration
 
 ```text
-https://steamcommunity.com/sharedfiles/filedetails/?id=3786842301
+EnshroudedSleep.Enabled=true
+EnshroudedSleep.PartialSleepSpeedScale=1.0
+EnshroudedSleep.AwakePlayerProtectionEnabled=true
+EnshroudedSleep.DiagnosticsEnabled=false
+EnshroudedSleep.DiagnosticForcedCompressionFactor=1.0
 ```
 
-Enshrouded Sleep is a **multiplayer-server mod**. Local/standalone single-player is outside project scope.
+`AwakePlayerProtectionEnabled=true` is the new Beta gameplay default. During normal partial sleep it protects awake living players' Hunger, Thirst, Fatigue, Calories, Carbohydrates, Proteins, Lipids, and Weight progression from the extra calendar-time acceleration introduced by compressed `MinutesPerDay`. Sleeping players are never corrected.
 
-[`SPIKE-004`](spikes/SPIKE-004-health-time-domains.md) is complete and returned **GO**. Detailed test evidence remains in the spike/validation documentation rather than the public README.
+`DiagnosticsEnabled=true` produces high-volume clock/sleep, health/body, CharacterStat, Moodle, nutrition, action/activity, and awake-protection telemetry. With several players the logs can grow very quickly. Leave it off for routine operation and enable it only for focused troubleshooting/data-collection windows.
 
-For Workshop publication/update mechanics, see [`STEAM_WORKSHOP.md`](STEAM_WORKSHOP.md).
+`DiagnosticForcedCompressionFactor` is a one-player regression tool. Keep it at `1.0` during normal multiplayer operation.
 
-## Public Alpha configuration
-
-```lua
-EnshroudedSleep = {
-    Enabled = true,
-    PartialSleepSpeedScale = 1.0,
-    DiagnosticsEnabled = false,
-    DiagnosticForcedCompressionFactor = 1.0,
-}
-```
-
-`DiagnosticForcedCompressionFactor` is **server-test-only** and must remain at `1.0` during normal Public Alpha play.
-
-`DiagnosticsEnabled=true` produces high-volume clock/sleep, health/body, CharacterStat, Moodle, nutrition and multiplier-context telemetry. Enable it only for controlled troubleshooting/regression sessions.
-
-## Steam Workshop installation
-
-A Workshop-backed dedicated server uses both identifiers:
+## Steam Workshop server setup
 
 ```text
 WorkshopItems=3786842301
 Mods=pz-enshrouded-sleep
 ```
 
-The Workshop ID identifies the Steam package to download. `pz-enshrouded-sleep` is the stable Project Zomboid Mod ID loaded by the game.
+Players should use the Workshop-distributed copy when joining a Workshop-configured server rather than maintaining a second manual copy.
 
-Players should use the Workshop-distributed copy when joining a Workshop-configured server rather than maintaining a separate manual copy of the same mod.
-
-## Authoritative runtime tree
-
-The repository itself is intentionally structured as a Project Zomboid Workshop package. There is one authoritative deployable mod tree:
+The authoritative runtime tree in the repository is:
 
 ```text
 Contents/mods/pz-enshrouded-sleep/
 ```
 
-Do not create or maintain a second root-level `42/`, `common/`, or `mod.info` runtime copy.
+## Upgrade to v0.1.0
 
-The repository/Workshop wrapper may also contain public engineering documentation such as `README.md`, `docs/`, licensing/notices, the changelog, `workshop-description.bbcode`, and Workshop artwork. Source-control metadata (`.git/`), private logs, credentials, local test artifacts, and other non-public material must not be copied into the local Workshop authoring directory.
-
-## Manual installation
-
-For manual installation from the Git repository, copy only the **inner deployable mod directory**:
-
-```text
-Contents/mods/pz-enshrouded-sleep/
-```
-
-### Client
-
-Copy it so the resulting path is:
-
-```text
-C:\Users\<user>\Zomboid\mods\pz-enshrouded-sleep\
-```
-
-### Dedicated server
-
-Copy it into the server's normal mod directory so the resulting path is equivalent to:
-
-```text
-mods/pz-enshrouded-sleep/
-```
-
-Then configure:
-
-```text
-Mods=pz-enshrouded-sleep
-```
-
-Do **not** place the whole repository/Workshop wrapper into `Zomboid\mods`; the repository root is the Workshop item/project wrapper, not the runtime mod root.
-
-## Current Workshop validation gate
-
-The initial Workshop item has been uploaded and the permanent ID has been recorded. Before treating the Workshop-distributed package as fully deployment-validated:
-
-1. Subscribe/download Workshop item `3786842301`.
-2. Inspect the delivered payload and confirm the expected runtime tree and artwork.
-3. Configure the dedicated test server with:
-
-```text
-WorkshopItems=3786842301
-Mods=pz-enshrouded-sleep
-```
-
-4. Run the Tier 1 startup smoke test using the Workshop-distributed copy.
-5. Run a short two-player partial-sleep regression if practical.
-6. Verify disable/rollback behavior when practical.
-7. Confirm intended Workshop visibility and the canonical public description from `workshop-description.bbcode`.
-
-GitHub issue #5 tracks these remaining Workshop-distribution checks.
-
-## Public Alpha deployment procedure
-
-Once the Workshop-distributed copy has passed the startup smoke test:
-
-1. Announce the deployment/restart.
+1. Announce the restart/update.
 2. Stop the server cleanly.
-3. Back up world/save and server configuration.
-4. Preserve the previous known-good mod package/configuration.
-5. Configure `WorkshopItems=3786842301` and `Mods=pz-enshrouded-sleep`.
-6. Verify `DiagnosticsEnabled=false` and `DiagnosticForcedCompressionFactor=1.0`.
-7. Start the server and confirm no Enshrouded Sleep Lua exception.
-8. Confirm server/client package/version consistency.
-9. Perform a brief two-player live smoke check before opening normal play if practical.
-10. Confirm baseline `MinutesPerDay` is restored when all players are awake.
+3. Back up the world/save and server configuration.
+4. Preserve the previous known-good v0.0.10 Workshop/package state if practical.
+5. Update the Workshop item/server package to v0.1.0.
+6. Verify `AwakePlayerProtectionEnabled=true`, `DiagnosticsEnabled=false`, and `DiagnosticForcedCompressionFactor=1.0` for routine Beta play.
+7. Start the server and confirm the core controller, client sync, roster logger, and `[EnshroudedSleepAwakeProtect][SERVER]` module load without a Lua exception.
+8. Confirm baseline `MinutesPerDay` while everyone is awake.
+9. During the first natural partial-sleep event, confirm the roster/controller enters partial mode and later returns exactly to baseline.
+10. Preserve the first several multiplayer session logs for review.
 
-Expected low-volume prefixes include:
+## What to monitor in Beta
+
+Pay particular attention to:
+
+- multiple awake players being protected simultaneously during partial sleep;
+- sleepers remaining unmodified by the awake-protection path;
+- joins/disconnects/deaths/respawns during partial sleep;
+- repeated sleep/wake cycles and changing player ratios;
+- eating/drinking/activity behavior while another player sleeps;
+- clock continuity and exact baseline restoration;
+- CPU/server responsiveness during larger populations;
+- repeated `WRITE_FAILURE_FAIL_OPEN`, Lua exceptions, or unusual protection status churn;
+- conflicts with mods that alter sleep, time, CharacterStats, nutrition, or timed actions;
+- external world-time systems advancing as expected with compressed calendar time.
+
+## Logging strategy
+
+With `DiagnosticsEnabled=false`, retain the low-volume controller/roster/protection transition logs during ordinary play. This gives useful population/mode evidence without the large diagnostic stream.
+
+If a problem occurs and is reproducible, enable `DiagnosticsEnabled=true` for the shortest practical window, reproduce once, then disable it again. Collect:
+
+```text
+server console
+server DebugLog / Logs
+owning client console / DebugLog for affected players when available
+```
+
+Useful prefixes include:
 
 ```text
 [EnshroudedSleep]
 [EnshroudedSleepSync][SERVER]
 [EnshroudedSleepSync][CLIENT]
-```
-
-## Known Public Alpha behavior
-
-World/calendar time genuinely advances faster during partial sleep. Measured hunger, thirst, fatigue, calories and macronutrient stores therefore progressed with elapsed world/calendar time during controlled validation.
-
-Measured acute bleeding/body-health loss and resting endurance recovery did not scale with calendar compression under the tested conditions.
-
-Pathological states not directly exercised in SPIKE-004 — active sickness/food poisoning, poison, zombie infection/fever and extreme thermal injury — remain field-characterization targets.
-
-See [`spikes/SPIKE-004-health-time-domains.md`](spikes/SPIKE-004-health-time-domains.md) for the evidence and exact measured ratios.
-
-## Public Alpha monitoring priorities
-
-Pay particular attention to:
-
-- 3+ player proportional fractions;
-- joins/disconnects/deaths/respawns;
-- repeated sleep/wake cycles;
-- clock continuity and exact baseline restoration;
-- normal-speed awake movement/actions;
-- unexpected health/survival progression beyond documented world-time behavior;
-- client errors or repeated day-length pacing resets;
-- non-health world-time systems such as spoilage, crops, generators, corpses, composting and weather;
-- interaction with the live server mod stack.
-
-A few isolated client `MinutesPerDay` resets were seen during aggressive live sandbox/debug factor changes in SPIKE-004. The authoritative server remained correct and the normal heartbeat restored the client value within roughly a second. Treat repeated occurrences during ordinary play as a bug worth collecting logs for.
-
-## Focused diagnostics
-
-Normal troubleshooting:
-
-```lua
-DiagnosticsEnabled = true
-DiagnosticForcedCompressionFactor = 1.0
-```
-
-Only for a controlled one-connected-player multiplayer-server regression may the forced factor be raised above `1.0`.
-
-Relevant prefixes:
-
-```text
-[EnshroudedSleepDiag][SERVER]
-[EnshroudedSleepDiag][CLIENT]
-[EnshroudedSleepHealthDiag][SERVER]
-[EnshroudedSleepHealthDiag][CLIENT]
+[EnshroudedSleepAwakeProtect][SERVER]
+[EnshroudedSleepActionDiag][SERVER]
+[EnshroudedSleepActionDiag][CLIENT]
 [EnshroudedSleepSurvivalDiag][SERVER]
 [EnshroudedSleepSurvivalDiag][CLIENT]
 ```
 
-Collect server console/logs and affected client logs, then disable diagnostics after the shortest practical reproduction.
+Do not raise `DiagnosticForcedCompressionFactor` on the public multiplayer server during normal operation; it is intentionally gated for an isolated one-player regression.
 
-## Rollback
+## Soft rollback: awake protection only
+
+If the clock/sleep mechanic is behaving correctly but awake Hunger/Thirst/Fatigue/Nutrition/Weight behavior appears wrong or conflicts with another mod:
+
+```text
+EnshroudedSleep.AwakePlayerProtectionEnabled=false
+```
+
+This is the preferred first rollback. It disables survival-state correction but leaves proportional partial-sleep calendar compression and vanilla full-sleep handoff intact. Preserve logs and compare behavior before removing the whole mod.
+
+## Full rollback
+
+Use a full rollback if compressed `MinutesPerDay` persists incorrectly, awake simulation globally accelerates, client clock synchronization repeatedly fails, recurring Enshrouded Sleep exceptions occur, or a serious player/world-state problem cannot be isolated to awake protection.
 
 1. Stop the server cleanly.
 2. Preserve incident logs.
 3. Remove/disable `pz-enshrouded-sleep` and/or Workshop item `3786842301` through the normal server workflow.
-4. Restore prior configuration if needed.
+4. Restore previous configuration/package if needed.
 5. Restart and confirm native time/sleep behavior.
 
-The mod does not maintain a custom persistent sleep database. Removing it returns **future** sleep/time behavior to vanilla. World time or time-driven world changes that already occurred can only be undone by restoring a prior save backup.
+The mod does not maintain a custom persistent sleep database. Removing it returns future sleep/time behavior to vanilla. World-time-driven changes that already occurred require a prior save backup if they need to be undone.
 
-## Rollback triggers
+## Known Beta boundaries
 
-Roll back and investigate if:
+Controlled SPIKE-006 testing passed the single-player forced 20x feasibility path, including passive normalization, Carbohydrates/Lipids away from clamps, eating/drinking, running/sprinting, sleep suspension, wake reinitialization, and clean restoration. The purpose of Public Beta is to obtain the broader multiplayer evidence that controlled tests cannot provide.
 
-- compressed `MinutesPerDay` persists after baseline should be restored;
-- awake simulation globally accelerates;
-- clients repeatedly lose clock pacing synchronization during ordinary play;
-- recurring Enshrouded Sleep exceptions appear;
-- awake health/survival state becomes dangerously accelerated beyond documented SPIKE-004 behavior;
-- a time-driven world system causes severe persistent player/world-state damage.
+External world systems remain world/calendar-time driven. v0.1.0 does not compensate every system in the game or in other mods.

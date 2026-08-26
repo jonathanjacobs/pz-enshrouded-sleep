@@ -20,14 +20,25 @@ if not isClient() then return end
 
 local PREFIX = "[EnshroudedSleepDiag][CLIENT]"
 local SAMPLE_INTERVAL_SECONDS = 1
+local EPSILON = 0.0001
 local lastSampleAt = -1
 local lastError = nil
+local observedBaselineMinutesPerDay = nil
 
 ---Return whether development/support telemetry is explicitly enabled.
 ---@return boolean enabled
 local function diagnosticsEnabled()
     local vars = SandboxVars and SandboxVars.EnshroudedSleep or nil
     return vars ~= nil and vars.DiagnosticsEnabled == true
+end
+
+---Return whether the diagnostics-only forced compression control is armed.
+---This is descriptive only; the client never owns the test mutation.
+---@return boolean configured
+local function diagnosticForcedConfigured()
+    local vars = SandboxVars and SandboxVars.EnshroudedSleep or nil
+    local factor = tonumber(vars and vars.DiagnosticForcedCompressionFactor) or 1.0
+    return vars ~= nil and vars.DiagnosticsEnabled == true and factor > 1.0 + EPSILON
 end
 
 ---Write one namespaced diagnostic message to the client log.
@@ -105,6 +116,33 @@ local function readPlayerState()
     return state
 end
 
+---Derive a descriptive client phase from local sleep state and observed day length.
+---@param playerState table
+---@param minutesPerDay number|nil
+---@param baseline number|nil
+---@return string phase
+local function derivePhase(playerState, minutesPerDay, baseline)
+    if playerState.dead == true then return "dead" end
+
+    if playerState.asleep == true then
+        if diagnosticForcedConfigured() then return "diagnostic-forced-suspended-sleep" end
+        if minutesPerDay and baseline and math.abs(minutesPerDay - baseline) < EPSILON then
+            return "sleeping-at-baseline"
+        end
+        return "sleeping"
+    end
+
+    if diagnosticForcedConfigured() then
+        if baseline and minutesPerDay and minutesPerDay < baseline - EPSILON then
+            return "diagnostic-forced"
+        end
+        return "diagnostic-forced-armed"
+    end
+
+    if minutesPerDay and baseline and minutesPerDay < baseline - EPSILON then return "partial" end
+    return "baseline"
+end
+
 ---Capture one wall-clock-gated client clock/sleep sample when verbose
 ---diagnostics are explicitly enabled.
 ---@return nil
@@ -135,6 +173,18 @@ local function sampleClock()
 
     local playerState = readPlayerState()
     local minutesPerDay = tonumber(safeMethod(gt, "getMinutesPerDay"))
+    if minutesPerDay and minutesPerDay > 0 then
+        if not observedBaselineMinutesPerDay or minutesPerDay > observedBaselineMinutesPerDay then
+            observedBaselineMinutesPerDay = minutesPerDay
+        end
+    end
+
+    local baseline = observedBaselineMinutesPerDay
+    local compression = nil
+    if minutesPerDay and minutesPerDay > 0 and baseline and baseline > 0 then
+        compression = baseline / minutesPerDay
+    end
+
     local timeOfDay = tonumber(safeMethod(gt, "getTimeOfDay"))
     local worldAgeHours = tonumber(safeMethod(gt, "getWorldAgeHours"))
     local multiplier = tonumber(safeMethod(gt, "getMultiplier"))
@@ -143,8 +193,9 @@ local function sampleClock()
     local deltaMinutesPerDay = tonumber(safeMethod(gt, "getDeltaMinutesPerDay"))
 
     log(string.format(
-        "SAMPLE | epoch=%d | player=%s | onlineID=%s | asleep=%s | dead=%s | AsleepTime=%s | ForceWakeUpTime=%s | Fatigue=%s | SleepingPillsTaken=%s | MinutesPerDay=%s | TimeOfDay=%s | WorldAgeHours=%s | DeltaMinutesPerDay=%s | Multiplier=%s | TrueMultiplier=%s | ServerMultiplier=%s",
+        "SAMPLE | epoch=%d | phase=%s | player=%s | onlineID=%s | asleep=%s | dead=%s | AsleepTime=%s | ForceWakeUpTime=%s | Fatigue=%s | SleepingPillsTaken=%s | MinutesPerDay=%s | BaselineMinutesPerDay=%s | CalendarCompressionFactor=%s | TimeOfDay=%s | WorldAgeHours=%s | DeltaMinutesPerDay=%s | Multiplier=%s | TrueMultiplier=%s | ServerMultiplier=%s",
         now,
+        derivePhase(playerState, minutesPerDay, baseline),
         playerState.playerName,
         tostring(playerState.onlineID or "N/A"),
         tostring(playerState.asleep),
@@ -154,6 +205,8 @@ local function sampleClock()
         formatNumber(playerState.fatigue, 6),
         tostring(playerState.sleepingPillsTaken or "N/A"),
         formatNumber(minutesPerDay, 4),
+        formatNumber(baseline, 4),
+        formatNumber(compression, 4),
         formatNumber(timeOfDay, 6),
         formatNumber(worldAgeHours, 6),
         formatNumber(deltaMinutesPerDay, 6),

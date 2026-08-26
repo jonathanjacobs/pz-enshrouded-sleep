@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - server-to-client MinutesPerDay replication
--- Public Alpha v0.0.10 for Project Zomboid Build 42.20+
+-- Public Beta v0.1.0 for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -134,7 +134,7 @@ end
 local function deriveMode(living, sleeping, currentMinutesPerDay)
     if living == nil or sleeping == nil then return "unknown" end
 
-    -- Diagnostic-forced is valid only for the intentionally isolated SPIKE/support
+    -- Diagnostic-forced is valid only for the intentionally isolated support
     -- state: one living connected server player, awake, and an authoritative
     -- MinutesPerDay below the captured baseline.
     if diagnosticOverrideConfigured()
@@ -216,7 +216,7 @@ local function synchronizeClients()
     -- independently recalculating a target from those counts.
     local args = {
         protocolVersion = PROTOCOL_VERSION,
-        buildVersion = "0.0.10",
+        buildVersion = "0.1.0",
         mode = mode,
         minutesPerDay = targetMinutesPerDay,
         baselineMinutesPerDay = baselineMinutesPerDay or targetMinutesPerDay,
@@ -255,4 +255,4 @@ else
     Events.OnTick.Add(synchronizeClients)
 end
 
-log("Loaded Public Alpha v0.0.10 authoritative MinutesPerDay replication.")
+log("Loaded Public Beta v0.1.0 authoritative MinutesPerDay replication.")

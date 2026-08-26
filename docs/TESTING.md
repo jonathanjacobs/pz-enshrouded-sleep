@@ -6,7 +6,7 @@ Current behaviorally validated Project Zomboid baseline: `42.20.3`
 
 Enshrouded Sleep is a **multiplayer-server mod**. Local/standalone single-player is not a supported runtime target.
 
-Historical procedures/results are consolidated in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md). The completed pre-alpha health/survival investigation is [`SPIKE-004`](spikes/SPIKE-004-health-time-domains.md).
+Historical procedures/results are consolidated in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md). The completed pre-alpha health/survival investigation is [`SPIKE-004`](spikes/SPIKE-004-health-time-domains.md). The current non-health world-system investigation is [`SPIKE-005`](spikes/SPIKE-005-world-system-time-domains.md).
 
 The authoritative runtime mod tree is:
 
@@ -112,7 +112,112 @@ Primary field targets:
 - client pacing during ordinary administration and sandbox changes;
 - Steam Workshop install/update behavior on server and clients.
 
-## 6. Focused diagnostic regression
+## 6. SPIKE-005 first controlled resource test — food + generator
+
+Use the development branch `spike-005-world-time-domains`, not the public Workshop v0.0.10 package. This test is instrumentation-only; the collector never changes food, generator, crop, or vehicle state.
+
+The collector logs every five real seconds with prefix:
+
+```text
+[EnshroudedSleepWorldDiag][SERVER]
+```
+
+### Test setup
+
+Use exactly one connected living player and keep that character awake throughout each measurement interval.
+
+Prepare a small controlled test area containing:
+
+1. one fresh/perishable food item in the player's main inventory;
+2. one fresh/perishable food item in a nearby refrigerator if practical;
+3. one running generator within three tiles of the player;
+4. a stable electrical load on that generator if practical so fuel consumption is non-zero and consistent.
+
+Do not add/remove/move the observed food or refuel/turn off the generator during an interval.
+
+### A. Baseline run
+
+Set:
+
+```text
+DiagnosticsEnabled=true
+DiagnosticForcedCompressionFactor=1.0
+```
+
+Confirm the server remains at its native `MinutesPerDay` and emits `SAMPLE`, `FOOD`, and `GENERATOR` lines.
+
+Remain awake and stationary near the test objects for **5 real minutes**.
+
+At the end, save:
+
+```text
+server console
+server Logs/DebugLog
+```
+
+### B. 10x run
+
+Without changing the test objects, set:
+
+```text
+DiagnosticsEnabled=true
+DiagnosticForcedCompressionFactor=10.0
+```
+
+Confirm the controller emits:
+
+```text
+TEST OVERRIDE ACTIVE
+```
+
+and that `MinutesPerDay` becomes native baseline / 10. For a 120-minute native day this is `12`; for a 90-minute day this is `9`.
+
+Remain awake and stationary near the same objects for **5 real minutes**.
+
+At the end, return:
+
+```text
+DiagnosticForcedCompressionFactor=1.0
+DiagnosticsEnabled=false
+```
+
+and confirm native `MinutesPerDay` is restored.
+
+Save the server console and server DebugLog again.
+
+### What the logs should contain
+
+Common clock sample:
+
+```text
+[EnshroudedSleepWorldDiag][SERVER] SAMPLE | WorldAgeHours=... | TimeOfDay=... | MinutesPerDay=... | DiagnosticForcedCompressionFactor=... | TrueMultiplier=... | food=... | generators=...
+```
+
+Food state:
+
+```text
+[EnshroudedSleepWorldDiag][SERVER] FOOD | ... | age=... | offAge=... | offAgeMax=... | heat=... | freezingTime=... | frozen=... | rotten=...
+```
+
+Generator state:
+
+```text
+[EnshroudedSleepWorldDiag][SERVER] GENERATOR | ... | activated=true | fuel=... | condition=... | powerUsing=...
+```
+
+The first analysis compares the real-time rate of food `age` increase and generator `fuel` loss at baseline versus 10x. If the 10x/baseline rate ratio is approximately 10, that state is world/calendar-time bound. If it remains approximately 1, it is simulation/real-time bound. Intermediate or discontinuous behavior requires additional characterization.
+
+### Abort conditions
+
+Stop the test and restore `DiagnosticForcedCompressionFactor=1.0` if:
+
+- a second living player joins;
+- the test character sleeps;
+- Enshrouded Sleep emits a Lua/runtime error;
+- `MinutesPerDay` does not match the intended baseline or 10x target;
+- the generator or food objects disappear/change for an unrelated reason.
+
+## 7. Focused diagnostic regression
 
 The v0.0.10 one-connected-player forced-compression mode is retained for controlled support/regression work only.
 
@@ -144,7 +249,7 @@ factor returns to 1  -> normal server policy resumes
 
 For ordinary support diagnostics, keep the forced factor at `1.0`.
 
-## 7. Diagnostics collection
+## 8. Diagnostics collection
 
 When needed, collect:
 
@@ -166,12 +271,13 @@ Relevant prefixes:
 [EnshroudedSleepHealthDiag][CLIENT]
 [EnshroudedSleepSurvivalDiag][SERVER]
 [EnshroudedSleepSurvivalDiag][CLIENT]
+[EnshroudedSleepWorldDiag][SERVER]
 ```
 
 Disable verbose diagnostics after the shortest useful reproduction.
 
-## 8. Project Zomboid update regression
+## 9. Project Zomboid update regression
 
-For a new B42 build, review relevant `GameTime`, sleep/lifecycle, `CharacterStat`, `MoodleType`, `Nutrition` and BodyDamage changes; run Tier 1; run Tier 2 if engine behavior changed; and re-run focused survival testing only when relevant.
+For a new B42 build, review relevant `GameTime`, sleep/lifecycle, `CharacterStat`, `MoodleType`, `Nutrition`, food, farming, generator, vehicle, animal, and world-update changes; run Tier 1; run Tier 2 if engine behavior changed; and re-run focused subsystem testing only when relevant.
 
 See [`ROADMAP.md`](ROADMAP.md) for phase criteria.

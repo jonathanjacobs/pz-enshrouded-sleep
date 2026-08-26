@@ -1,6 +1,6 @@
 version=1
 id=3786842301
-title=Enshrouded Sleep - Public Alpha
-description=Public Alpha v0.0.10 for Project Zomboid Build 42 multiplayer servers. Proportional partial-sleep calendar compression with normal-speed awake simulation and vanilla full-sleep handoff. Unofficial community mod; not affiliated with or endorsed by The Indie Stone or Keen Games.
+title=Enshrouded Sleep - Public Beta
+description=Public Beta v0.1.0 for Project Zomboid Build 42 multiplayer servers. Proportional partial-sleep calendar compression with normal-speed awake simulation, awake-player survival protection, and vanilla full-sleep handoff. Unofficial community mod; not affiliated with or endorsed by The Indie Stone or Keen Games.
 tags=Build 42;Multiplayer
 visibility=public

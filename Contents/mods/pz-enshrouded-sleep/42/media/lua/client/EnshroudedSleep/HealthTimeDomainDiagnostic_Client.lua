@@ -56,6 +56,15 @@ local function diagnosticsEnabled()
     return vars ~= nil and vars.DiagnosticsEnabled == true
 end
 
+---Return whether the diagnostics-only forced compression control is armed.
+---This is descriptive only; the client never owns the test mutation.
+---@return boolean configured
+local function diagnosticForcedConfigured()
+    local vars = SandboxVars and SandboxVars.EnshroudedSleep or nil
+    local factor = tonumber(vars and vars.DiagnosticForcedCompressionFactor) or 1.0
+    return vars ~= nil and vars.DiagnosticsEnabled == true and factor > 1.0 + EPSILON
+end
+
 ---Write one namespaced client health diagnostic line.
 ---@param message any
 ---@return nil
@@ -325,7 +334,15 @@ local function sampleHealthTimeDomains()
 
     local asleep = safeMethod(player, "isAsleep")
     local phase = "baseline"
-    if baseline and minutesPerDay and minutesPerDay < baseline - EPSILON then
+    if diagnosticForcedConfigured() then
+        if asleep == true then
+            phase = "diagnostic-forced-suspended-sleep"
+        elseif baseline and minutesPerDay and minutesPerDay < baseline - EPSILON then
+            phase = "diagnostic-forced"
+        else
+            phase = "diagnostic-forced-armed"
+        end
+    elseif baseline and minutesPerDay and minutesPerDay < baseline - EPSILON then
         phase = "partial"
     elseif asleep == true then
         phase = "vanilla-full-sleep-local"
