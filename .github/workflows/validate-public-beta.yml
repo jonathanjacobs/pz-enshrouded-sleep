@@ -34,6 +34,8 @@ jobs:
           test -f "$MOD_ROOT/42/icon.png"
           test -f "$MOD_ROOT/42/media/sandbox-options.txt"
           test -f "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/AwakePlayerProtection_Server.lua"
+          test -f "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/SleepNotification_Server.lua"
+          test -f "$MOD_ROOT/42/media/lua/client/EnshroudedSleep/SleepNotification_Client.lua"
           test ! -e "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/AwakePlayerProtectionPrototype_Server.lua"
 
           test -f "$MOD_ROOT/common/media/AnimSets/.gitkeep"
@@ -56,10 +58,13 @@ jobs:
           grep -Fq "title=Enshrouded Sleep - Public Beta" workshop.txt
 
           grep -Fq 'option EnshroudedSleep.AwakePlayerProtectionEnabled' "$MOD_ROOT/42/media/sandbox-options.txt"
+          grep -Fq 'option EnshroudedSleep.SleepNotificationsEnabled' "$MOD_ROOT/42/media/sandbox-options.txt"
           grep -Fq 'option EnshroudedSleep.DiagnosticsEnabled' "$MOD_ROOT/42/media/sandbox-options.txt"
           grep -Fq 'option EnshroudedSleep.DiagnosticForcedCompressionFactor' "$MOD_ROOT/42/media/sandbox-options.txt"
           ! grep -Fq 'DiagnosticAwakeProtectionPrototype' "$MOD_ROOT/42/media/sandbox-options.txt"
           grep -Fq "Loaded Public Beta v$VERSION_VALUE awake-player survival protection." "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/AwakePlayerProtection_Server.lua"
+          grep -Fq "SleepNotificationsEnabled=true" "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/SleepNotification_Server.lua"
+          grep -Fq "showServerChatMessage" "$MOD_ROOT/42/media/lua/client/EnshroudedSleep/SleepNotification_Client.lua"
 
           python - <<'PY'
           from pathlib import Path
