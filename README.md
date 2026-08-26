@@ -1,300 +1,148 @@
 <p align="center">
-  <img src="docs/images/enshrouded-sleep-banner.png"
-       alt="Enshrouded Sleep - Project Zomboid multiplayer sleep mod"
-       width="100%">
+  <img src="docs/images/enshrouded-sleep-banner.png" alt="Enshrouded Sleep - Project Zomboid multiplayer sleep mod" width="100%">
 </p>
 
 # Enshrouded Sleep
 
-## Contents
-
-- [Overview](#overview)
-- [Features](#features)
-- [Requirements and Compatibility](#requirements-and-compatibility)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [How It Works](#how-it-works)
-- [Known Behavior and Limitations](#known-behavior-and-limitations)
-- [Diagnostics and Support](#diagnostics-and-support)
-- [Documentation](#documentation)
-- [License and Disclaimers](#license-and-disclaimers)
-- [Documentation Index](docs/README.md)
-- [Steam Workshop Publication Guide](docs/STEAM_WORKSHOP.md)
-- [License](LICENSE)
-
 **Proportional multiplayer sleeping for Project Zomboid Build 42 servers.**
 
-Status: **Public Alpha**  
-Current version: **v0.0.10**  
+Status: **Public Beta**  
+Current version: **v0.1.0**  
 Validated Project Zomboid baseline: **42.20.3**  
 Steam Workshop ID: **3786842301**
 
 ## Overview
 
-Enshrouded Sleep is a **multiplayer-server mod** for Project Zomboid Build 42. It allows some players to sleep without requiring every living player on the server to go to bed at the same time.
+Enshrouded Sleep is a multiplayer-server mod for Project Zomboid Build 42. It lets part of a server population sleep without requiring every living player to go to bed at the same time.
 
-When part of the living server population is asleep, the mod proportionally compresses **world/calendar time** by changing the server's `MinutesPerDay`. Awake players continue moving, fighting, driving, crafting, and interacting at normal active-simulation speed. When every living player is asleep, Enshrouded Sleep restores the native day length and lets vanilla Project Zomboid full-sleep fast-forward take over.
+During partial sleep, the authoritative server compresses world/calendar time by changing `GameTime:MinutesPerDay`. Awake movement, combat, vehicles, animations, physics, and ordinary timed actions remain on the normal active-simulation path. When all living players are asleep, Enshrouded Sleep restores the native day length and hands full-sleep acceleration back to vanilla Project Zomboid.
 
-Local/standalone single-player gameplay is not a supported target for this project.
+Public Beta v0.1.0 adds server-authoritative **awake-player survival protection**. During normal partial sleep, awake living players are normalized toward the survival-needs/metabolism rate expected at the server's native day length for Hunger, Thirst, Fatigue, Calories, Carbohydrates, Proteins, Lipids, and Weight. Sleeping players are never corrected.
+
+Local/standalone single-player gameplay is not a supported target.
 
 ## Features
 
-- Proportional partial-sleep behavior based on the fraction of living server players currently asleep.
-- Server-authoritative calendar compression using `GameTime:MinutesPerDay` rather than a global simulation multiplier.
-- Explicit server-to-client day-length synchronization so sleeping and awake clocks remain coherently paced.
-- Exact baseline restoration when partial sleep ends.
-- Vanilla full-sleep handoff when all living players are asleep.
-- Runtime inheritance of the server's native day length and `FastForwardMultiplier`.
-- Optional low-level diagnostics for server administrators and support investigations.
-- Build 42 versioned mod structure.
+- proportional partial-sleep calendar compression based on `SleepingPlayers / LivingPlayers`;
+- server-authoritative `MinutesPerDay` changes rather than global simulation fast-forward;
+- explicit server-to-client day-length synchronization;
+- exact baseline restoration when partial sleep ends;
+- vanilla full-sleep handoff when every living player sleeps;
+- runtime inheritance of native day length and `FastForwardMultiplier`;
+- awake-player survival protection during partial sleep, enabled by default in Public Beta;
+- independent protection rollback switch for compatibility testing;
+- low-volume roster/protection state logging plus opt-in verbose diagnostics.
 
-## Requirements and Compatibility
+## Requirements and installation
 
-Current Public Alpha validation targets Project Zomboid **42.20.3**.
+Validated baseline: Project Zomboid **42.20.3**.
 
-Stable Project Zomboid Mod ID:
-
-```text
-pz-enshrouded-sleep
-```
-
-Steam Workshop ID:
-
-```text
-3786842301
-```
-
-Enshrouded Sleep is intended for multiplayer servers. Mods that independently alter multiplayer sleep policy, `GameTime:MinutesPerDay`, clock synchronization, or sleep fast-forward may conflict and should be tested carefully before use together.
-
-Compatibility claims are intentionally limited to configurations that have actually been tested. See [`docs/VALIDATION_HISTORY.md`](docs/VALIDATION_HISTORY.md) and [`docs/ROADMAP.md`](docs/ROADMAP.md) for the current evidence boundary and Public Alpha targets.
-
-## Installation
-
-### Steam Workshop
-
-The Public Alpha Workshop item is published at:
-
-https://steamcommunity.com/sharedfiles/filedetails/?id=3786842301
-
-For a Workshop-backed dedicated server, configure both identifiers:
+Stable identifiers:
 
 ```text
 WorkshopItems=3786842301
 Mods=pz-enshrouded-sleep
 ```
 
-The Workshop ID tells Steam which package to download. `pz-enshrouded-sleep` remains the stable Project Zomboid Mod ID loaded by the game.
-
-Players joining a Workshop-configured server should use the Workshop-distributed copy rather than maintaining a separate manual copy of the same mod.
-
-See [`docs/STEAM_WORKSHOP.md`](docs/STEAM_WORKSHOP.md) for publication and update procedures.
-
-### Manual client installation
-
-The repository is structured as a Steam Workshop package. The actual deployable Project Zomboid mod is:
+The single authoritative runtime tree is:
 
 ```text
 Contents/mods/pz-enshrouded-sleep/
 ```
 
-For a manual client installation, copy that **inner mod directory** to:
-
-```text
-C:\Users\<user>\Zomboid\mods\pz-enshrouded-sleep\
-```
-
-Do not copy the repository/Workshop wrapper itself into `Zomboid\mods`.
-
-### Manual dedicated-server installation
-
-Copy:
-
-```text
-Contents/mods/pz-enshrouded-sleep/
-```
-
-into the server's normal mod directory so the resulting path is equivalent to:
-
-```text
-mods/pz-enshrouded-sleep/
-```
-
-and configure:
-
-```text
-Mods=pz-enshrouded-sleep
-```
-
-### Workshop authoring / publication
-
-The repository root is intentionally Workshop-package compatible:
-
-```text
-pz-enshrouded-sleep/
-├── workshop.txt
-├── preview.png
-├── Contents/
-│   └── mods/
-│       └── pz-enshrouded-sleep/
-│           ├── mod.info
-│           ├── common/
-│           └── 42/
-│               ├── mod.info
-│               ├── poster.png
-│               ├── icon.png
-│               └── media/
-├── docs/
-├── README.md
-├── CHANGELOG.md
-└── ...public project documentation...
-```
-
-There is only one authoritative runtime tree: `Contents/mods/pz-enshrouded-sleep/`. Do not maintain a second root-level `42/`, `common/`, or `mod.info` copy.
-
-The Workshop publication artwork is checked into the repository: root `preview.png` is `256x256`; Build 42 `poster.png` is `256x256`; and Build 42 `icon.png` is `32x32`. The versioned `42/mod.info` references the poster and icon directly.
-
-For Workshop updates, place a clean copy of the repository contents under the Project Zomboid Workshop authoring directory shown by the game client (normally under `Zomboid\Workshop`). Do not include source-control metadata such as `.git/`, local logs, credentials, or private test artifacts. Preserve Workshop ID `3786842301` when updating the existing item.
+Players joining a Workshop-configured server should use the Workshop-distributed copy rather than keeping a separate manual copy of the same mod. See [`docs/STEAM_WORKSHOP.md`](docs/STEAM_WORKSHOP.md) and [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
 ## Configuration
 
-Public Alpha recommended configuration:
-
-```lua
-EnshroudedSleep = {
-    Enabled = true,
-    PartialSleepSpeedScale = 1.0,
-    DiagnosticsEnabled = false,
-    DiagnosticForcedCompressionFactor = 1.0,
-}
-```
-
-### `Enabled`
-
-Turns the normal Enshrouded Sleep mechanic on or off. When disabled, the controller restores the captured native `MinutesPerDay` baseline where possible.
-
-Default:
+Recommended Public Beta configuration:
 
 ```text
-true
+EnshroudedSleep.Enabled=true
+EnshroudedSleep.PartialSleepSpeedScale=1.0
+EnshroudedSleep.AwakePlayerProtectionEnabled=true
+EnshroudedSleep.DiagnosticsEnabled=false
+EnshroudedSleep.DiagnosticForcedCompressionFactor=1.0
 ```
 
-### `PartialSleepSpeedScale`
+### Enabled
 
-Scales the server's native `FastForwardMultiplier` for **normal partial sleep only**.
+Turns Enshrouded Sleep on/off. Disabling the mod restores the captured native `MinutesPerDay` baseline where possible.
 
-```text
-1.0 = neutral; inherit the server's configured fast-forward policy
-0.5 = half the normal partial-sleep compression
-2.0 = double the normal partial-sleep compression
-0.0 = no partial-sleep calendar compression
-```
+### PartialSleepSpeedScale
 
-The sandbox UI currently allows values from `0.0` through `5.0`. Public Alpha deployment should begin at the validated neutral value of `1.0` unless a server administrator deliberately chooses otherwise.
-
-### Diagnostics options
-
-These are support/development controls, not normal gameplay tuning:
-
-```text
-DiagnosticsEnabled=false
-DiagnosticForcedCompressionFactor=1.0
-```
-
-`DiagnosticsEnabled=true` enables verbose clock, sleep, health, CharacterStat, Moodle, nutrition, and injury telemetry and can produce large log files.
-
-`DiagnosticForcedCompressionFactor` is a controlled server-test option used to reproduce calendar compression with exactly one connected awake player. It should remain `1.0` during normal play.
-
-## How It Works
-
-The authoritative server uses instantiated living players only:
-
-```text
-LivingPlayers = getOnlinePlayers() where isDead() == false
-SleepingPlayers = LivingPlayers where isAsleep() == true
-```
-
-During normal partial sleep:
+Fine-tunes partial-sleep acceleration without replacing the player ratio:
 
 ```text
 SleepFraction = SleepingPlayers / LivingPlayers
-EffectivePartialSleepCap = FastForwardMultiplier * PartialSleepSpeedScale
-CalendarCompressionFactor = max(1.0,
-    EffectivePartialSleepCap * SleepFraction)
-EffectiveMinutesPerDay =
-    BaselineMinutesPerDay / CalendarCompressionFactor
+EffectivePartialSleepCap = FastForwardMultiplier × PartialSleepSpeedScale
+CalendarCompressionFactor = max(1, EffectivePartialSleepCap × SleepFraction)
+EffectiveMinutesPerDay = BaselineMinutesPerDay / CalendarCompressionFactor
 ```
 
-State policy:
+`1.0` is neutral, `0.5` halves partial-sleep acceleration, `2.0` doubles it, and `0.0` disables extra partial-sleep calendar compression. This setting does not alter vanilla full-sleep behavior.
 
-```text
-no living players asleep
--> native baseline MinutesPerDay
+### AwakePlayerProtectionEnabled
 
-some, but not all, living players asleep
--> proportional calendar compression
+Default: `true` in Public Beta.
 
-all living players asleep
--> restore native baseline
--> vanilla full-sleep fast-forward owns the state
-```
+When enabled, awake living players are protected from the extra Hunger/Thirst/Fatigue/Nutrition/Weight progression caused specifically by partial-sleep calendar compression. Sleeping players remain vanilla-authoritative. Controlled SPIKE-006 testing showed passive rates near native 1x while the world clock ran near 20x, and preserved tested eating, drinking, running/sprinting, sleep/wake, and direct favorable effects.
 
-The mod does **not** call `GameTime:setMultiplier()` for normal partial sleep.
+If a compatibility problem is suspected, set this to `false` first. Proportional sleep/calendar compression will continue, but awake survival fields will return to the older Alpha behavior and follow compressed world time.
 
-See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and the ADRs under [`docs/adr/`](docs/adr/) for design rationale.
+### DiagnosticsEnabled
 
-## Known Behavior and Limitations
+Default: `false`.
 
-Calendar compression means genuine Project Zomboid world/calendar time is passing faster in real time. Systems driven by elapsed game-world time can therefore advance while another player sleeps. This includes known player survival-state effects such as hunger, thirst, fatigue, and nutrition, as well as potentially other world systems such as spoilage, farming, generator fuel, corpse decay, weather, and modded systems keyed to game minutes or world age.
+Enables detailed clock, sleep, CharacterStat, Moodle, nutrition, injury, action/activity, and awake-protection telemetry. It can grow logs very quickly, especially with several connected players. Ordinary roster and protection-mode transitions remain low-volume even when verbose diagnostics are disabled.
 
-The Public Alpha health/time-domain investigation is documented in [`docs/spikes/SPIKE-004-health-time-domains.md`](docs/spikes/SPIKE-004-health-time-domains.md). Detailed measurements and experimental evidence intentionally live there rather than in this public landing page.
+### DiagnosticForcedCompressionFactor
 
-Other current limitations:
+Default: `1.0`. This is a controlled **one-player test tool**, not gameplay tuning. Values above 1 only operate with diagnostics enabled and exactly one living awake player; sleeping or another player connecting suspends the override and restores native `MinutesPerDay`. Keep it at `1.0` during normal multiplayer operation.
 
-- local/standalone single-player is not a supported target;
-- compatibility with other time/sleep mods is not guaranteed;
-- Public Alpha still needs broader 3–12+ player field testing and long-session validation;
-- some uncommon pathological survival states and non-health world-time systems remain characterization targets.
+## Time-domain behavior and Beta scope
 
-## Diagnostics and Support
+World/calendar time genuinely advances faster during partial sleep. Public Beta v0.1.0 protects only the explicitly supported awake-player survival fields. External world-time systems remain vanilla: food aging/spoilage, generator fuel, vehicle fuel/battery behavior, farming/crops, weather, corpses, modded world systems, and similar systems can continue advancing with the compressed calendar.
 
-Verbose diagnostics are disabled by default. When troubleshooting, administrators may enable them temporarily and collect server/client logs.
+Controlled testing established that acute awake bleeding/body-health loss and resting endurance recovery were approximately simulation/real-time bound under tested conditions; they are not broadly compensated.
 
-Primary log prefixes include:
+Public Beta is intentionally collecting larger-population field evidence. Real multiplayer fractions, joins/disconnects/deaths/respawns, repeated sleep/wake cycles, long sessions, and mod-stack interactions remain validation targets. See [`docs/ROADMAP.md`](docs/ROADMAP.md) and [`docs/VALIDATION_HISTORY.md`](docs/VALIDATION_HISTORY.md).
+
+## Diagnostics and support
+
+Useful log prefixes include:
 
 ```text
 [EnshroudedSleep]
 [EnshroudedSleepSync][SERVER]
 [EnshroudedSleepSync][CLIENT]
+[EnshroudedSleepAwakeProtect][SERVER]
+[EnshroudedSleepActionDiag][SERVER]
+[EnshroudedSleepActionDiag][CLIENT]
 [EnshroudedSleepDiag][SERVER]
 [EnshroudedSleepDiag][CLIENT]
-[EnshroudedSleepHealthDiag][SERVER]
-[EnshroudedSleepHealthDiag][CLIENT]
 [EnshroudedSleepSurvivalDiag][SERVER]
 [EnshroudedSleepSurvivalDiag][CLIENT]
 ```
 
-See [`docs/TESTING.md`](docs/TESTING.md) and [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for diagnostic and rollback procedures.
+For an awake-protection-only problem, first set `AwakePlayerProtectionEnabled=false`, preserve logs, and verify whether the core proportional sleep behavior remains stable. For controller/time synchronization or serious player/world-state problems, stop the server, preserve logs, and follow the full rollback procedure in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
 ## Documentation
 
-- [`docs/README.md`](docs/README.md) — documentation index
-- [`docs/STEAM_WORKSHOP.md`](docs/STEAM_WORKSHOP.md) — Steam Workshop package, publication, update, and permanent-ID procedure
-- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — Public Alpha deployment, monitoring, diagnostics, and rollback
-- [`docs/ROADMAP.md`](docs/ROADMAP.md) — canonical roadmap and release-stage criteria
+- [`docs/README.md`](docs/README.md) — documentation index and current state
+- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — Public Beta deployment, monitoring, diagnostics, and rollback
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — canonical roadmap
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — technical architecture
-- [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) — normative MVP requirements and acceptance matrix
-- [`docs/TESTING.md`](docs/TESTING.md) — smoke/regression/field-test procedures
-- [`docs/VALIDATION_HISTORY.md`](docs/VALIDATION_HISTORY.md) — detailed validation chronology
-- [`docs/spikes/`](docs/spikes/) — experimental investigations and results, including SPIKE-004
-- [`docs/adr/`](docs/adr/) — architecture decision records
-- [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md) — release and Workshop publication gate
+- [`docs/TESTING.md`](docs/TESTING.md) — smoke/regression/field-testing procedures
+- [`docs/VALIDATION_HISTORY.md`](docs/VALIDATION_HISTORY.md) — validation chronology
+- [`docs/spikes/SPIKE-006-awake-player-protection.md`](docs/spikes/SPIKE-006-awake-player-protection.md) — awake-protection investigation
+- [`docs/RELEASE_CHECKLIST.md`](docs/RELEASE_CHECKLIST.md) — release/Workshop gate
 - [`COMPLIANCE.md`](COMPLIANCE.md) — Project Zomboid mod-policy compliance entry point
-- [`CHANGELOG.md`](CHANGELOG.md) — version/change history
+- [`CHANGELOG.md`](CHANGELOG.md) — version history
 
-## License and Disclaimers
+## License and disclaimers
 
-Source-code licensing is described in [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE). Creative/promotional asset licensing is described separately in [`ASSET_LICENSE.md`](ASSET_LICENSE.md). Third-party provenance is tracked in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+Source-code licensing is in [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE); creative/promotional asset licensing is in [`ASSET_LICENSE.md`](ASSET_LICENSE.md); third-party provenance is tracked in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 
-**Project Zomboid / The Indie Stone:** Enshrouded Sleep is an unofficial community mod for Project Zomboid. It is not developed by, affiliated with, sponsored by, endorsed by, or otherwise official to The Indie Stone. Project Zomboid and associated intellectual property remain the property of The Indie Stone. Publication and distribution are subject to The Indie Stone's Project Zomboid Modding Policy and applicable terms.
+**Project Zomboid / The Indie Stone:** Enshrouded Sleep is an unofficial community mod. It is not developed by, affiliated with, sponsored by, endorsed by, or otherwise official to The Indie Stone. Project Zomboid and associated intellectual property remain the property of The Indie Stone.
 
-**Enshrouded / Keen Games:** Enshrouded Sleep is also not developed by, affiliated with, sponsored by, or endorsed by Keen Games. The project name refers to the general multiplayer-sleep design inspiration associated with the game *Enshrouded*; this mod does not include or redistribute Enshrouded code, assets, or game content. *Enshrouded* and associated intellectual property remain the property of their respective rights holders.
+**Enshrouded / Keen Games:** Enshrouded Sleep is not developed by, affiliated with, sponsored by, or endorsed by Keen Games. The name refers to general multiplayer-sleep design inspiration only; no Enshrouded code, assets, or game content are redistributed.

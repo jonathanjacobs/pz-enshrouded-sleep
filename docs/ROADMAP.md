@@ -1,33 +1,30 @@
 # Roadmap
 
-This is the **single canonical roadmap** for Enshrouded Sleep. The top-level README links here but intentionally does not duplicate roadmap content.
+This is the single canonical roadmap for Enshrouded Sleep. The top-level README links here rather than maintaining a second roadmap.
 
-Enshrouded Sleep is a **multiplayer-server mod**. Local/standalone single-player support is not a project goal.
+Enshrouded Sleep is a multiplayer-server mod. Local/standalone single-player support is not a project goal.
 
-## Current phase — Public Alpha
+## Current phase — Public Beta
 
-Status: **Public Alpha / field validation and SPIKE-006 awake-player protection investigation**  
-Current version: `v0.0.10`  
-Behaviorally validated platform baseline: Project Zomboid `42.20.3`  
+Status: **Public Beta / field validation**  
+Current version: `v0.1.0`  
+Validated platform baseline: Project Zomboid `42.20.3`  
 Steam Workshop ID: `3786842301`
 
-The pre-alpha technical gates are complete. [`SPIKE-004`](spikes/SPIKE-004-health-time-domains.md) returned **GO** after controlled v0.0.9/v0.0.10 health/survival testing.
+Public Beta promotes the SPIKE-006 awake-player protection mechanism into normal multiplayer partial sleep. The controlled one-player forced-compression path is no longer the production behavior; it remains only as a diagnostic regression tool.
 
-Public Alpha v0.0.10 has been published to Steam Workshop, acquired by the WHG dedicated server and client, and passed a live two-player Workshop-distributed regression including baseline inheritance, proportional partial-sleep compression, live `FastForwardMultiplier` inheritance, client day-length synchronization, and baseline restoration.
+## v0.1.0 product semantics
 
-The repository uses one authoritative deployable mod tree:
+During normal partial sleep:
 
 ```text
-Contents/mods/pz-enshrouded-sleep/
+SleepFraction = SleepingPlayers / LivingPlayers
+CalendarCompressionFactor = max(1,
+    FastForwardMultiplier × PartialSleepSpeedScale × SleepFraction)
+EffectiveMinutesPerDay = BaselineMinutesPerDay / CalendarCompressionFactor
 ```
 
-## Current development focus — SPIKE-006 / v0.0.11 candidate
-
-[`SPIKE-006`](spikes/SPIKE-006-awake-player-protection.md) is now the primary next-release investigation.
-
-Goal: protect **awake players** from the extra survival-stat/metabolic progression caused by partial-sleep `MinutesPerDay` compression, while leaving sleeping players, active simulation, acute health systems, and external world systems on their appropriate vanilla paths.
-
-Initial protection target:
+When `AwakePlayerProtectionEnabled=true` (Beta default), each awake living player is normalized toward native-day-length progression for:
 
 - hunger;
 - thirst;
@@ -38,252 +35,75 @@ Initial protection target:
 - lipids;
 - weight progression.
 
-The implementation must preserve vanilla:
+Sleeping players are never normalized. When every living player is asleep, Enshrouded Sleep restores native `MinutesPerDay` and vanilla full-sleep acceleration owns the state.
 
-- eating/drinking effects;
-- activity/exercise effects;
-- traits;
-- thermoregulation modifiers;
-- sandbox stat multipliers;
-- sleeping-player physiology;
-- server authority.
+External world systems remain on vanilla world/calendar time. v0.1.0 does not compensate spoilage, farming/crops, generator fuel/wear, vehicle resource use, corpses, weather, or arbitrary modded world systems.
 
-No broad health compensation is planned. SPIKE-004 showed that tested bleeding/body-health loss and resting endurance recovery were already approximately simulation/real-time bound.
+## SPIKE-006 decision
 
-### Current SPIKE-006 result
+Controlled feasibility: **GO for Public Beta field validation**.
 
-The diagnostics-only tick-driven post-update normalizer has now passed its first controlled passive runtime test.
+Evidence established before promotion includes:
 
-With a native 90-minute day and diagnostic factor 20:
+- server tick-driven correction path executes reliably on dedicated B42.20.3;
+- world/calendar clock remained approximately 20x while `TrueMultiplier=1.0`;
+- passive Hunger/Thirst/Fatigue/Calories/Protein/Weight measurements were approximately native 1x in the first successful correction run;
+- subsequent testing with Carbohydrates/Lipids away from clamps showed those stores also near native pacing;
+- eating and drinking favorable effects were preserved;
+- running/sprinting retained active gameplay consequences such as endurance loss and increased expenditure;
+- sleeping immediately suspended awake correction and restored native `MinutesPerDay` for vanilla full-sleep behavior;
+- waking reinitialized the reference snapshot before correction resumed;
+- no relevant Enshrouded Sleep Lua error occurred in the successful controlled run.
 
-```text
-MinutesPerDay     = 4.5
-world clock       ≈ 20x
-TrueMultiplier    = 1.0
-living            = 1
-sleeping          = 0
-```
+This is not a claim that all multiplayer/mod-stack combinations are proven safe. Public Beta deliberately moves the remaining validation into normal server field operation with an independent protection-disable switch and documented rollback path.
 
-Stable authoritative server measurements showed protected passive rates approximately equal to native real-time pacing:
+## Public Beta field goals
 
-```text
-Hunger            0.989x
-Thirst            1.000x
-Fatigue           1.001x
-Calories          1.000x
-Proteins          1.000x
-Weight progression 1.008x
-World clock       19.997x
-```
+Primary live goals:
 
-Carbohydrates and Lipids were already at their vanilla lower clamp and therefore remain unmeasured in this run.
+- exercise 3–12+ living-player populations and multiple sleeping fractions;
+- verify every awake living player is protected while sleepers remain vanilla-authoritative;
+- exercise joins, disconnects, deaths, respawns, and rapidly changing denominators;
+- repeat sleep/wake cycles across long sessions;
+- observe client clock continuity and exact baseline restoration;
+- characterize normal gameplay effects under real multiplayer activity;
+- identify conflicts with mods that alter sleep, `MinutesPerDay`, hunger/thirst/fatigue, nutrition, or timed actions;
+- monitor performance/log volume of the multi-player correction path;
+- validate disable/upgrade/rollback through the permanent Workshop item.
 
-Decision: **GO for the passive normalization mechanism; not yet a production GO.** The current blocker is the active-effects/safety regression defined in [`SPIKE-006-ACTIVE-EFFECTS-TEST.md`](spikes/SPIKE-006-ACTIVE-EFFECTS-TEST.md).
+Verbose diagnostics are not required for ordinary Beta operation. Low-volume roster/protection transitions remain useful continuously; verbose diagnostics should be enabled for focused windows when a reproducible anomaly needs deeper evidence.
 
-### B42.20.3 source finding
+## Public Beta exit criteria
 
-The decompiled Build 42.20.3 implementation explains the observed SPIKE-004 behavior:
-
-- awake hunger/thirst/fatigue multiply their base rates by `GameTime.getDeltaMinutesPerDay()`;
-- `getDeltaMinutesPerDay()` is `30 / MinutesPerDay`;
-- nutrition macros, calories, and weight use `GameTime.getGameWorldSecondsSinceLastUpdate()`;
-- that world-time delta scales with `1440 / MinutesPerDay`;
-- passive nutrition updates are authoritative on the non-client side.
-
-Therefore the observed acceleration is structural, not a diagnostic artifact.
-
-The cleanest theoretical solution—changing the Java `ZomboidGlobals` awake rates—is not directly available to ordinary Workshop Lua in B42.20.3 because the Java `zombie.ZomboidGlobals` class/static fields are not exposed as a safe mutable Lua API.
-
-SPIKE-006 is therefore testing a narrowly gated server-authoritative post-update normalizer before any production behavior is selected.
-
-## SPIKE-005 status — world systems
-
-[`SPIKE-005`](spikes/SPIKE-005-world-system-time-domains.md) remains open but is no longer a prerequisite to the next release.
-
-Accumulated evidence supports the working assumption that systems representing passage of game-world time should be presumed world/calendar-time bound unless source/runtime evidence indicates otherwise.
-
-Confirmed examples:
-
-- **generator fuel** — world/calendar-time bound;
-- **ambient food aging/spoilage** — world/calendar-time bound;
-- **refrigerated food aging** — world/calendar-time bound with vanilla ~0.20x refrigeration modifier preserved;
-- **vehicle fuel while idling** — world/calendar-time bound;
-- **vehicle battery drain under a stable engine-off electrical load** — world/calendar-time bound.
-
-External world-system compensation is deferred until after awake-player protection. Current/default world-time behavior remains unchanged.
-
-Remaining SPIKE-005 questions include:
-
-- farming/crop implementation and unloaded/catch-up behavior;
-- generator condition/wear;
-- frozen-food behavior;
-- safe subsystem-specific compensation hooks;
-- compatibility implications of optional world-resource protection.
-
-## Evidence established before and during Public Alpha
-
-Validated behavior includes:
-
-- proportional partial-sleep calendar compression;
-- normal-speed awake active simulation;
-- synchronized server/client `MinutesPerDay` pacing;
-- exact baseline restoration;
-- vanilla full-sleep handoff;
-- wake/disconnect denominator recalculation;
-- normal vanilla sleep/wake timing after client pacing synchronization;
-- awake bleeding/body-health loss approximately real-time bound under tested compression;
-- hunger, thirst, fatigue and core nutrition stores world/calendar-time bound;
-- resting endurance recovery approximately real-time bound;
-- diagnostic forced-compression safety handoff when the single connected test player sleeps;
-- Steam Workshop server/client acquisition and loading for item `3786842301`;
-- live two-player Workshop-distributed regression on a native 120-minute server day;
-- live inheritance of an administrator change to `FastForwardMultiplier` without restart;
-- generator fuel world/calendar-time classification;
-- ambient and refrigerated food-aging world/calendar-time classification;
-- vehicle fuel world/calendar-time classification;
-- vehicle battery-drain world/calendar-time classification under a stable tested electrical load;
-- preservation of vanilla refrigeration behavior under 20x calendar compression;
-- SPIKE-006 tick-driven passive awake-player normalization at approximately 1x while world/calendar time ran at approximately 20x;
-- owning-client survival state tracking remained coherent with the server during the successful SPIKE-006 passive run.
-
-## Public Alpha configuration
-
-Normal Public Alpha configuration remains:
-
-```text
-DiagnosticsEnabled=false
-DiagnosticForcedCompressionFactor=1.0
-PartialSleepSpeedScale=1.0
-```
-
-The SPIKE-006 branch adds:
-
-```text
-DiagnosticAwakeProtectionPrototype=false
-```
-
-That option is a development-only test control and is not intended for ordinary gameplay.
-
-## Immediate SPIKE-006 sequence
-
-Completed:
-
-1. Run the diagnostics-only idle/stationary prototype at native 1x then forced 20x. — **PASS**
-2. Determine whether hunger/thirst/fatigue/nutrition/weight return from ~20x progression toward ~1x real-time pacing. — **PASS for measurable fields; Carbohydrates/Lipids were clamped**
-3. Verify `TrueMultiplier=1.0`, world clock remains compressed, and the correction path is active/server-authoritative. — **PASS**
-
-Next:
-
-4. Exercise eating and drinking during compression and compare direct effect magnitude with baseline.
-5. Exercise walking/running/sprinting and resting/sitting at native 1x and protected 20x.
-6. Exercise Well Fed and representative safe rate modifiers where practical.
-7. Re-test Carbohydrates/Lipids with values away from their clamps.
-8. Verify sleeping suspends awake-player normalization before sleeping physiology is altered.
-9. Verify a second living player joining suspends the forced diagnostic prototype safely and restores native `MinutesPerDay`.
-10. Characterize legitimate same-direction effects that could be mistaken for calendar-driven passive progression where a safe/reproducible test is available.
-11. Decide GO / PARTIAL GO / NO-GO for a production v0.0.11 awake-player protection implementation.
-12. If GO/PARTIAL GO, replace diagnostics-only scaffolding with a production policy/configuration and run real two-player partial-sleep validation.
-
-## Public Alpha field goals
-
-Primary live goals remain:
-
-- exercise proportional sleep with 3–12+ living players;
-- observe multiple sleeping fractions rather than only the 2-player case;
-- exercise joins/disconnects/deaths/respawns;
-- repeated sleep/wake cycles;
-- long-session stability;
-- normal live mod-stack interaction;
-- identify compatibility problems with other sleep/recovery or world-time-driven mods;
-- observe client pacing during ordinary administration and sandbox changes;
-- continue validating install/update/rollback through the permanent Steam Workshop item.
-
-World-system characterization can continue opportunistically, but it is not blocking the awake-player-protection release investigation.
-
-## Public Alpha exit criteria
-
-Move toward Public Beta when field evidence supports:
+Move toward a stable release candidate when field evidence supports:
 
 - no recurring clock-jump/client synchronization defect during ordinary play;
 - no global acceleration of awake simulation;
 - no repeated sleep-duration pathology;
-- no high-severity awake-player health/survival effect beyond documented policy;
-- reliable baseline restoration and vanilla full-sleep handoff at larger populations;
-- proportional behavior validated with more than two living players;
-- configuration inheritance validated across alternate native settings;
-- operationally acceptable log/error volume;
-- major world-time side effects documented, accepted, or addressed;
-- any shipped awake-player protection has passed passive and active-effect regression;
-- representative live mod-stack interaction is stable enough for routine operation;
-- Workshop install/update/rollback procedure remains repeatable and documented.
+- awake-player protection remains stable across representative multiplayer populations;
+- eating/drinking/activity and other common direct effects are not materially distorted;
+- sleeping-player physiology remains vanilla-authoritative;
+- reliable baseline restoration and vanilla full-sleep handoff;
+- joins/disconnects/deaths/respawns do not leave stale protected state;
+- operationally acceptable CPU/log volume;
+- representative mod-stack interaction is stable enough for routine operation;
+- major external world-time side effects remain documented/accepted or are addressed separately;
+- Workshop install/update/rollback remains repeatable.
 
-## Next feature release candidate — v0.0.11
+## SPIKE-005 / later world-system policy
 
-The next substantive Alpha release should focus first on **awake-player survival protection**, not broad world-resource compensation.
+SPIKE-005 remains open but is not a blocker to v0.1.0. Confirmed world/calendar examples include generator fuel, ambient/refrigerated food aging, vehicle fuel while idling, and vehicle battery drain under a stable engine-off load.
 
-Proposed product semantics:
+Potential later policy remains subsystem-specific and evidence-backed. Unsupported systems must remain vanilla rather than being represented as compensated.
 
-```text
-Current/default behavior
-    World clock advances proportionally during partial sleep.
-    External world systems continue to follow vanilla world time.
+## Administrator UX
 
-Awake-player protection
-    Supported awake-player hunger/thirst/fatigue/nutrition/weight progression
-    is normalized toward native real-time pacing during partial sleep.
-
-Sleeping players
-    Never normalized by the awake-player protection path.
-    Vanilla sleeping physiology remains authoritative.
-
-All living players asleep
-    Enshrouded Sleep restores native MinutesPerDay.
-    Vanilla full-sleep acceleration owns the state.
-```
-
-Exact administrator configuration and default value will be chosen only after SPIKE-006 active-effect/safety evidence.
-
-## Later feature candidate — world-system progression policy
-
-After awake-player protection is stable, return to SPIKE-005 compensation feasibility.
-
-Potential future semantics:
-
-```text
-WORLD_TIME (default/current)
-    External world-time-driven systems follow accelerated calendar time.
-
-SIMULATION_TIME
-    Only explicitly supported, evidence-backed subsystem adapters are
-    compensated during normal partial sleep.
-
-ADVANCED (future)
-    Optional per-subsystem policy using the same adapter architecture.
-```
-
-Unsupported systems must remain vanilla and be documented rather than silently represented as compensated.
-
-## Public Beta / v0.1.x
-
-Public Beta focuses on stabilization:
-
-- complete remaining MVP acceptance-matrix items;
-- establish a compatibility matrix;
-- stabilize any SPIKE-006-approved awake-player protection;
-- document major world-time systems;
-- stabilize any later SPIKE-005-approved subsystem compensation;
-- improve administrator UX/distribution;
-- reduce or consolidate obsolete diagnostics where appropriate;
-- establish repeatable Build 42 regression procedures.
+Public Beta includes clearer in-game sandbox labels/tooltips for proportional speed, awake-player protection, verbose diagnostics, and the one-player forced-compression test. A separate read-only admin runtime status panel remains a future candidate because custom sandbox options are editable configuration rather than dynamic status fields.
 
 ## v1.0 readiness
 
-A stable `v1.0` requires stable server/client synchronization, reliable representative multiplayer behavior, no known high-severity player/save/world-state risk, documented world-time interactions, reliable install/upgrade/disable/rollback procedures, concise administration, and compatibility claims limited to tested combinations.
-
-## Post-MVP candidates
-
-Possible future features include player-facing compression notices, configuration presets, expanded per-subsystem progression controls, administrator observability tools, and compatibility helpers.
+A stable v1.0 requires stable server/client synchronization, reliable representative multiplayer behavior, no known high-severity player/save/world-state risk, documented world-time interactions, reliable install/upgrade/disable/rollback procedures, concise administration, and compatibility claims limited to tested combinations.
 
 ## Explicit non-goals
 
-The project is not trying to support local/standalone single-player, replace vanilla fatigue/sleep eligibility, create a separate readiness/voting system, globally fast-forward active simulation, patch Project Zomboid Java/core files for ordinary Workshop distribution, guarantee compatibility with every mod, or preemptively compensate every world-time-driven system.
+The project is not trying to support local/standalone single-player, replace vanilla fatigue/sleep eligibility, create a readiness/voting system, globally fast-forward active simulation, patch Project Zomboid Java/core files for ordinary Workshop distribution, guarantee compatibility with every mod, or preemptively compensate every world-time-driven system.

@@ -1,0 +1,81 @@
+name: Validate Public Beta Package
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  validate-package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate Workshop and runtime structure
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          MOD_ROOT="Contents/mods/pz-enshrouded-sleep"
+          VERSION_VALUE="$(tr -d '\r\n' < VERSION)"
+
+          [[ "$VERSION_VALUE" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test -f workshop.txt
+          test -f workshop-description.bbcode
+          test -f preview.png
+          test -d "$MOD_ROOT/common"
+          test -d "$MOD_ROOT/42"
+          test -f "$MOD_ROOT/mod.info"
+          test -f "$MOD_ROOT/42/mod.info"
+          test -f "$MOD_ROOT/42/poster.png"
+          test -f "$MOD_ROOT/42/icon.png"
+          test -f "$MOD_ROOT/42/media/sandbox-options.txt"
+          test -f "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/AwakePlayerProtection_Server.lua"
+          test ! -e "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/AwakePlayerProtectionPrototype_Server.lua"
+
+          test -f "$MOD_ROOT/common/media/AnimSets/.gitkeep"
+          test -f "$MOD_ROOT/common/media/actiongroups/.gitkeep"
+          test -f "$MOD_ROOT/42/media/AnimSets/.gitkeep"
+          test -f "$MOD_ROOT/42/media/actiongroups/.gitkeep"
+
+          test ! -e 42
+          test ! -e common
+          test ! -e mod.info
+
+          grep -Fxq "id=pz-enshrouded-sleep" "$MOD_ROOT/mod.info"
+          grep -Fxq "id=pz-enshrouded-sleep" "$MOD_ROOT/42/mod.info"
+          grep -Fxq "modversion=$VERSION_VALUE" "$MOD_ROOT/mod.info"
+          grep -Fxq "modversion=$VERSION_VALUE" "$MOD_ROOT/42/mod.info"
+          grep -Fq "Public Beta" "$MOD_ROOT/mod.info"
+          grep -Fq "Public Beta" "$MOD_ROOT/42/mod.info"
+          grep -Fq "Public Beta" README.md
+          grep -Fq "Version:[/b] $VERSION_VALUE" workshop-description.bbcode
+          grep -Fq "title=Enshrouded Sleep - Public Beta" workshop.txt
+
+          grep -Fq 'option EnshroudedSleep.AwakePlayerProtectionEnabled' "$MOD_ROOT/42/media/sandbox-options.txt"
+          grep -Fq 'option EnshroudedSleep.DiagnosticsEnabled' "$MOD_ROOT/42/media/sandbox-options.txt"
+          grep -Fq 'option EnshroudedSleep.DiagnosticForcedCompressionFactor' "$MOD_ROOT/42/media/sandbox-options.txt"
+          ! grep -Fq 'DiagnosticAwakeProtectionPrototype' "$MOD_ROOT/42/media/sandbox-options.txt"
+          grep -Fq 'Loaded Public Beta v0.1.0 awake-player survival protection.' "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/AwakePlayerProtection_Server.lua"
+
+          python - <<'PY'
+          from pathlib import Path
+          import struct
+          expected = {
+              Path("preview.png"): (256, 256),
+              Path("Contents/mods/pz-enshrouded-sleep/42/poster.png"): (256, 256),
+              Path("Contents/mods/pz-enshrouded-sleep/42/icon.png"): (32, 32),
+          }
+          for path, wanted in expected.items():
+              data = path.read_bytes()
+              assert data[:8] == b"\x89PNG\r\n\x1a\n", f"{path} is not a PNG"
+              assert data[12:16] == b"IHDR", f"{path} has no PNG IHDR"
+              actual = struct.unpack(">II", data[16:24])
+              assert actual == wanted, f"{path}: expected {wanted}, got {actual}"
+          assert Path("preview.png").stat().st_size <= 1000 * 1024
+          PY
+
+          echo "Public Beta package structure/version/artwork checks passed for v$VERSION_VALUE."

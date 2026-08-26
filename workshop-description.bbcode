@@ -1,8 +1,8 @@
-[h1]Enshrouded Sleep — Public Alpha[/h1]
+[h1]Enshrouded Sleep — Public Beta[/h1]
 
 Proportional multiplayer sleeping for Project Zomboid Build 42 servers.
 
-[b]Version:[/b] 0.0.10
+[b]Version:[/b] 0.1.0
 [b]Tested with:[/b] Project Zomboid 42.20.3
 [b]Workshop ID:[/b] 3786842301
 [b]Mod ID:[/b] pz-enshrouded-sleep
@@ -10,23 +10,32 @@ Proportional multiplayer sleeping for Project Zomboid Build 42 servers.
 [h2]What it does[/h2]
 When some, but not all, living players are asleep, Enshrouded Sleep proportionally compresses world/calendar time while awake players continue moving, fighting, driving, crafting, and interacting at normal active-simulation speed.
 
+Public Beta v0.1.0 also protects awake players from the extra survival-needs/metabolism progression caused by that calendar compression. Hunger, thirst, fatigue, calories, carbohydrates, proteins, lipids, and weight progression are normalized toward the rate expected at the server's native day length. Sleeping players are never corrected.
+
 When all living players are asleep, Enshrouded Sleep restores the native day length and vanilla Project Zomboid full-sleep fast-forward takes over.
 
-[h2]Public Alpha[/h2]
-This is a Public Alpha release. Back up your server before installing or updating. Broader multiplayer and world-system field testing is still in progress.
+[h2]Public Beta[/h2]
+This is a Public Beta release. Back up your server before installing or updating. Controlled SPIKE-006 tests passed passive and active-effect validation, but broader multiplayer populations, mod-stack interactions, and long-session behavior are still being field-tested.
 
 [h2]Important time behavior[/h2]
-World/calendar time genuinely passes faster during partial sleep. Systems tied to elapsed world time can therefore progress while another survivor sleeps. Controlled testing confirms that hunger, thirst, fatigue, calories, and nutrition advance with compressed world time, while acute awake-player bleeding/body-health loss did not scale with calendar compression under the tested conditions.
+World/calendar time genuinely passes faster during partial sleep. External world systems such as spoilage, generators, farming, vehicles, weather, and other systems keyed to game-world time continue following vanilla world time. v0.1.0 only normalizes the explicitly supported awake-player survival fields listed above; it does not globally slow the world or compensate every subsystem.
 
 [h2]Configuration[/h2]
-Recommended Public Alpha settings:
+Recommended Public Beta settings:
 
 [code]
 EnshroudedSleep.Enabled=true
 EnshroudedSleep.PartialSleepSpeedScale=1.0
+EnshroudedSleep.AwakePlayerProtectionEnabled=true
 EnshroudedSleep.DiagnosticsEnabled=false
 EnshroudedSleep.DiagnosticForcedCompressionFactor=1.0
 [/code]
+
+[b]AwakePlayerProtectionEnabled[/b] can be turned off independently if a compatibility issue is suspected. This returns awake survival progression to the older Alpha behavior while leaving proportional partial-sleep calendar compression active.
+
+[b]DiagnosticsEnabled[/b] is a support/testing option and can generate very large logs, especially with multiple players. Leave it off for ordinary play unless collecting a focused dataset.
+
+[b]DiagnosticForcedCompressionFactor[/b] is a one-player test tool only. Keep it at 1.0 during normal multiplayer play.
 
 [h2]Server setup[/h2]
 [code]
@@ -35,7 +44,7 @@ Mods=pz-enshrouded-sleep
 [/code]
 
 [h2]Compatibility[/h2]
-Other mods that alter multiplayer sleep, MinutesPerDay, GameTime pacing, or sleep fast-forward may conflict. Compatibility claims are limited to configurations that have actually been tested.
+Other mods that alter multiplayer sleep, MinutesPerDay, GameTime pacing, player hunger/thirst/fatigue/nutrition, or sleep fast-forward may conflict. Compatibility claims are limited to configurations actually tested. If a survival-state compatibility problem appears, disable AwakePlayerProtectionEnabled first and collect logs before removing the entire mod.
 
 [h2]Source code, documentation, issues, and test results[/h2]
 [url=https://github.com/jonathanjacobs/pz-enshrouded-sleep]GitHub — Enshrouded Sleep repository[/url]
