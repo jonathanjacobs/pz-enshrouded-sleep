@@ -16,7 +16,7 @@ Run after runtime/configuration changes, a new release candidate, or a relevant 
 6. Confirm `DiagnosticForcedCompressionFactor=1.0` is inert.
 7. With `SleepNotificationsEnabled=false`, confirm no Enshrouded Sleep sleep-state chat messages are emitted.
 
-Project Zomboid 42.20.4 (`b0bbce05d5`) has passed this startup/baseline/client-sync compatibility checkpoint for v0.1.0. See [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md) for the evidence boundary.
+Project Zomboid 42.20.4 (`b0bbce05d5`) passed the startup/baseline/client-sync compatibility checkpoint used as the basis for v0.1.1. See [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md) for the evidence boundary.
 
 ## Tier 2 — core two-player sleep regression
 
@@ -34,9 +34,9 @@ Use normal server settings and `AwakePlayerProtectionEnabled=true`.
 
 The exact expected factor depends on live `FastForwardMultiplier`, `PartialSleepSpeedScale`, and the sleeping fraction; use [`REQUIREMENTS.md`](REQUIREMENTS.md) for the canonical formula rather than duplicating it here.
 
-## Sleep-notification smoke test
+## v0.1.1 live sleep-notification field test
 
-Run this once before treating the optional notification feature as release-validated.
+v0.1.1 intentionally ships the optional notification path for live Public Beta validation on WHG. Run the checks below during normal post-deployment use before marking the notification feature field-validated.
 
 1. Start with `SleepNotificationsEnabled=true`, at least two living players, and no sleepers. Confirm no startup/all-awake notification is sent.
 2. Put one player to sleep. Confirm every connected client receives exactly one concise server-chat message such as `[Enshrouded Sleep] 1/2 living players sleeping (50%). Time is 20x faster.`
@@ -46,7 +46,7 @@ Run this once before treating the optional notification feature as release-valid
 6. Confirm there is no per-tick/repeated chat spam and no Enshrouded Sleep Lua exception.
 7. Set `SleepNotificationsEnabled=false` and confirm subsequent sleep-state changes no longer emit messages while proportional sleep continues normally.
 
-The relevant low-volume prefixes are `[EnshroudedSleepNotify][SERVER]` and `[EnshroudedSleepNotify][CLIENT]`. A client chat-bridge failure should circuit-break notification display for that client session without affecting sleep/time behavior.
+The relevant low-volume prefixes are `[EnshroudedSleepNotify][SERVER]` and `[EnshroudedSleepNotify][CLIENT]`. A client chat-bridge failure should circuit-break notification display for that client session without affecting sleep/time behavior. If the notification path causes a live compatibility issue, disable `SleepNotificationsEnabled` first and preserve the server/client logs before changing the core sleep configuration.
 
 ## Tier 3 — Public Beta multiplayer protection field test
 
