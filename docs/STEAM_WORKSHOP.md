@@ -1,25 +1,19 @@
 # Steam Workshop Publication
 
-Current release stage: **Public Alpha**  
-Current mod version: `v0.0.10`  
+This document owns Steam Workshop packaging and update mechanics. Runtime configuration belongs in [`DEPLOYMENT.md`](DEPLOYMENT.md); release gates belong in [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md); public description text is canonical in [`../workshop-description.bbcode`](../workshop-description.bbcode).
+
 Project Zomboid Mod ID: `pz-enshrouded-sleep`  
-Steam Workshop ID: **3786842301**
+Permanent Steam Workshop ID: `3786842301`
 
-Workshop page:
+## Package layout
 
-```text
-https://steamcommunity.com/sharedfiles/filedetails/?id=3786842301
-```
-
-This repository is intentionally structured so a clean copy of the repository root can serve as the Project Zomboid Workshop item directory. No generated deployment tree or packaging script is required.
-
-## Repository / Workshop package layout
+A clean repository root is intentionally usable as the Project Zomboid Workshop item directory:
 
 ```text
 pz-enshrouded-sleep/
 ├── workshop.txt
-├── workshop-description.bbcode           # canonical paste-ready Workshop description
-├── preview.png                           # Steam Workshop preview, 256x256 PNG
+├── workshop-description.bbcode
+├── preview.png
 ├── Contents/
 │   └── mods/
 │       └── pz-enshrouded-sleep/
@@ -27,61 +21,40 @@ pz-enshrouded-sleep/
 │           ├── common/
 │           └── 42/
 │               ├── mod.info
-│               ├── poster.png            # in-game poster, 256x256 PNG
-│               ├── icon.png              # in-game icon, 32x32 PNG
+│               ├── poster.png
+│               ├── icon.png
 │               └── media/
 ├── docs/
 ├── README.md
 ├── CHANGELOG.md
-├── LICENSE
-├── NOTICE
-├── ASSET_LICENSE.md
-├── THIRD_PARTY_NOTICES.md
-└── other public project documentation
+└── public licensing/provenance files
 ```
 
-Supporting public documentation is intentionally allowed in the Workshop item. Private data, logs, credentials, local test artifacts, and source-control metadata are not.
-
-## Authoritative deployable mod tree
-
-There is only one deployable Project Zomboid mod tree:
+There is one authoritative deployable runtime tree:
 
 ```text
 Contents/mods/pz-enshrouded-sleep/
 ```
 
-Do not create a second root-level `42/`, `common/`, or `mod.info` copy. Keeping one authoritative tree prevents source/release drift.
+Do not create a second root-level `42/`, `common/`, or runtime `mod.info` copy.
 
-## Publication artwork
+Public documentation may be included intentionally in the Workshop item. `.git/`, private logs/data, credentials, local test artifacts, backups, and scratch material must not be copied into the authoring directory.
 
-The Public Alpha package includes three project-provided publication assets:
+## Artwork
+
+Current repository assets are:
 
 ```text
 preview.png                                      256x256 PNG
-Contents/mods/pz-enshrouded-sleep/42/poster.png 256x256 PNG
+Contents/mods/pz-enshrouded-sleep/42/poster.png 743x743 PNG
 Contents/mods/pz-enshrouded-sleep/42/icon.png     32x32 PNG
 ```
 
-`preview.png` is the Workshop uploader preview image and must remain at the Workshop item root. The current PZ uploader requires it to be a valid `256x256` PNG no larger than `1000 KB`.
+`preview.png` is the Workshop uploader preview and must remain at the item root; the package-validation workflow enforces its PNG identity, dimensions, and size ceiling. `poster.png` and `icon.png` are referenced by the Build 42 `mod.info` and are also checked by repository validation. Do not silently resize publication artwork as part of an unrelated code release.
 
-`poster.png` and `icon.png` are stored beside the Build 42 `mod.info`. The versioned metadata explicitly references them:
+## Stable identities
 
-```text
-poster=poster.png
-icon=icon.png
-```
-
-The repository package-validation workflow checks file presence, PNG identity, expected dimensions, `preview.png` size, and these metadata references.
-
-## Permanent Workshop identity
-
-The first upload created the permanent Workshop Published File ID:
-
-```text
-3786842301
-```
-
-This ID must be preserved for all future updates. Do not create a new Workshop item for routine releases.
+Routine updates must reuse Workshop item `3786842301`.
 
 A Steam-backed dedicated server uses both identifiers:
 
@@ -90,69 +63,39 @@ WorkshopItems=3786842301
 Mods=pz-enshrouded-sleep
 ```
 
-The Workshop ID identifies the Steam package to download. `pz-enshrouded-sleep` remains the stable Project Zomboid Mod ID loaded by the game.
-
-The permanent ID is recorded in `workshop.txt`, the top-level README, this publication guide, and `docs/DEPLOYMENT.md`.
+The Workshop ID selects the Steam package; `pz-enshrouded-sleep` is the Project Zomboid Mod ID loaded by the game.
 
 ## Canonical Workshop description
 
-The paste-ready Steam BBCode description is maintained in:
+Maintain the paste-ready Steam BBCode in:
 
 [`../workshop-description.bbcode`](../workshop-description.bbcode)
 
-That file is the canonical source for the Workshop Description field. It includes the GitHub repository link:
+When public behavior/status changes materially, update that file in Git and then paste the new contents into the existing Steam Workshop item. Do not maintain a separate prose description in this publication guide.
 
-```text
-https://github.com/jonathanjacobs/pz-enshrouded-sleep
-```
-
-When the public description changes materially, update `workshop-description.bbcode` in Git first and then paste the new contents into the Steam Workshop item.
-
-## Public Workshop description requirements
-
-The Workshop page should clearly disclose:
-
-- Public Alpha status and tested PZ version;
-- multiplayer-server scope;
-- Workshop ID and Mod ID;
-- configuration and compatibility caveats;
-- expected world/calendar-time behavior;
-- current known limitations;
-- a link to the GitHub source/documentation/issues;
-- required third-party attribution if any is ever introduced;
-- that this is an unofficial community mod and is not developed by, affiliated with, sponsored by, or endorsed by The Indie Stone;
-- that this mod is not developed by, affiliated with, sponsored by, or endorsed by Keen Games, developer of *Enshrouded*;
-- that no *Enshrouded* code/assets/game content are redistributed by this project.
-
-## Workshop-distributed package validation
-
-The initial upload is complete, but the Workshop-distributed payload should still be validated before issue #5 is closed:
-
-1. subscribe/download Workshop item `3786842301`;
-2. inspect the delivered payload and confirm the expected `Contents/mods/pz-enshrouded-sleep/` tree, metadata, and artwork;
-3. configure a dedicated test server with:
-
-```text
-WorkshopItems=3786842301
-Mods=pz-enshrouded-sleep
-```
-
-4. run the Tier 1 startup smoke test using the Workshop-distributed copy;
-5. run a short two-player partial-sleep regression if practical;
-6. verify disable/rollback behavior when practical;
-7. confirm intended Workshop visibility and public description.
+Required public disclosures and provenance checks are governed by [`PZ_MODDING_POLICY.md`](PZ_MODDING_POLICY.md) and [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md).
 
 ## Update workflow
 
-For later releases:
-
-1. update source/docs/version in Git;
-2. update `workshop-description.bbcode` if the public description changes;
-3. complete the release checklist and multiplayer regression appropriate to the change;
-4. copy the clean repository contents over the existing local Workshop authoring directory, excluding `.git/` and private/local artifacts;
-5. preserve Workshop ID `3786842301` in `workshop.txt`/the uploader;
-6. use Project Zomboid `Workshop -> Create and Update Items` to update the existing item;
-7. supply an accurate Steam update note;
-8. verify the subscribed/dedicated-server copy after publication.
+1. Complete source/runtime changes and update `VERSION`, mod metadata, changelog, and public description as appropriate.
+2. Run the release checklist and the multiplayer regression appropriate to the change.
+3. Prepare a clean Workshop authoring directory from the repository root, excluding `.git/` and private/local artifacts.
+4. Preserve Workshop ID `3786842301` in `workshop.txt` and the uploader.
+5. Use Project Zomboid `Workshop -> Create and Update Items` to update the existing item.
+6. Provide an accurate Steam update note.
+7. Subscribe/download the resulting item and verify the distributed package rather than relying only on the authoring copy.
+8. Run the deployment smoke/regression appropriate to the release.
 
 Never create a new Workshop item merely to publish a routine version update.
+
+## Post-publication verification
+
+Confirm:
+
+- the expected `Contents/mods/pz-enshrouded-sleep/` runtime tree is present;
+- `mod.info` metadata/version is correct;
+- preview/poster/icon assets load as intended;
+- the dedicated server acquires the updated Workshop item;
+- clients receive the same package version;
+- the smoke test in [`TESTING.md`](TESTING.md) passes;
+- rollback instructions in [`DEPLOYMENT.md`](DEPLOYMENT.md) remain accurate.
