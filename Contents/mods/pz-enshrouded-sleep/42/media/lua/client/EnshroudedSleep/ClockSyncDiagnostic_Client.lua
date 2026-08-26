@@ -1,11 +1,11 @@
 -- Enshrouded Sleep - client clock/sleep diagnostic
--- Public Alpha v0.0.10 for Project Zomboid Build 42.20+
+-- Public Beta v0.1.0 for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
 -- Record the connected client's view of GameTime and local sleep state once per
 -- real second while verbose diagnostics are explicitly enabled. This is support
--- instrumentation only; normal Public Alpha gameplay leaves it dormant.
+-- instrumentation only; normal Public Beta gameplay leaves it dormant.
 --
 -- This sampler preserves the clock/sleep observability first used to diagnose
 -- the historical client MinutesPerDay mismatch. It complements the newer health
@@ -224,4 +224,4 @@ else
     Events.OnTick.Add(sampleClock)
 end
 
-log("Loaded Public Alpha v0.0.10 client clock/sleep diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")
+log("Loaded Public Beta v0.1.0 client clock/sleep diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")

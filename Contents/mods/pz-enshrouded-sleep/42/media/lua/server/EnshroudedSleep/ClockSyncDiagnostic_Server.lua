@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - server clock/sleep diagnostic
--- Public Alpha v0.0.10 for Project Zomboid Build 42.20+
+-- Public Beta v0.1.0 for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -252,4 +252,4 @@ else
     Events.OnTick.Add(sampleClock)
 end
 
-log("Loaded Public Alpha v0.0.10 server clock/sleep diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")
+log("Loaded Public Beta v0.1.0 server clock/sleep diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")

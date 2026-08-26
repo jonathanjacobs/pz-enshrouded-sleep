@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - focused server survival-stat diagnostic
--- Public Alpha v0.0.10 for Project Zomboid Build 42.20+
+-- Public Beta v0.1.0 for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -201,4 +201,4 @@ else
     Events.OnTick.Add(sample)
 end
 
-log("Loaded Public Alpha v0.0.10 server survival-stat diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")
+log("Loaded Public Beta v0.1.0 server survival-stat diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")

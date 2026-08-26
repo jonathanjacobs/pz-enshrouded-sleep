@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - broad server health/time-domain diagnostic
--- Public Alpha v0.0.10 for Project Zomboid Build 42.20+
+-- Public Beta v0.1.0 for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -546,4 +546,4 @@ else
     Events.OnTick.Add(sampleHealthTimeDomains)
 end
 
-log("Loaded Public Alpha v0.0.10 broad server health/time-domain diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")
+log("Loaded Public Beta v0.1.0 broad server health/time-domain diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")
