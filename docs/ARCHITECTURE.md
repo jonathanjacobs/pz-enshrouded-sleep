@@ -1,254 +1,139 @@
 # Architecture
 
-This document describes the current Enshrouded Sleep architecture. Empirical evidence lives in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md); normative behavior in [`REQUIREMENTS.md`](REQUIREMENTS.md); durable decisions under [`adr/`](adr/).
+This document owns the current technical design of Enshrouded Sleep. Normative behavior belongs in [`REQUIREMENTS.md`](REQUIREMENTS.md), validation evidence in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md) and [`spikes/`](spikes/), and durable decisions in [`adr/`](adr/).
 
-Current version: `v0.0.10`  
-Release phase: **Public Alpha**
+## Runtime boundary
 
-## Repository and runtime boundary
-
-The Git repository is also the intended Steam Workshop item wrapper. The authoritative Project Zomboid runtime mod exists in exactly one location:
+Enshrouded Sleep is a Project Zomboid Build 42 multiplayer-server mod. The authoritative runtime tree is:
 
 ```text
 Contents/mods/pz-enshrouded-sleep/
 ```
 
-Within that runtime tree, Build 42 versioning remains explicit:
+The repository root is also the Steam Workshop item wrapper, but outer documentation/artwork is not part of the runtime mod tree.
+
+## Time model
+
+Partial sleep changes calendar pacing without globally fast-forwarding active simulation.
 
 ```text
-Contents/mods/pz-enshrouded-sleep/
-├── mod.info
-├── common/
-└── 42/
-    ├── mod.info
-    └── media/
-```
-
-The repository/Workshop root may also contain public documentation, licensing/provenance files, `workshop.txt`, and Workshop artwork. Those outer files are not part of the PZ runtime mod tree.
-
-There must not be a second root-level runtime copy of `42/`, `common/`, or `mod.info`; one authoritative runtime tree avoids source/deployment drift.
-
-## Design goal
-
-Enshrouded Sleep is a **Project Zomboid Build 42 multiplayer-server mod**. It adds proportional multiplayer sleep while preserving vanilla sleep rules. Local/standalone single-player support is outside project scope.
-
-The mod does **not** globally fast-forward active simulation. When some but not all living server players are asleep, it shortens the real-world duration of the PZ day by changing `GameTime:MinutesPerDay`.
-
-```text
-ACTIVE SIMULATION
-movement, combat, zombies, vehicles, animations, physics, timed actions
--> intended normal speed
-
-WORLD / CALENDAR TIME
-time of day, date, WorldAgeHours, game-minute/world-time systems
--> faster during compression
-```
-
-ADR-001 records the decision to use `MinutesPerDay` rather than a global simulation multiplier.
-
-## Server population model
-
-The authoritative server uses only:
-
-```text
-LivingPlayers = getOnlinePlayers() where isDead() == false
+LivingPlayers   = getOnlinePlayers() where isDead() == false
 SleepingPlayers = LivingPlayers where isAsleep() == true
-```
+SleepFraction   = SleepingPlayers / LivingPlayers
 
-Dead characters do not count. Loading clients do not count until vanilla exposes an instantiated `IsoPlayer`. There is no local `getPlayer()` fallback in server policy or server diagnostics.
-
-ADR-002 records the decision to extend vanilla lifecycle semantics rather than maintain a separate readiness registry.
-
-## Normal sleep state machine
-
-```text
-SleepingPlayers == 0
-    -> baseline MinutesPerDay
-
-0 < SleepingPlayers < LivingPlayers
-    -> proportional calendar compression
-
-SleepingPlayers == LivingPlayers
-    -> restore baseline MinutesPerDay
-    -> vanilla full-sleep fast-forward owns the state
-```
-
-The mod never intentionally stacks partial `MinutesPerDay` compression with vanilla all-asleep acceleration.
-
-## Compression formula
-
-```text
-SleepFraction = SleepingPlayers / LivingPlayers
-EffectivePartialSleepCap = NativeFastForward * PartialSleepSpeedScale
-CalendarCompressionFactor = max(1.0,
-    EffectivePartialSleepCap * SleepFraction)
+EffectivePartialSleepCap = FastForwardMultiplier × PartialSleepSpeedScale
+CalendarCompressionFactor = max(1, EffectivePartialSleepCap × SleepFraction)
 EffectiveMinutesPerDay = BaselineMinutesPerDay / CalendarCompressionFactor
 ```
 
-Validated reference:
+State behavior:
 
 ```text
-BaselineMinutesPerDay = 90
-NativeFastForward = 40
-LivingPlayers = 2
-SleepingPlayers = 1
-CalendarCompressionFactor = 20
-EffectiveMinutesPerDay = 4.5
+0 sleepers
+    -> baseline MinutesPerDay
+
+some but not all living players asleep
+    -> proportional MinutesPerDay compression
+
+all living players asleep
+    -> restore baseline MinutesPerDay
+    -> vanilla full-sleep acceleration owns the state
 ```
 
-Controlled validation also exercised factors `5`, `10`, and `20` while monitoring an awake player.
+The controller does not use `GameTime:setMultiplier()` for normal partial sleep. ADR-001 records the `MinutesPerDay` decision; ADR-002 records the vanilla lifecycle/full-sleep handoff.
 
-## Native server settings remain authoritative
+## Server authority
 
-The controller reads live `GameTime:getMinutesPerDay()`, `SleepAllowed`, `SleepNeeded`, and `FastForwardMultiplier` from the multiplayer server runtime.
+`EnshroudedSleep_Server.lua` owns normal server policy and authoritative `GameTime:setMinutesPerDay()` writes. It captures the live native baseline rather than deriving day length from a hard-coded sandbox mapping, and it reads the server's native `FastForwardMultiplier` at runtime.
 
-Normal Public Alpha configuration:
+Player population is derived only from server-visible `IsoPlayer` instances. Dead characters are excluded. Loading clients do not enter the denominator until vanilla exposes them through `getOnlinePlayers()`.
 
-```text
-Enabled=true
-PartialSleepSpeedScale=1.0
-DiagnosticsEnabled=false
-DiagnosticForcedCompressionFactor=1.0
-```
+Recoverable controller failures fail toward the captured baseline.
 
-## Server authority and client pacing
+## Client clock pacing
 
-Runtime responsibility is intentionally split:
+The server remains authoritative for world time and proportional policy.
 
 ```text
 EnshroudedSleep_Server.lua
--> calculates normal/diagnostic server policy
--> owns authoritative server setMinutesPerDay()
+    -> calculates/applies authoritative MinutesPerDay
 
 ClockStateSync_Server.lua
--> observes settled authoritative server state
--> publishes ClockState packets
+    -> observes settled server state
+    -> publishes ClockState packets
 
 ClockStateSync_Client.lua
--> validates ClockState packets
--> mirrors authoritative MinutesPerDay locally
+    -> validates packets
+    -> mirrors authoritative MinutesPerDay locally
 ```
 
-The client does not independently calculate proportional compression and does not use `setTimeOfDay()` or a global multiplier as a substitute for server authority.
+Clients do not independently recalculate the sleeping fraction or compression target. ADR-003 records this design.
 
-ADR-003 records this client-pacing decision.
+## Awake-player survival protection
 
-## Full-sleep handoff
+`AwakePlayerProtection_Server.lua` is a server-authoritative post-update normalizer used during normal partial sleep when `AwakePlayerProtectionEnabled=true`.
 
-When all living server players are asleep, Enshrouded Sleep restores baseline `MinutesPerDay` and steps aside. Vanilla then performs its own full-sleep acceleration through a separate mechanism.
+Protected fields:
 
-The v0.0.8 one-player-on-server full-sleep reference demonstrated why these mechanisms must remain analytically separate: a heavily bleeding sleeping player died rapidly while `MinutesPerDay` remained at baseline and vanilla full-sleep acceleration owned the state.
+- Hunger
+- Thirst
+- Fatigue
+- Calories
+- Carbohydrates
+- Proteins
+- Lipids
+- Weight
 
-## Diagnostic forced-compression state
-
-v0.0.10 retains a narrow server-only diagnostic state for regression/support testing. It was used to complete SPIKE-004 and is dormant during normal Public Alpha play.
-
-Activation requires:
+The module runs on `Events.OnTick`, iterates all living server players, and derives the observed compression factor from:
 
 ```text
-DiagnosticsEnabled == true
-DiagnosticForcedCompressionFactor > 1
-LivingPlayers == 1
-SleepingPlayers == 0
+BaselineMinutesPerDay / CurrentMinutesPerDay
 ```
 
-When active:
+It never corrects sleeping or dead players. Correction is active only when some-but-not-all living players are asleep and `MinutesPerDay` is actually below baseline, except for the isolated diagnostic forced-compression path.
 
-```text
-mode = diagnostic-forced
-CalendarCompressionFactor = DiagnosticForcedCompressionFactor
-EffectiveMinutesPerDay = BaselineMinutesPerDay / DiagnosticForcedCompressionFactor
-```
+The correction is directional:
 
-The controller still does **not** call `GameTime:setMultiplier()`.
+- worsening Hunger/Thirst/Fatigue deltas are reduced to the fraction expected at native day length;
+- passive depletion of Calories/Carbohydrates/Proteins/Lipids is reduced similarly;
+- opposite-direction favorable effects are accepted in full;
+- Weight deltas are normalized in either direction.
 
-### Safety boundary
+Each player's previous corrected snapshot becomes the reference for the next tick. A failed read/write clears that player's reference and fails open rather than applying a later catch-up correction.
 
-```text
-player sleeps
-    -> restore baseline
-    -> suspend override
+Detailed feasibility evidence and limitations belong in [`spikes/SPIKE-006-awake-player-protection.md`](spikes/SPIKE-006-awake-player-protection.md).
 
-second living player connects
-    -> restore baseline
-    -> suspend override
+## Diagnostic forced compression
 
-zero living players
-    -> retain baseline
-    -> override remains armed
-```
+`DiagnosticForcedCompressionFactor` is a support/regression mechanism, not normal gameplay tuning. It can compress `MinutesPerDay` with exactly one living awake player only when verbose diagnostics are enabled.
 
-Returning factor to `1.0`, disabling diagnostics, disabling the mod, or encountering a recoverable failure exits toward baseline. While a factor above `1` is armed, normal proportional sleep policy is suppressed so the diagnostic test cannot mix with ordinary multiplayer sleep behavior.
+A sleeping player, a second living player, disabling diagnostics, returning the factor to `1.0`, or a recoverable controller failure exits/suspends the forced path toward baseline. The forced path remains separate from normal multiplayer partial sleep.
 
-The v0.0.10 runtime test validated the sleep-suspension path.
+Operational use belongs in [`DEPLOYMENT.md`](DEPLOYMENT.md); test procedures belong in [`TESTING.md`](TESTING.md).
 
-## Fail-safe behavior
+## Observability
 
-The controller captures the native runtime baseline once and fails toward it. Restoration is attempted when normal partial sleep ends, all players become asleep, native sleep is disabled for normal policy, the mod is disabled, diagnostic forced compression is suspended/exited, or a recoverable controller error occurs.
+Normal operation emits low-volume controller, synchronization, roster, and awake-protection state transitions. High-frequency health/survival/action/world-system telemetry is gated by `DiagnosticsEnabled=true`.
 
-## Logging / observability
-
-Operational prefixes:
-
-```text
-[EnshroudedSleep]
-[EnshroudedSleepSync][SERVER]
-[EnshroudedSleepSync][CLIENT]
-```
-
-Verbose diagnostics:
-
-```text
-[EnshroudedSleepDiag][SERVER]
-[EnshroudedSleepDiag][CLIENT]
-[EnshroudedSleepHealthDiag][SERVER]
-[EnshroudedSleepHealthDiag][CLIENT]
-[EnshroudedSleepSurvivalDiag][SERVER]
-[EnshroudedSleepSurvivalDiag][CLIENT]
-```
-
-All one-second telemetry remains gated by `DiagnosticsEnabled=true` and uses wall-clock gating so the telemetry cadence itself does not accelerate with compressed world time.
-
-The broad health/body diagnostic retains legacy probes for historical continuity. Current Build 42 CharacterStat/Moodle survival-state access is centralized in:
+Shared survival-state access is centralized in:
 
 ```text
 Contents/mods/pz-enshrouded-sleep/42/media/lua/shared/EnshroudedSleep/SurvivalStatProbe.lua
 ```
 
-## Multiple PZ time domains — validated finding
+Diagnostics are designed to degrade unavailable optional capabilities rather than break gameplay.
 
-SPIKE-004 confirmed that different player systems use different time domains.
+## Time-domain boundary
 
-**Approximately simulation/real-time bound under tested conditions:**
+Changing `MinutesPerDay` intentionally accelerates systems tied to game-world/calendar time. Awake-player protection compensates only its explicit player-survival scope. External systems such as food aging, generator resources, vehicle resources, farming, corpses, weather, and modded world systems remain outside this module.
 
-- awake bleeding/body-health loss;
-- measured bleeding/scratch timers;
-- resting endurance recovery.
+Evidence for individual time domains belongs in SPIKE-004/SPIKE-005 and `VALIDATION_HISTORY.md`; architecture should not duplicate their measurement tables.
 
-**World/calendar-time bound:**
+## Design constraints
 
-- hunger;
-- thirst;
-- fatigue;
-- calories;
-- carbohydrates;
-- proteins;
-- lipids.
-
-This means faster survival-need progression during partial sleep is expected because genuine game-world time is passing faster. No broad health/survival compensation is currently justified.
-
-Active sickness/food poisoning, poison, zombie infection/fever and extreme thermal injury were not present during the controlled test and remain Public Alpha characterization targets.
-
-Detailed evidence is in [`spikes/SPIKE-004-health-time-domains.md`](spikes/SPIKE-004-health-time-domains.md).
-
-## Future compensation policy
-
-Any compensation must be system-specific, evidence-based, and validated. The conceptual inverse factor for a world-time-driven system that should intentionally remain real-time bound is:
-
-```text
-RealTimeCompensationFactor = 1 / CalendarCompressionFactor
-```
-
-## Non-health world-time systems
-
-Public Alpha will characterize food aging/spoilage, farming/crops, generator fuel usage, corpse decay, composting, weather, and mods driven by game minutes or `WorldAgeHours`.
+- no global simulation fast-forward for partial sleep;
+- no custom readiness/voting registry;
+- no local/standalone single-player fallback in server policy;
+- no Project Zomboid Java/core patching for ordinary Workshop distribution;
+- no broad subsystem compensation without measured evidence;
+- vanilla remains authoritative for sleep eligibility, actual sleep state, and all-living-asleep fast-forward.
