@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - awake-player survival protection
--- Public Beta v0.1.0 for Project Zomboid Build 42.20+
+-- Public Beta v0.1.1 for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -400,6 +400,6 @@ end
 
 Events.OnTick.Add(onTick)
 
-log("Loaded Public Beta v0.1.0 awake-player survival protection.")
+log("Loaded Public Beta v0.1.1 awake-player survival protection.")
 log("Normal partial sleep protects all awake living players; sleeping players remain vanilla-authoritative.")
 log("Supported fields: Hunger, Thirst, Fatigue, Calories, Carbohydrates, Proteins, Lipids, Weight.")
