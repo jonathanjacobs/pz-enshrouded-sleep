@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - SPIKE-005 non-mutating world-system diagnostic collector
--- Public Alpha v0.0.10 / development branch only
+-- Public Beta support diagnostic; development/field-investigation use only
 --
 -- Food aging is intentionally handled by FoodTimeDomainDiagnostic_Server.lua,
 -- which performs strict Food-class validation. This collector observes only
@@ -179,10 +179,6 @@ local function vehicleRecord(player)
     local batteryPart = safeMethod(vehicle, "getBattery") or safeMethod(vehicle, "getPartById", "Battery")
     local batteryItem = batteryPart and safeMethod(batteryPart, "getInventoryItem") or nil
 
-    -- BaseVehicle:getBatteryCharge() is the canonical vehicle charge value used
-    -- by vanilla vehicle electrical logic. The previous diagnostic attempted to
-    -- read InventoryItem:getUsedDelta(), which is not reliably exposed for the
-    -- vehicle battery object in B42 and produced N/A in the first vehicle test.
     local batteryCharge = tonumber(safeMethod(vehicle, "getBatteryCharge"))
     local batteryItemCharge = batteryItem and tonumber(safeMethod(batteryItem, "getCurrentUsesFloat")) or nil
 
