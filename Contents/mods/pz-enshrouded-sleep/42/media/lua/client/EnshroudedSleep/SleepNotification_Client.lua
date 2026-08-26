@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - client sleep-status notification display
--- Public Beta v0.1.0 for Project Zomboid Build 42.20+
+-- Public Beta v0.1.1 for Project Zomboid Build 42.20+
 --
 -- Receives server-authored sleep-state notifications and displays them through
 -- Project Zomboid's client ServerChat path. This module is UI-only and never
@@ -64,7 +64,6 @@ end
 local function managerIsReady(manager)
     local okMethod, method = pcall(function() return manager.isWorking end)
     if not okMethod or not method then
-        -- Older/exposed bindings may not provide isWorking; attempt delivery.
         return true
     end
 
@@ -88,8 +87,6 @@ local function deliverPending()
     local message = pendingMessage
     local ok, err = pcall(method, manager, message)
     if not ok then
-        -- Circuit-break the UI bridge after one failure so a Kahlua exposure
-        -- mismatch cannot repeat every tick or affect gameplay.
         disableChatCapability("showServerChatMessage failed: " .. tostring(err))
         return
     end
@@ -119,7 +116,6 @@ local function onServerCommand(module, command, args)
         return
     end
 
-    -- Keep only the newest state if chat initialization briefly lags the packet.
     pendingMessage = message
     deliverPending()
 end
@@ -134,4 +130,4 @@ if Events.OnTick then
     Events.OnTick.Add(deliverPending)
 end
 
-log("Loaded Public Beta v0.1.0 optional sleep-status client display; messages are server-authored and server-admin controlled.")
+log("Loaded Public Beta v0.1.1 optional sleep-status client display; messages are server-authored and server-admin controlled.")
