@@ -11,6 +11,7 @@ Steam Workshop ID: `3786842301`
 EnshroudedSleep.Enabled=true
 EnshroudedSleep.PartialSleepSpeedScale=1.0
 EnshroudedSleep.AwakePlayerProtectionEnabled=true
+EnshroudedSleep.SleepNotificationsEnabled=false
 EnshroudedSleep.DiagnosticsEnabled=false
 EnshroudedSleep.DiagnosticForcedCompressionFactor=1.0
 ```
@@ -20,8 +21,17 @@ Administrator meaning:
 - `Enabled` — master Enshrouded Sleep controller switch.
 - `PartialSleepSpeedScale` — scales normal proportional partial-sleep calendar acceleration; `1.0` is neutral.
 - `AwakePlayerProtectionEnabled` — protects supported awake-player survival/metabolism fields during partial sleep; disable this first when isolating a compatibility problem in the protection layer.
+- `SleepNotificationsEnabled` — when enabled, sends concise server-chat messages when the effective multiplayer sleep state changes. Disabled by default and has no effect on sleep/time policy.
 - `DiagnosticsEnabled` — enables high-volume troubleshooting telemetry; leave off during routine play.
 - `DiagnosticForcedCompressionFactor` — isolated one-player regression tool; keep at `1.0` during normal multiplayer operation.
+
+When notifications are enabled, partial-sleep messages use the settled authoritative compression factor, for example:
+
+```text
+[Enshrouded Sleep] 50% players are sleeping. Time is 20x faster.
+```
+
+All-awake and all-asleep transitions use short special messages rather than claiming a misleading multiplier during vanilla full-sleep handoff.
 
 The in-game sandbox tooltips contain fuller option descriptions. The canonical clock/protection behavior is in [`REQUIREMENTS.md`](REQUIREMENTS.md).
 
@@ -42,10 +52,11 @@ Players joining a Workshop-configured server should use the Workshop-distributed
 4. Preserve the previous known-good package/configuration when practical.
 5. Update the existing Workshop item/server package.
 6. Verify the normal configuration above unless the release notes explicitly require otherwise.
-7. Start the server and confirm the controller, clock sync, roster logger, and awake-protection module load without an Enshrouded Sleep Lua exception.
+7. Start the server and confirm the controller, clock sync, roster logger, awake-protection module, and notification modules load without an Enshrouded Sleep Lua exception.
 8. Confirm native baseline `MinutesPerDay` while all living players are awake.
 9. During the first natural partial-sleep event, confirm partial mode appears and later returns to baseline.
-10. Preserve early session logs after a material runtime update.
+10. If `SleepNotificationsEnabled=true`, confirm one concise chat message appears per effective sleep-state change without repeated spam.
+11. Preserve early session logs after a material runtime update.
 
 Workshop authoring/publication mechanics are maintained separately in [`STEAM_WORKSHOP.md`](STEAM_WORKSHOP.md).
 
@@ -59,10 +70,11 @@ Pay attention to:
 - protection status matching the actual awake/sleeping roster;
 - joins/disconnects/deaths/respawns during partial sleep;
 - recurring client clock corrections;
+- repeated or missing sleep-status notifications when the option is enabled;
 - `WRITE_FAILURE_FAIL_OPEN` messages;
 - recurring Enshrouded Sleep Lua exceptions;
 - unusual server responsiveness or log volume;
-- conflicts with mods that alter sleep, time, CharacterStats, nutrition, or timed actions.
+- conflicts with mods that alter sleep, time, CharacterStats, nutrition, timed actions, or chat UI.
 
 ## Focused diagnostics
 
@@ -89,6 +101,8 @@ Useful prefixes include:
 [EnshroudedSleepSync][SERVER]
 [EnshroudedSleepSync][CLIENT]
 [EnshroudedSleepAwakeProtect][SERVER]
+[EnshroudedSleepNotify][SERVER]
+[EnshroudedSleepNotify][CLIENT]
 [EnshroudedSleepActionDiag][SERVER]
 [EnshroudedSleepActionDiag][CLIENT]
 [EnshroudedSleepSurvivalDiag][SERVER]
@@ -106,6 +120,16 @@ EnshroudedSleep.AwakePlayerProtectionEnabled=false
 ```
 
 This disables the survival-state normalizer while leaving proportional partial-sleep calendar compression and vanilla all-asleep handoff active. Preserve logs and compare behavior before removing the entire mod.
+
+## Notification-only rollback
+
+If the sleep/time mechanic is correct but chat notifications are unwanted or conflict with another chat/UI mod, disable only:
+
+```text
+EnshroudedSleep.SleepNotificationsEnabled=false
+```
+
+This has no effect on time compression or awake-player protection.
 
 ## Full rollback
 
