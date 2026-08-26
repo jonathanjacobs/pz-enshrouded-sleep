@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - optional multiplayer sleep-status notifications
--- Public Beta v0.1.0 for Project Zomboid Build 42.20+
+-- Public Beta v0.1.1 for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -19,6 +19,7 @@ local PREFIX = "[EnshroudedSleepNotify][SERVER]"
 local MODULE = "EnshroudedSleep"
 local COMMAND = "SleepNotification"
 local PROTOCOL_VERSION = 1
+local BUILD_VERSION = "0.1.1"
 local EPSILON = 0.0001
 
 local baselineMinutesPerDay = nil
@@ -101,6 +102,7 @@ local function broadcast(message, living, sleeping, compression)
 
     local args = {
         protocolVersion = PROTOCOL_VERSION,
+        buildVersion = BUILD_VERSION,
         message = message,
         living = living,
         sleeping = sleeping,
@@ -138,9 +140,6 @@ local function update()
     local minutesPerDay = tonumber(safeMethod(gt, "getMinutesPerDay"))
     if not minutesPerDay or minutesPerDay <= 0 then return end
 
-    -- Capture the highest authoritative day length observed as this read-only
-    -- module's baseline. Normal server startup/all-awake state supplies it before
-    -- partial sleep, and the notifier never writes it back to GameTime.
     if baselineMinutesPerDay == nil or minutesPerDay > baselineMinutesPerDay then
         baselineMinutesPerDay = minutesPerDay
     end
@@ -163,9 +162,6 @@ local function update()
 
     local populationSignature = table.concat({ mode, tostring(living), tostring(sleeping) }, "|")
 
-    -- Sleep/population changes can be observed before the authoritative
-    -- controller has applied its new MinutesPerDay on the same tick. Defer one
-    -- observer pass so the notification describes settled controller output.
     if populationSignature ~= lastPopulationSignature then
         lastPopulationSignature = populationSignature
         return
@@ -190,7 +186,6 @@ local function update()
                 lastNotificationSignature = notificationSignature
             end
         else
-            -- Do not announce ordinary all-awake state at server startup.
             lastNotificationSignature = notificationSignature
         end
         return
@@ -236,4 +231,4 @@ else
     Events.OnTick.Add(update)
 end
 
-log("Loaded Public Beta v0.1.0 optional sleep-status broadcaster; server-admin controlled and disabled unless SleepNotificationsEnabled=true.")
+log("Loaded Public Beta v0.1.1 optional sleep-status broadcaster; server-admin controlled and disabled unless SleepNotificationsEnabled=true.")
