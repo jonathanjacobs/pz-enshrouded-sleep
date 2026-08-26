@@ -7,7 +7,7 @@
 **Proportional multiplayer sleeping for Project Zomboid Build 42 servers.**
 
 Status: **Public Beta**  
-Current version: **v0.1.0**  
+Current version: **v0.1.1**  
 Validated Project Zomboid baseline: **42.20.4**  
 Steam Workshop ID: **3786842301**
 
@@ -34,11 +34,11 @@ Local/standalone single-player gameplay is outside the supported scope.
 
 ## Build 42.20.4 compatibility
 
-Public Beta v0.1.0 has been regression-checked on Project Zomboid **42.20.4** (`b0bbce05d5`) using dedicated-server and connected-client logs. Startup, native baseline capture, normal all-awake operation, and server-to-client `ClockState` synchronization completed without a relevant Enshrouded Sleep Lua exception.
+Public Beta v0.1.1 is based on a Project Zomboid **42.20.4** (`b0bbce05d5`) compatibility checkpoint from dedicated-server and connected-client logs. Startup, native baseline capture, normal all-awake operation, and server-to-client `ClockState` synchronization completed without a relevant Enshrouded Sleep Lua exception.
 
 The 42.20.4 security hotfix removed Lua `loadstring`/`loadstream`. Enshrouded Sleep does not use either API. Its multiplayer synchronization and optional notification paths use predefined named `sendServerCommand` / `OnServerCommand` messages with structured arguments rather than server-supplied executable code.
 
-This compatibility checkpoint does not by itself expand claims for every mod-stack interaction or every optional feature. The opt-in sleep-notification path remains under `Unreleased` until its dedicated multiplayer smoke test is completed.
+The optional sleep-notification path is included in v0.1.1 for live Public Beta field validation on the WHG server. It is disabled by default and can be turned off independently if the chat/display path causes a compatibility issue; doing so does not alter sleep policy, clock synchronization, or awake-player protection.
 
 ## Server setup
 
@@ -66,7 +66,7 @@ For option semantics, upgrade procedure, monitoring, diagnostic use, and rollbac
 
 World/calendar time genuinely advances faster during partial sleep. Awake-player protection applies only to the explicitly supported player survival fields above. External world-time systems—including food aging/spoilage, generator and vehicle resources, farming/crops, weather, corpses, and modded world systems—remain on their normal game-world clocks unless separately addressed.
 
-Controlled testing established the core time-compression/client-sync architecture and the feasibility of awake-player protection. Public Beta is collecting broader multiplayer, lifecycle, performance, and mod-stack evidence. Current targets are maintained only in [`docs/ROADMAP.md`](docs/ROADMAP.md); detailed evidence lives in [`docs/VALIDATION_HISTORY.md`](docs/VALIDATION_HISTORY.md) and [`docs/spikes/`](docs/spikes/).
+Controlled testing established the core time-compression/client-sync architecture and the feasibility of awake-player protection. Public Beta is collecting broader multiplayer, lifecycle, performance, notification, and mod-stack evidence. Current targets are maintained only in [`docs/ROADMAP.md`](docs/ROADMAP.md); detailed evidence lives in [`docs/VALIDATION_HISTORY.md`](docs/VALIDATION_HISTORY.md) and [`docs/spikes/`](docs/spikes/).
 
 ## Documentation
 
