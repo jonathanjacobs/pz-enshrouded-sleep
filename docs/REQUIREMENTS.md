@@ -170,6 +170,28 @@ No second root-level runtime `42/`, `common/`, or `mod.info` copy may be maintai
 
 The Project Zomboid Mod ID remains `pz-enshrouded-sleep`. Steam Workshop publication must continue using the existing permanent Workshop item rather than creating routine replacement items.
 
+## Optional sleep-status notifications
+
+### R31 — Notifications are independently configurable and opt-in
+
+`SleepNotificationsEnabled` controls only player-facing sleep-status messages. It must default to `false`, and disabling it must not alter proportional sleep, client clock synchronization, or awake-player protection.
+
+### R32 — Notifications describe settled authoritative state
+
+When enabled, notifications must be derived from the authoritative server's settled `MinutesPerDay` and living/sleeping population rather than independently calculating sleep policy. A sleep/population transition may be deferred briefly so the controller's new day length is visible before the message is sent.
+
+### R33 — Notifications are transition-based and concise
+
+Notifications must be emitted only when the effective multiplayer sleep state changes, including sleep/wake changes and population changes that alter the active sleep fraction. Routine all-awake startup state must not generate a message. Normal partial-sleep messages use the form:
+
+```text
+[Enshrouded Sleep] X% players are sleeping. Time is Yx faster.
+```
+
+When all players are awake, the message must report normal time. When all living players are asleep, the message must identify vanilla full-sleep fast-forward rather than claim a specific Enshrouded Sleep compression factor.
+
+A chat/UI bridge failure must degrade independently and must never affect the sleep/time controller.
+
 ## Out of scope
 
 - local/standalone single-player support;
@@ -177,7 +199,7 @@ The Project Zomboid Mod ID remains `pz-enshrouded-sleep`. Steam Workshop publica
 - ready/not-ready voting or lobby readiness tracking;
 - global active-simulation fast-forward during partial sleep;
 - broad automatic compensation of unmeasured world systems;
-- guaranteed compatibility with every sleep, survival, or time-altering mod;
+- guaranteed compatibility with every sleep, survival, time-altering, or chat/UI mod;
 - Project Zomboid Java/core-file patching for ordinary Workshop distribution.
 
 Current validation status belongs in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md); future work belongs in [`ROADMAP.md`](ROADMAP.md); operational defaults belong in [`DEPLOYMENT.md`](DEPLOYMENT.md).
