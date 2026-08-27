@@ -2,6 +2,7 @@
 
 This document owns server installation, normal configuration, monitoring, diagnostics, and rollback. Product semantics belong in [`REQUIREMENTS.md`](REQUIREMENTS.md); test evidence belongs in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md).
 
+Current release: `v0.1.1`  
 Project Zomboid Mod ID: `pz-enshrouded-sleep`  
 Steam Workshop ID: `3786842301`  
 Current validated compatibility checkpoint: Project Zomboid `42.20.4` (`b0bbce05d5`)
@@ -29,7 +30,7 @@ Administrator meaning:
 When notifications are enabled, partial-sleep messages use the settled authoritative compression factor and current living-player denominator, for example:
 
 ```text
-[Enshrouded Sleep] 1/2 living players sleeping (50%). Time is 20x faster.
+[Enshrouded Sleep] 1/2 living players sleeping (50%). World time is 20x faster.
 ```
 
 All-awake and all-asleep transitions use short special messages rather than claiming a misleading multiplier during vanilla full-sleep handoff.
@@ -52,12 +53,13 @@ Players joining a Workshop-configured server should use the Workshop-distributed
 3. Back up the world/save and server configuration.
 4. Preserve the previous known-good package/configuration when practical.
 5. Update the existing Workshop item/server package.
-6. Verify the normal configuration above unless the release notes explicitly require otherwise.
+6. Verify the normal configuration above unless the release notes explicitly require otherwise. For the WHG v0.1.1 live notification test, explicitly set `SleepNotificationsEnabled=true`; it defaults to `false`.
 7. Start the server and confirm the controller, clock sync, roster logger, awake-protection module, and notification modules load without an Enshrouded Sleep Lua exception.
-8. Confirm native baseline `MinutesPerDay` while all living players are awake.
-9. During the first natural partial-sleep event, confirm partial mode appears and later returns to baseline.
-10. If `SleepNotificationsEnabled=true`, confirm one concise chat message appears per effective sleep-state change without repeated spam.
-11. Preserve early session logs after a material runtime update.
+8. Confirm the notification server emits a low-volume `CONFIG` line showing the effective `SleepNotificationsEnabled` value. For the WHG live test it should report `SleepNotificationsEnabled=true`.
+9. Confirm native baseline `MinutesPerDay` while all living players are awake.
+10. During the first natural partial-sleep event, confirm partial mode appears and later returns to baseline.
+11. If `SleepNotificationsEnabled=true`, confirm one concise chat message appears per effective sleep-state change without repeated spam.
+12. Preserve early session logs after a material runtime update.
 
 Workshop authoring/publication mechanics are maintained separately in [`STEAM_WORKSHOP.md`](STEAM_WORKSHOP.md).
 
@@ -71,6 +73,7 @@ Pay attention to:
 - protection status matching the actual awake/sleeping roster;
 - joins/disconnects/deaths/respawns during partial sleep;
 - recurring client clock corrections;
+- notification `CONFIG` state matching the intended administrator setting;
 - repeated or missing sleep-status notifications when the option is enabled;
 - `WRITE_FAILURE_FAIL_OPEN` messages;
 - recurring Enshrouded Sleep Lua exceptions;
