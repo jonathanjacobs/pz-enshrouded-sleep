@@ -21,6 +21,8 @@ jobs:
 
           MOD_ROOT="Contents/mods/pz-enshrouded-sleep"
           RUNTIME_LUA="$MOD_ROOT/42/media/lua"
+          NOTIFY_SERVER="$MOD_ROOT/42/media/lua/server/EnshroudedSleep/SleepNotification_Server.lua"
+          SANDBOX_EN="$MOD_ROOT/42/media/lua/shared/Translate/EN/Sandbox.json"
           VERSION_VALUE="$(tr -d '\r\n' < VERSION)"
 
           [[ "$VERSION_VALUE" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
@@ -35,8 +37,9 @@ jobs:
           test -f "$MOD_ROOT/42/icon.png"
           test -f "$MOD_ROOT/42/media/sandbox-options.txt"
           test -f "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/AwakePlayerProtection_Server.lua"
-          test -f "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/SleepNotification_Server.lua"
+          test -f "$NOTIFY_SERVER"
           test -f "$MOD_ROOT/42/media/lua/client/EnshroudedSleep/SleepNotification_Client.lua"
+          test -f "$SANDBOX_EN"
           test ! -e "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/AwakePlayerProtectionPrototype_Server.lua"
 
           test -f "$MOD_ROOT/common/media/AnimSets/.gitkeep"
@@ -76,12 +79,23 @@ jobs:
           grep -Fq "Loaded Public Beta v$VERSION_VALUE multiplayer-server calendar-compression controller." "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/EnshroudedSleep_Server.lua"
           grep -Fq "Loaded Public Beta v$VERSION_VALUE authoritative MinutesPerDay replication." "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/ClockStateSync_Server.lua"
           grep -Fq "Loaded Public Beta v$VERSION_VALUE client MinutesPerDay synchronization." "$MOD_ROOT/42/media/lua/client/EnshroudedSleep/ClockStateSync_Client.lua"
-          grep -Fq "Loaded Public Beta v$VERSION_VALUE optional sleep-status broadcaster" "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/SleepNotification_Server.lua"
+          grep -Fq "Loaded Public Beta v$VERSION_VALUE optional sleep-status broadcaster" "$NOTIFY_SERVER"
           grep -Fq "Loaded Public Beta v$VERSION_VALUE optional sleep-status client display" "$MOD_ROOT/42/media/lua/client/EnshroudedSleep/SleepNotification_Client.lua"
           grep -Fq "buildVersion = \"$VERSION_VALUE\"" "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/ClockStateSync_Server.lua"
-          grep -Fq "BUILD_VERSION = \"$VERSION_VALUE\"" "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/SleepNotification_Server.lua"
-          grep -Fq "SleepNotificationsEnabled=true" "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/SleepNotification_Server.lua"
+          grep -Fq "BUILD_VERSION = \"$VERSION_VALUE\"" "$NOTIFY_SERVER"
+          grep -Fq "SleepNotificationsEnabled=true" "$NOTIFY_SERVER"
+          grep -Fq "CONFIG | Enabled=" "$NOTIFY_SERVER"
+          grep -Fq "World time is %s faster." "$NOTIFY_SERVER"
           grep -Fq "showServerChatMessage" "$MOD_ROOT/42/media/lua/client/EnshroudedSleep/SleepNotification_Client.lua"
+
+          # Keep the current public/admin examples synchronized with the runtime wording.
+          grep -Fq "World time is 20x faster." README.md
+          grep -Fq "World time is 20x faster." workshop-description.bbcode
+          grep -Fq "World time is 20x faster." "$SANDBOX_EN"
+          grep -Fq "World time is 20x faster." docs/DEPLOYMENT.md
+          grep -Fq "World time is 20x faster." docs/TESTING.md
+          grep -Fq "World time is 20x faster." docs/REQUIREMENTS.md
+          grep -Fq "World time is 20x faster." CHANGELOG.md
 
           # Every current release banner in runtime Lua must agree with VERSION.
           mapfile -t runtime_release_labels < <(
