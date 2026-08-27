@@ -133,6 +133,66 @@ SleepNotification_Client.lua
 
 The client chat bridge is circuit-broken after a bridge failure. A notification failure cannot change `MinutesPerDay`, player sleep state, client clock policy, or awake-player protection.
 
+## Optional Rested / Well Rested benefits
+
+SPIKE-007 adds a separate, opt-in reward layer for servers where sleep itself may be optional. It does not alter vanilla sleep eligibility or the proportional clock controller.
+
+```text
+SleepBenefits_Server.lua
+    -> observes server IsoPlayer:isAsleep() transitions
+    -> records current sleep start in server-session memory
+    -> measures sleep in GameTime:getWorldAgeHours()
+    -> classifies Rested / Well Rested from server sandbox thresholds
+    -> stores awarded benefit type + expiry world hour in player ModData
+    -> amplifies only positive Endurance recovery while Well Rested
+    -> sends SleepBenefitState only to the owning client
+
+SleepBenefits_Client.lua
+    -> validates server-authored SleepBenefitState
+    -> applies configured bonus to positive AddXP events using addXpNoMultiplier()
+    -> optionally drives custom moodles through Moodle Framework
+```
+
+### Benefit state ownership
+
+The server owns qualification, tier, expiry, and Endurance-recovery percentage. A client never decides that a sleep attempt qualified.
+
+An in-progress sleep attempt is deliberately **not** persisted. If a player disconnects or the server restarts while the character is sleeping, that unfinished attempt is discarded so offline elapsed world time cannot become rewarded sleep.
+
+An already-earned benefit is persisted in player ModData using its absolute world-hour expiry. That permits an earned Rested / Well Rested state to survive normal reconnect/server restart behavior while still expiring according to game-world time.
+
+### XP boundary
+
+Build 42 exposes XP award callbacks on the owning client. `SleepBenefits_Client.lua` therefore applies the server-supplied percentage to positive `AddXP` events and adds the result with `addXpNoMultiplier()`.
+
+A recursion guard prevents bonus XP from recursively generating more bonus XP. This path remains a validation target because other XP-altering mods may also observe or modify the same event stream.
+
+### Endurance boundary
+
+`SleepBenefits_Server.lua` resolves `CharacterStat.ENDURANCE` through the same guarded stat-access model used elsewhere in the project. While Well Rested is active, only positive Endurance deltas are amplified:
+
+```text
+extra = observedPositiveRecovery × configuredPercent / 100
+corrected = min(1.0, currentEndurance + extra)
+```
+
+Endurance depletion is never reduced and maximum Endurance is not increased. The correction is directional rather than source-specific, so positive Endurance changes introduced by another mod can also receive the bonus.
+
+### Moodle/UI boundary
+
+Moodle display is a soft integration with Tchernobill's Build 42 Moodle Framework (`3396446795`, Mod ID `MoodleFramework`). Enshrouded Sleep uses only the framework's documented public API when available and redistributes none of its code or assets.
+
+The runtime artwork is owned by this project:
+
+```text
+media/ui/Moodle_EnshroudedRested.png       # 30×30 RGBA
+media/ui/Moodle_EnshroudedWellRested.png   # 30×30 RGBA
+```
+
+If Moodle Framework is absent or its bridge fails, the benefit state/XP/Endurance logic continues and only the custom Moodle presentation is unavailable.
+
+Detailed feasibility assumptions and the required field test are in [`spikes/SPIKE-007-sleep-benefits.md`](spikes/SPIKE-007-sleep-benefits.md).
+
 ## Diagnostic forced compression
 
 `DiagnosticForcedCompressionFactor` is a support/regression mechanism, not normal gameplay tuning. It can compress `MinutesPerDay` with exactly one living awake player only when verbose diagnostics are enabled.
@@ -143,7 +203,7 @@ Operational use belongs in [`DEPLOYMENT.md`](DEPLOYMENT.md); test procedures bel
 
 ## Observability
 
-Normal operation emits low-volume controller, synchronization, roster, awake-protection, and—when explicitly enabled—sleep-notification transitions. High-frequency health/survival/action/world-system telemetry is gated by `DiagnosticsEnabled=true`.
+Normal operation emits low-volume controller, synchronization, roster, awake-protection, sleep-benefit, and—when explicitly enabled—sleep-notification transitions. High-frequency health/survival/action/world-system telemetry is gated by `DiagnosticsEnabled=true`.
 
 Shared survival-state access is centralized in:
 
@@ -157,6 +217,8 @@ Diagnostics and optional UI bridges are designed to degrade unavailable capabili
 
 Changing `MinutesPerDay` intentionally accelerates systems tied to game-world/calendar time. Awake-player protection compensates only its explicit player-survival scope. External systems such as food aging, generator resources, vehicle resources, farming, corpses, weather, and modded world systems remain outside this module.
 
+Rested / Well Rested benefit durations intentionally follow game-world hours, so they expire according to the same accelerated calendar whenever partial sleep advances world time faster.
+
 Evidence for individual time domains belongs in SPIKE-004/SPIKE-005 and `VALIDATION_HISTORY.md`; architecture should not duplicate their measurement tables.
 
 ## Design constraints
@@ -167,4 +229,5 @@ Evidence for individual time domains belongs in SPIKE-004/SPIKE-005 and `VALIDAT
 - no local/standalone single-player fallback in server policy;
 - no Project Zomboid Java/core patching for ordinary Workshop distribution;
 - no broad subsystem compensation without measured evidence;
+- optional Moodle Framework integration must not become a gameplay dependency;
 - vanilla remains authoritative for sleep eligibility, actual sleep state, and all-living-asleep fast-forward.
