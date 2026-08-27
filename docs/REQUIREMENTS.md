@@ -182,13 +182,13 @@ When enabled, notifications must be derived from the authoritative server's sett
 
 ### R33 — Notifications are transition-based and concise
 
-Notifications must be emitted only when the effective multiplayer sleep state changes, including sleep/wake changes and population changes that alter the active sleep fraction. Routine all-awake startup state must not generate a message. Normal partial-sleep messages report both the actual living/sleeping count and percentage, for example:
+Notifications must be emitted only when the effective multiplayer sleep state changes, including sleep/wake changes and population changes that alter the active sleep fraction. Routine all-awake startup state must not generate a player-facing message. Normal partial-sleep messages report both the actual living/sleeping count and percentage and must explicitly describe **world time**, not active simulation speed, for example:
 
 ```text
-[Enshrouded Sleep] 1/2 living players sleeping (50%). Time is 20x faster.
+[Enshrouded Sleep] 1/2 living players sleeping (50%). World time is 20x faster.
 ```
 
-When all living players are awake, the message must report normal time. When all living players are asleep, the message must identify vanilla full-sleep fast-forward rather than claim a specific Enshrouded Sleep compression factor.
+When all living players are awake, the message must report normal world time. When all living players are asleep, the message must identify vanilla full-sleep fast-forward rather than claim a specific Enshrouded Sleep compression factor.
 
 A chat/UI bridge failure must degrade independently and must never affect the sleep/time controller.
 
