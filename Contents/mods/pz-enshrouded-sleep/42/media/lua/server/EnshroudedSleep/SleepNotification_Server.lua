@@ -27,6 +27,7 @@ local lastPopulationSignature = nil
 local lastNotificationSignature = nil
 local hadSleepingState = false
 local lastError = nil
+local lastConfigSignature = nil
 
 local function log(message)
     print(PREFIX .. " " .. tostring(message))
@@ -62,6 +63,21 @@ local function getConfig()
             and vars.DiagnosticsEnabled == true
             and forcedFactor > 1.0 + EPSILON,
     }
+end
+
+local function logConfigIfChanged(config)
+    local signature = table.concat({
+        tostring(config.modEnabled),
+        tostring(config.notificationsEnabled),
+        tostring(config.diagnosticForced),
+    }, "|")
+    if signature == lastConfigSignature then return end
+    lastConfigSignature = signature
+    log(
+        "CONFIG | Enabled=" .. tostring(config.modEnabled)
+        .. " | SleepNotificationsEnabled=" .. tostring(config.notificationsEnabled)
+        .. " | DiagnosticForced=" .. tostring(config.diagnosticForced)
+    )
 end
 
 local function collectPopulation()
@@ -129,6 +145,8 @@ end
 
 local function update()
     local config = getConfig()
+    logConfigIfChanged(config)
+
     if not config.modEnabled or not config.notificationsEnabled or config.diagnosticForced then
         resetNotificationState()
         return
@@ -180,7 +198,7 @@ local function update()
 
     if sleeping <= 0 then
         if hadSleepingState then
-            local message = "[Enshrouded Sleep] All living players are awake. Time is normal."
+            local message = "[Enshrouded Sleep] All living players are awake. World time is normal."
             if broadcast(message, living, sleeping, 1.0) then
                 hadSleepingState = false
                 lastNotificationSignature = notificationSignature
@@ -204,14 +222,14 @@ local function update()
         local percent = math.floor(((sleeping / living) * 100.0) + 0.5)
         if compression <= 1.0 + EPSILON then
             message = string.format(
-                "[Enshrouded Sleep] %d/%d living players sleeping (%d%%). Time is normal.",
+                "[Enshrouded Sleep] %d/%d living players sleeping (%d%%). World time is normal.",
                 sleeping,
                 living,
                 percent
             )
         else
             message = string.format(
-                "[Enshrouded Sleep] %d/%d living players sleeping (%d%%). Time is %s faster.",
+                "[Enshrouded Sleep] %d/%d living players sleeping (%d%%). World time is %s faster.",
                 sleeping,
                 living,
                 percent,
