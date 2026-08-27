@@ -71,26 +71,31 @@ As with awake-player survival protection, this correction is directional rather 
 
 ### Moodle UI
 
-The Build 42 Moodle Framework by Tchernobill documents a `30×30` alpha-enabled `Moodle_*.png` asset convention and a public `MF.createMoodle` / `MF.getMoodle(...):setValue(...)` API.
+The original candidate used an optional external Moodle Framework integration. That dependency has been removed.
 
-Enshrouded Sleep treats Moodle Framework as a **soft UI integration**, not a gameplay dependency:
+Build 42.20.3's vanilla Moodle implementation provides enough stable presentation information for a narrow Enshrouded Sleep-owned renderer:
 
-- if Moodle Framework is installed, Rested / Well Rested appear as custom positive moodles;
-- if it is absent or its API cannot be used, the XP/endurance benefits remain active and only the custom Moodle UI is unavailable;
-- no Moodle Framework code or artwork is copied or redistributed.
+- vanilla Moodle sizes are `32`, `48`, `64`, `80`, `96`, and `128`, with the automatic option following the configured font-size index;
+- the vanilla stack begins at a `120`-pixel top offset and uses a `10`-pixel gap between Moodle slots;
+- vanilla Moodle background and outline textures are available at runtime under `media/ui/Moodles/<size>/`;
+- vanilla `MoodleType`/`Moodles` state can be read to count currently visible vanilla moodles without modifying them.
 
-Workshop reference: Moodle Framework `3396446795`, Mod ID `MoodleFramework`.
+`SleepBenefitMoodle_Client.lua` therefore owns one `ISUIElement` slot and renders Rested or Well Rested directly. It references the installed vanilla background/outline textures at runtime and overlays original Enshrouded Sleep artwork. It does not patch Java/core files, register a custom vanilla Moodle type, or require another Workshop mod.
 
-## Custom artwork
+The Lifestyle Lua supplied for this project was reviewed as implementation prior art. Its source confirms that custom Moodle-style `ISUIElement` rendering and vanilla-stack-aware placement are practical in B42. Enshrouded Sleep does **not** copy or redistribute Lifestyle code or artwork. The implementation is independently written for one non-stacking status.
 
-Two original Enshrouded Sleep assets were generated specifically for this project and reduced to the Moodle Framework runtime requirement:
+For coexistence only, when Lifestyle is actually loaded the renderer may read the existing `LSMoodleManager` and player `LSMoodles` state to count active Lifestyle slots. This is read-only and is used solely to place the Enshrouded Sleep icon below the Lifestyle stack rather than on top of it.
+
+### Custom artwork
+
+Two original Enshrouded Sleep assets were generated specifically for this project:
 
 ```text
 Contents/mods/pz-enshrouded-sleep/42/media/ui/Moodle_EnshroudedRested.png
 Contents/mods/pz-enshrouded-sleep/42/media/ui/Moodle_EnshroudedWellRested.png
 ```
 
-Both runtime files are `30×30` RGBA PNGs with transparent corners. The visual language is intentionally playful/colorful and generally Moodle-like, but no Lifestyle or other third-party icon artwork is copied.
+The visual language is intentionally playful/colorful and generally Moodle-like, but no Lifestyle, Project Zomboid, or other third-party icon artwork is copied. The client renderer scales the artwork to the player's configured Moodle size.
 
 ## Required validation
 
@@ -132,23 +137,19 @@ With `SleepBenefitsEnabled=true`:
 5. Confirm Endurance never exceeds `1.0`.
 6. Repeat with a non-default sandbox percentage.
 
-### Tier E — Moodle integration
+### Tier E — built-in Moodle UI
 
-With Build 42 Moodle Framework installed:
-
-1. Rested displays only the Rested icon.
-2. Well Rested displays only the Well Rested icon.
-3. Icon artwork is crisp/readable at the required `30×30` runtime size.
-4. Tooltip reflects the current server-supplied XP/endurance percentages and remaining game time.
-5. Benefit expiry hides the moodle.
-6. Death hides the moodle.
-
-Without Moodle Framework installed:
-
-1. no recurring Lua error is produced;
-2. XP/endurance effects still operate;
-3. server sleep/time behavior is unaffected.
+1. Confirm no external Moodle/UI Workshop dependency is needed.
+2. Rested displays only the Rested icon.
+3. Well Rested displays only the Well Rested icon.
+4. Hover text reflects the current server-supplied XP/endurance percentages and remaining game time.
+5. Test the default Moodle-size setting and at least one larger configured size; confirm the icon remains legible and tracks the right-side vanilla stack.
+6. Trigger visible vanilla moodles and confirm the Enshrouded Sleep icon moves below them rather than overlapping them.
+7. Benefit expiry hides the moodle.
+8. Death hides the moodle.
+9. If Lifestyle is installed for coexistence testing, activate one or more Lifestyle moodles and confirm the Enshrouded Sleep icon reserves their occupied slots rather than overlapping them.
+10. Confirm no recurring renderer/texture exception; if the presentation layer fails, XP/Endurance and server sleep/time behavior must continue.
 
 ## GO / NO-GO gate
 
-Do not promote this feature from the branch into a released Beta solely on static/API inspection. Require at least one clean two-player dedicated-server test covering reward classification, XP, Endurance recovery, expiry, and Moodle display, with no recurring Enshrouded Sleep Lua errors.
+Do not promote this feature from the branch into a released Beta solely on static/API inspection. Require at least one clean two-player dedicated-server test covering reward classification, XP, Endurance recovery, expiry, and built-in Moodle display, with no recurring Enshrouded Sleep Lua errors.
