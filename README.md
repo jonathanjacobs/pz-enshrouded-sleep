@@ -29,7 +29,7 @@ Local/standalone single-player gameplay is outside the supported scope.
 - exact baseline restoration and vanilla all-asleep handoff;
 - awake-player survival protection during partial sleep;
 - independent protection-disable switch for compatibility testing;
-- optional concise server-chat sleep/time notifications, disabled by default and controlled by the server administrator;
+- optional concise server-chat sleep/world-time notifications, disabled by default and controlled by the server administrator;
 - low-volume operational logging plus opt-in verbose diagnostics.
 
 ## Build 42.20.4 compatibility
@@ -58,7 +58,7 @@ EnshroudedSleep.DiagnosticsEnabled=false
 EnshroudedSleep.DiagnosticForcedCompressionFactor=1.0
 ```
 
-`SleepNotificationsEnabled=true` broadcasts short sleep-state messages such as `[Enshrouded Sleep] 1/2 living players sleeping (50%). Time is 20x faster.` whenever the effective multiplayer sleep state changes. It is an administrator-controlled presentation option only; disabling it does not change sleep policy, clock synchronization, or awake-player protection.
+`SleepNotificationsEnabled=true` broadcasts short sleep-state messages such as `[Enshrouded Sleep] 1/2 living players sleeping (50%). World time is 20x faster.` whenever the effective multiplayer sleep state changes. It is an administrator-controlled presentation option only; disabling it does not change sleep policy, clock synchronization, or awake-player protection.
 
 For option semantics, upgrade procedure, monitoring, diagnostic use, and rollback, use [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). The in-game sandbox tooltips contain the same administrator-facing option guidance.
 
