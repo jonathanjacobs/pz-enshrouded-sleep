@@ -59,7 +59,11 @@ jobs:
           grep -Fq "Validated Project Zomboid baseline: **42.20.4**" README.md
           grep -Fq "Version:[/b] $VERSION_VALUE" workshop-description.bbcode
           grep -Fq "Tested with:[/b] Project Zomboid 42.20.4" workshop-description.bbcode
-          grep -Fq "title=Enshrouded Sleep - Public Beta" workshop.txt
+          grep -Fxq "id=3786842301" workshop.txt
+          grep -Fxq "title=Enshrouded Sleep - Public Beta" workshop.txt
+          grep -Fq "description=Public Beta v$VERSION_VALUE " workshop.txt
+          grep -Fxq "tags=Build 42;Multiplayer" workshop.txt
+          grep -Fxq "visibility=public" workshop.txt
 
           grep -Fq 'option EnshroudedSleep.AwakePlayerProtectionEnabled' "$MOD_ROOT/42/media/sandbox-options.txt"
           grep -Fq 'option EnshroudedSleep.SleepNotificationsEnabled' "$MOD_ROOT/42/media/sandbox-options.txt"
@@ -79,15 +83,17 @@ jobs:
           grep -Fq "SleepNotificationsEnabled=true" "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/SleepNotification_Server.lua"
           grep -Fq "showServerChatMessage" "$MOD_ROOT/42/media/lua/client/EnshroudedSleep/SleepNotification_Client.lua"
 
-          # Current runtime must not regress to stale release banners.
-          if grep -RFn 'Public Alpha v0.0.10' "$RUNTIME_LUA"; then
-            echo "ERROR: stale Public Alpha v0.0.10 runtime label found"
-            exit 1
-          fi
-          if grep -RFn 'Public Beta v0.1.0' "$RUNTIME_LUA"; then
-            echo "ERROR: stale Public Beta v0.1.0 runtime label found after v$VERSION_VALUE bump"
-            exit 1
-          fi
+          # Every current release banner in runtime Lua must agree with VERSION.
+          mapfile -t runtime_release_labels < <(
+            grep -RhoE 'Public (Alpha|Beta) v[0-9]+\.[0-9]+\.[0-9]+' "$RUNTIME_LUA" | sort -u || true
+          )
+          test "${#runtime_release_labels[@]}" -gt 0
+          for label in "${runtime_release_labels[@]}"; do
+            if [[ "$label" != "Public Beta v$VERSION_VALUE" ]]; then
+              echo "ERROR: stale runtime release label found: $label (expected Public Beta v$VERSION_VALUE)"
+              exit 1
+            fi
+          done
 
           # PZ 42.20.4 removed dynamic loadstring/loadstream execution. Enshrouded
           # Sleep uses predefined command handlers and structured arguments only.
