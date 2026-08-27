@@ -256,11 +256,15 @@ While Well Rested is active, the server may amplify only **positive** observed E
 
 This correction is directional rather than source-specific: positive Endurance changes produced by another mod may also be amplified. This limitation must be documented and validated before release.
 
-### R42 — Custom Moodle display is a soft UI integration
+### R42 — Custom Moodle display is self-contained and presentation-only
 
-Rested and Well Rested may be displayed through Tchernobill's Build 42 Moodle Framework (`Workshop 3396446795`, Mod ID `MoodleFramework`) using that framework's documented public API and `30×30` alpha-enabled `Moodle_*.png` convention.
+Rested and Well Rested must be displayable by an Enshrouded Sleep-owned client `ISUIElement`; the gameplay feature must not require an external Moodle framework or another Workshop dependency.
 
-Moodle Framework must remain optional for gameplay: if it is absent or its UI API fails, the Rested/Well Rested gameplay benefits must remain functional and only the custom Moodle presentation may be unavailable. No third-party Moodle Framework or Lifestyle code/assets may be redistributed.
+The renderer may reference Project Zomboid's installed vanilla Moodle background/outline textures at runtime and draw original Enshrouded Sleep icon artwork over them. It must follow the player's current Build 42 Moodle-size setting and position itself after visible vanilla moodles rather than patching Project Zomboid Java/core files.
+
+Compatibility logic may read another installed mod's public/runtime state solely to avoid UI overlap—for example, detecting active Lifestyle moodle slots—but must not require, mutate, bundle, or redistribute that mod's code or assets.
+
+A custom-Moodle UI failure must degrade independently: benefit qualification, expiry, XP reward, Endurance reward, proportional sleep, and awake-player protection must remain unaffected.
 
 ## Out of scope
 
