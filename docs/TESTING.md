@@ -81,7 +81,18 @@ Minimum smoke sequence:
 11. Confirm death clears the benefit.
 12. Set `SleepBenefitsEnabled=false` and confirm the reward disappears while proportional sleep continues normally.
 
-With Build 42 Moodle Framework (`3396446795`) installed, also verify Rested and Well Rested display the correct custom `30×30` icons, only one is visible at a time, tooltip values match the server configuration, and expiry/death hides the moodle. Without Moodle Framework installed, confirm the gameplay benefit path does not generate recurring errors and continues without custom Moodle UI.
+Built-in Moodle/UI checks:
+
+1. Confirm no additional Moodle/UI Workshop dependency is required.
+2. Rested shows only the Rested icon; Well Rested shows only the Well Rested icon.
+3. Hover text shows the correct title, server-supplied XP/Endurance percentages, and remaining game time.
+4. Confirm the icon tracks at least the default Moodle size and one larger configured Moodle size without overlap or severe scaling artifacts.
+5. Create one or more vanilla moodles and confirm the Enshrouded Sleep icon moves below the visible vanilla stack.
+6. Confirm benefit expiry, death, and `SleepBenefitsEnabled=false` hide the icon.
+7. If Lifestyle is installed for compatibility testing, activate one or more Lifestyle custom moodles and confirm the Enshrouded Sleep icon reserves their occupied slots rather than drawing over them.
+8. Confirm a Moodle renderer/texture failure, if induced during development, does not stop XP/Endurance effects or alter sleep/time behavior.
+
+No Lifestyle or other third-party custom-Moodle code/assets are part of the candidate; Lifestyle is only a coexistence test target.
 
 Do not treat this smoke sequence as a stable-release gate by itself. The detailed acceptance cases and evidence boundary are maintained in [`spikes/SPIKE-007-sleep-benefits.md`](spikes/SPIKE-007-sleep-benefits.md).
 
@@ -127,6 +138,7 @@ Useful prefixes include:
 [EnshroudedSleepNotify][CLIENT]
 [EnshroudedSleepBenefits][SERVER]
 [EnshroudedSleepBenefits][CLIENT]
+[EnshroudedSleepBenefits][MOODLE]
 [EnshroudedSleepActionDiag][SERVER]
 [EnshroudedSleepActionDiag][CLIENT]
 [EnshroudedSleepSurvivalDiag][SERVER]
@@ -180,7 +192,7 @@ Packaging/publication checks are intentionally not duplicated here. Use:
 
 For a new Build 42 release:
 
-1. review changes affecting `GameTime`, multiplayer sleep/lifecycle, CharacterStats, Nutrition, XP, Endurance, networking/command APIs, and any subsystem touched by the release;
+1. review changes affecting `GameTime`, multiplayer sleep/lifecycle, CharacterStats, Nutrition, XP, Endurance, networking/command APIs, Moodle UI conventions, and any subsystem touched by the release;
 2. check runtime Lua for removed/restricted APIs introduced by the game update;
 3. run Tier 1;
 4. run Tier 2 if clock/sleep/network behavior may have changed;
