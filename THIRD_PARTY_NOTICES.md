@@ -17,7 +17,21 @@ Before any third-party code, asset, library, executable, model, sound, data file
 - redistribution and attribution requirements;
 - whether Steam Workshop credit is required and where it appears.
 
-## Research references / prior art not redistributed
+## Optional runtime integrations / research references not redistributed
+
+### Moodle Framework
+
+The `feature/sleep-benefits` development branch can optionally use **Moodle Framework** by Tchernobill to display the Rested and Well Rested custom moodles.
+
+- Steam Workshop ID: `3396446795`
+- Mod ID: `MoodleFramework`
+- Integration surface: documented public `MF.createMoodle` / `MF.getMoodle(...):setValue(...)` API plus title/description helpers when available.
+- Redistribution: **none**. Enshrouded Sleep does not include Moodle Framework source code, binaries, textures, or other assets.
+- Dependency behavior: soft/optional. Sleep-benefit gameplay logic is designed to continue without the framework; only the custom Moodle UI is unavailable.
+
+The framework's documented `30×30` alpha-enabled Moodle texture convention was used only as an interface/asset-dimension requirement. The Rested and Well Rested artwork distributed by Enshrouded Sleep is original project artwork and does not copy Moodle Framework or Lifestyle assets.
+
+### Comparative multiplayer-sleep prior art
 
 The following Project Zomboid mods have been examined during design/debugging to understand multiplayer-sleep behavior and implementation constraints:
 
