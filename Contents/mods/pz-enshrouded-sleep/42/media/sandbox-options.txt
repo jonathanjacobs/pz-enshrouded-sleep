@@ -26,6 +26,68 @@ option EnshroudedSleep.SleepNotificationsEnabled = {
     page = EnshroudedSleep,
 }
 
+option EnshroudedSleep.SleepBenefitsEnabled = {
+    type = boolean,
+    default = false,
+    page = EnshroudedSleep,
+}
+
+option EnshroudedSleep.RestedMinimumSleepHours = {
+    type = double,
+    min = 0.0,
+    max = 24.0,
+    default = 6.0,
+    page = EnshroudedSleep,
+}
+
+option EnshroudedSleep.RestedDurationHours = {
+    type = double,
+    min = 0.0,
+    max = 168.0,
+    default = 12.0,
+    page = EnshroudedSleep,
+}
+
+option EnshroudedSleep.RestedXPBonusPercent = {
+    type = double,
+    min = 0.0,
+    max = 100.0,
+    default = 5.0,
+    page = EnshroudedSleep,
+}
+
+option EnshroudedSleep.WellRestedMinimumSleepHours = {
+    type = double,
+    min = 0.0,
+    max = 24.0,
+    default = 9.0,
+    page = EnshroudedSleep,
+}
+
+option EnshroudedSleep.WellRestedDurationHours = {
+    type = double,
+    min = 0.0,
+    max = 168.0,
+    default = 24.0,
+    page = EnshroudedSleep,
+}
+
+option EnshroudedSleep.WellRestedXPBonusPercent = {
+    type = double,
+    min = 0.0,
+    max = 100.0,
+    default = 5.0,
+    page = EnshroudedSleep,
+}
+
+option EnshroudedSleep.WellRestedEnduranceRecoveryBonusPercent = {
+    type = double,
+    min = 0.0,
+    max = 100.0,
+    default = 10.0,
+    page = EnshroudedSleep,
+}
+
 option EnshroudedSleep.DiagnosticsEnabled = {
     type = boolean,
     default = false,
