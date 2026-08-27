@@ -4,7 +4,7 @@ This is the single canonical roadmap for Enshrouded Sleep. Current runtime seman
 
 ## Current phase — Public Beta field validation
 
-The current priority is broad multiplayer evidence for the awake-player protection path and the existing proportional-sleep/client-sync architecture under real server conditions.
+The current priority is broad multiplayer evidence for the awake-player protection path and the existing proportional-sleep/client-sync architecture under real server conditions. Public Beta v0.1.1 also places the optional administrator-controlled sleep-notification path into live WHG field validation.
 
 ### Field goals
 
@@ -17,7 +17,7 @@ The current priority is broad multiplayer evidence for the awake-player protecti
 - characterize CPU/server cost and normal log volume at larger populations;
 - identify conflicts with mods that alter sleep, `MinutesPerDay`, CharacterStats, nutrition, timed actions, or chat UI;
 - validate protection-only soft rollback and full-mod rollback in normal operations;
-- complete the dedicated opt-in sleep-notification smoke test before promoting that feature out of `Unreleased`;
+- validate the v0.1.1 opt-in sleep-notification path during normal WHG multiplayer use, including one-message-per-transition behavior and notification-only rollback;
 - run focused regression checkpoints after relevant Project Zomboid updates, with 42.20.4 currently recorded for startup/baseline/client-sync compatibility.
 
 Verbose diagnostics should be used for focused evidence windows rather than left enabled continuously.
