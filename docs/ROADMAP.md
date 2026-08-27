@@ -35,9 +35,10 @@ Current feature-branch defaults:
 - `>=9` hours → **Well Rested**, +5% XP and +10% Endurance recovery for 24 game hours;
 - all thresholds, durations, and percentages are server sandbox options;
 - benefits do not stack;
-- optional 30×30 custom Rested / Well Rested moodles use Moodle Framework only when it is installed.
+- Rested / Well Rested use an Enshrouded Sleep-owned `ISUIElement` Moodle renderer and original artwork; no external Moodle framework is required;
+- the renderer follows the player's current B42 Moodle size and includes read-only Lifestyle stack coexistence when Lifestyle is detected.
 
-Before promotion, require a clean dedicated-multiplayer test of reward classification, XP gain, positive Endurance recovery, expiry/reconnect/death behavior, feature-only rollback, and Moodle display. The detailed test gate is in [`spikes/SPIKE-007-sleep-benefits.md`](spikes/SPIKE-007-sleep-benefits.md).
+Before promotion, require a clean dedicated-multiplayer test of reward classification, XP gain, positive Endurance recovery, expiry/reconnect/death behavior, feature-only rollback, built-in Moodle display/scaling, and vanilla/Lifestyle stack coexistence. The detailed test gate is in [`spikes/SPIKE-007-sleep-benefits.md`](spikes/SPIKE-007-sleep-benefits.md).
 
 ## Public Beta exit criteria
 
