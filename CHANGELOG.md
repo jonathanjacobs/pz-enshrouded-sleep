@@ -6,7 +6,16 @@ This file records **what changed between releases**. Detailed test evidence belo
 
 ## [Unreleased]
 
-No unreleased changes currently recorded.
+### Added — SPIKE-007 sleep benefits candidate
+
+- Added independently configurable `SleepBenefitsEnabled`, disabled by default.
+- Added server sandbox controls for Rested/Well Rested minimum sleep hours, benefit durations, XP percentages, and Well Rested Endurance-recovery percentage.
+- Default candidate policy: `<6h` no new benefit; `6–<9h` Rested (`+5%` XP for 12 game hours); `>=9h` Well Rested (`+5%` XP and `+10%` Endurance recovery for 24 game hours).
+- Added server-authoritative sleep-duration classification, persisted earned-benefit expiry, death/disable clearing, and non-stacking replacement/refresh behavior.
+- Added owning-client XP bonus handling using positive `AddXP` events plus flat `addXpNoMultiplier()` bonus XP with recursion protection.
+- Added server-side directional Well Rested Endurance recovery amplification that does not reduce Endurance expenditure or increase maximum Endurance.
+- Added optional Moodle Framework UI integration and original `30×30` RGBA Rested / Well Rested icons. Moodle Framework is not bundled and is not required for the gameplay bonuses.
+- Added SPIKE-007 documentation and dedicated multiplayer validation procedure. The feature remains on `feature/sleep-benefits` and is not yet promoted into a released Beta.
 
 ## [0.1.1] - 2026-08-26
 
