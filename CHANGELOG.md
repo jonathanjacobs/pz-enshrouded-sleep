@@ -15,15 +15,16 @@ No unreleased changes currently recorded.
 ### Added
 
 - Added opt-in, administrator-controlled `SleepNotificationsEnabled` server setting, disabled by default.
-- When enabled, effective multiplayer sleep-state changes broadcast concise server-chat notifications with the living/sleeping count, percentage, and settled calendar acceleration, for example: `[Enshrouded Sleep] 1/2 living players sleeping (50%). Time is 20x faster.`
+- When enabled, effective multiplayer sleep-state changes broadcast concise server-chat notifications with the living/sleeping count, percentage, and settled calendar acceleration, for example: `[Enshrouded Sleep] 1/2 living players sleeping (50%). World time is 20x faster.`
 - All-awake and all-asleep transitions use short special messages; vanilla full-sleep handoff does not claim an Enshrouded Sleep multiplier.
+- Added low-volume notification configuration logging so the server console records the effective `SleepNotificationsEnabled` state at startup and when it changes.
 
 ### Changed
 
 - Recorded a Project Zomboid 42.20.4 (`b0bbce05d5`) compatibility checkpoint from dedicated-server and connected-client logs. Startup, native baseline capture, normal all-awake operation, and authoritative `ClockState` synchronization completed without a relevant Enshrouded Sleep Lua exception.
 - Documented that Enshrouded Sleep does not use the `loadstring` or `loadstream` APIs removed by the 42.20.4 security hotfix; multiplayer synchronization and notifications use predefined named commands with structured arguments.
-- Normalized runtime/release metadata on Public Beta v0.1.1 terminology and added package-validation guards against reintroducing stale prior-release startup banners.
-- Tightened sleep-notification wording to identify the living-player denominator directly.
+- Normalized runtime/release metadata on Public Beta v0.1.1 terminology and added package-validation guards against reintroducing stale prior-release startup banners or Workshop descriptor versions.
+- Tightened sleep-notification wording to identify the living-player denominator and explicitly distinguish accelerated **world time** from normal-speed active simulation.
 
 ### Safety
 
