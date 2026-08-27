@@ -6,6 +6,8 @@ This is the single canonical roadmap for Enshrouded Sleep. Current runtime seman
 
 The current priority is broad multiplayer evidence for the awake-player protection path and the existing proportional-sleep/client-sync architecture under real server conditions. Public Beta v0.1.1 also places the optional administrator-controlled sleep-notification path into live WHG field validation.
 
+In parallel, `feature/sleep-benefits` is evaluating an optional **Rested / Well Rested** reward layer for servers where sleeping is permitted but not required. That work is tracked as SPIKE-007 and is not yet released.
+
 ### Field goals
 
 - exercise 3–12+ living-player populations and multiple sleeping fractions;
@@ -15,12 +17,27 @@ The current priority is broad multiplayer evidence for the awake-player protecti
 - monitor client clock continuity and exact baseline restoration;
 - observe eating/drinking/activity behavior under natural multiplayer partial sleep;
 - characterize CPU/server cost and normal log volume at larger populations;
-- identify conflicts with mods that alter sleep, `MinutesPerDay`, CharacterStats, nutrition, timed actions, or chat UI;
+- identify conflicts with mods that alter sleep, `MinutesPerDay`, CharacterStats, nutrition, timed actions, XP, Endurance, or chat/UI;
 - validate protection-only soft rollback and full-mod rollback in normal operations;
 - validate the v0.1.1 opt-in sleep-notification path during normal WHG multiplayer use, including one-message-per-transition behavior and notification-only rollback;
 - run focused regression checkpoints after relevant Project Zomboid updates, with 42.20.4 currently recorded for startup/baseline/client-sync compatibility.
 
 Verbose diagnostics should be used for focused evidence windows rather than left enabled continuously.
+
+## SPIKE-007 — voluntary sleep rewards
+
+Goal: determine whether optional sleep can provide a modest positive incentive without becoming mandatory or distorting combat/skill balance.
+
+Current feature-branch defaults:
+
+- `<6` game hours slept → no new benefit;
+- `6–<9` hours → **Rested**, +5% XP for 12 game hours;
+- `>=9` hours → **Well Rested**, +5% XP and +10% Endurance recovery for 24 game hours;
+- all thresholds, durations, and percentages are server sandbox options;
+- benefits do not stack;
+- optional 30×30 custom Rested / Well Rested moodles use Moodle Framework only when it is installed.
+
+Before promotion, require a clean dedicated-multiplayer test of reward classification, XP gain, positive Endurance recovery, expiry/reconnect/death behavior, feature-only rollback, and Moodle display. The detailed test gate is in [`spikes/SPIKE-007-sleep-benefits.md`](spikes/SPIKE-007-sleep-benefits.md).
 
 ## Public Beta exit criteria
 
@@ -36,6 +53,7 @@ Move toward a stable release candidate when representative field evidence suppor
 - CPU/log volume is operationally acceptable;
 - representative mod-stack interaction is stable enough for routine use;
 - opt-in player-facing notifications complete their dedicated smoke test without repeated spam or coupling to sleep/time behavior;
+- any promoted sleep-benefit feature has passed its dedicated XP/Endurance/persistence/UI regression and remains independently disableable;
 - major external world-time side effects are documented/accepted or addressed through separate evidence-backed work;
 - Workshop install/update/rollback is repeatable.
 
