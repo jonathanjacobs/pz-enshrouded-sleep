@@ -14,7 +14,8 @@ This file records **what changed between releases**. Detailed test evidence belo
 - Added server-authoritative sleep-duration classification, persisted earned-benefit expiry, death/disable clearing, and non-stacking replacement/refresh behavior.
 - Added owning-client XP bonus handling using positive `AddXP` events plus flat `addXpNoMultiplier()` bonus XP with recursion protection.
 - Added server-side directional Well Rested Endurance recovery amplification that does not reduce Endurance expenditure or increase maximum Endurance.
-- Added optional Moodle Framework UI integration and original `30×30` RGBA Rested / Well Rested icons. Moodle Framework is not bundled and is not required for the gameplay bonuses.
+- Added a self-contained Rested / Well Rested `ISUIElement` Moodle renderer using original Enshrouded Sleep artwork and installed vanilla Moodle background/outline resources; no external Moodle framework is required.
+- Added configured B42 Moodle-size tracking, vanilla Moodle stack-aware placement, hover details with live remaining game time, and read-only Lifestyle slot coexistence when Lifestyle is detected.
 - Added SPIKE-007 documentation and dedicated multiplayer validation procedure. The feature remains on `feature/sleep-benefits` and is not yet promoted into a released Beta.
 
 ## [0.1.1] - 2026-08-26
