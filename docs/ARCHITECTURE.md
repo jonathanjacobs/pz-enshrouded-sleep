@@ -150,7 +150,14 @@ SleepBenefits_Server.lua
 SleepBenefits_Client.lua
     -> validates server-authored SleepBenefitState
     -> applies configured bonus to positive AddXP events using addXpNoMultiplier()
-    -> optionally drives custom moodles through Moodle Framework
+    -> forwards presentation state to the Enshrouded Sleep-owned Moodle renderer
+
+SleepBenefitMoodle_Client.lua
+    -> owns one non-stacking ISUIElement status slot
+    -> follows the current Build 42 Moodle-size setting
+    -> counts visible vanilla moodles and positions below them
+    -> draws vanilla runtime background/outline resources plus original project art
+    -> provides Rested / Well Rested hover text and remaining game time
 ```
 
 ### Benefit state ownership
@@ -180,16 +187,20 @@ Endurance depletion is never reduced and maximum Endurance is not increased. The
 
 ### Moodle/UI boundary
 
-Moodle display is a soft integration with Tchernobill's Build 42 Moodle Framework (`3396446795`, Mod ID `MoodleFramework`). Enshrouded Sleep uses only the framework's documented public API when available and redistributes none of its code or assets.
+The sleep-benefit Moodle renderer is self-contained. It does not register a custom vanilla `MoodleType`, patch Project Zomboid Java/core files, or require Moodle Framework/Lifestyle.
 
-The runtime artwork is owned by this project:
+Build 42's vanilla `MoodlesUI` already exposes the relevant presentation conventions: Moodle sizes of `32/48/64/80/96/128`, a top offset of `120`, a `10`-pixel slot gap, and installed background/outline resources under `media/ui/Moodles/<size>/`. Enshrouded Sleep mirrors those layout conventions in client Lua and references those installed vanilla resources at runtime; it does not redistribute them.
+
+The tier artwork is owned by this project:
 
 ```text
-media/ui/Moodle_EnshroudedRested.png       # 30×30 RGBA
-media/ui/Moodle_EnshroudedWellRested.png   # 30×30 RGBA
+media/ui/Moodle_EnshroudedRested.png
+media/ui/Moodle_EnshroudedWellRested.png
 ```
 
-If Moodle Framework is absent or its bridge fails, the benefit state/XP/Endurance logic continues and only the custom Moodle presentation is unavailable.
+The renderer reserves slots for visible vanilla moodles. If Lifestyle is actually loaded, it may also read the existing `LSMoodleManager` / player `LSMoodles` state to reserve currently visible Lifestyle slots and avoid overlap. That compatibility check is read-only and does not create a Lifestyle dependency or copy its implementation.
+
+The UI is presentation-only. A renderer/texture/compatibility failure must not affect benefit state, XP, Endurance, sleep behavior, or clock behavior.
 
 Detailed feasibility assumptions and the required field test are in [`spikes/SPIKE-007-sleep-benefits.md`](spikes/SPIKE-007-sleep-benefits.md).
 
@@ -211,7 +222,7 @@ Shared survival-state access is centralized in:
 Contents/mods/pz-enshrouded-sleep/42/media/lua/shared/EnshroudedSleep/SurvivalStatProbe.lua
 ```
 
-Diagnostics and optional UI bridges are designed to degrade unavailable capabilities rather than break gameplay.
+Diagnostics and presentation bridges are designed to degrade unavailable capabilities rather than break gameplay.
 
 ## Time-domain boundary
 
@@ -229,5 +240,6 @@ Evidence for individual time domains belongs in SPIKE-004/SPIKE-005 and `VALIDAT
 - no local/standalone single-player fallback in server policy;
 - no Project Zomboid Java/core patching for ordinary Workshop distribution;
 - no broad subsystem compensation without measured evidence;
-- optional Moodle Framework integration must not become a gameplay dependency;
+- sleep-benefit Moodle presentation must remain self-contained and independent of gameplay authority;
+- no redistribution of third-party custom-Moodle code or artwork;
 - vanilla remains authoritative for sleep eligibility, actual sleep state, and all-living-asleep fast-forward.
