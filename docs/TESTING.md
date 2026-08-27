@@ -38,13 +38,13 @@ The exact expected factor depends on live `FastForwardMultiplier`, `PartialSleep
 
 v0.1.1 intentionally ships the optional notification path for live Public Beta validation on WHG. Run the checks below during normal post-deployment use before marking the notification feature field-validated.
 
-1. Start with `SleepNotificationsEnabled=true`, at least two living players, and no sleepers. Confirm no startup/all-awake notification is sent.
-2. Put one player to sleep. Confirm every connected client receives exactly one concise server-chat message such as `[Enshrouded Sleep] 1/2 living players sleeping (50%). Time is 20x faster.`
+1. Start with `SleepNotificationsEnabled=true`, at least two living players, and no sleepers. Confirm the server emits a notification `CONFIG` line reporting `SleepNotificationsEnabled=true`, and confirm no startup/all-awake player-facing notification is sent.
+2. Put one player to sleep. Confirm every connected client receives exactly one concise server-chat message such as `[Enshrouded Sleep] 1/2 living players sleeping (50%). World time is 20x faster.`
 3. Change the sleep fraction by sleeping/waking another player or changing the connected living population. Confirm exactly one updated message is sent after the authoritative clock state settles.
-4. Wake all players. Confirm one `[Enshrouded Sleep] All living players are awake. Time is normal.` message.
+4. Wake all players. Confirm one `[Enshrouded Sleep] All living players are awake. World time is normal.` message.
 5. Put all living players to sleep. Confirm the message reports the living-player count and identifies vanilla full-sleep fast-forward rather than claiming an Enshrouded Sleep compression multiplier.
 6. Confirm there is no per-tick/repeated chat spam and no Enshrouded Sleep Lua exception.
-7. Set `SleepNotificationsEnabled=false` and confirm subsequent sleep-state changes no longer emit messages while proportional sleep continues normally.
+7. Set `SleepNotificationsEnabled=false`; confirm the server `CONFIG` line reflects the change and subsequent sleep-state changes no longer emit messages while proportional sleep continues normally.
 
 The relevant low-volume prefixes are `[EnshroudedSleepNotify][SERVER]` and `[EnshroudedSleepNotify][CLIENT]`. A client chat-bridge failure should circuit-break notification display for that client session without affecting sleep/time behavior. If the notification path causes a live compatibility issue, disable `SleepNotificationsEnabled` first and preserve the server/client logs before changing the core sleep configuration.
 
