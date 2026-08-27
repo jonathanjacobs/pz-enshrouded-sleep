@@ -22,7 +22,12 @@ jobs:
           MOD_ROOT="Contents/mods/pz-enshrouded-sleep"
           RUNTIME_LUA="$MOD_ROOT/42/media/lua"
           NOTIFY_SERVER="$MOD_ROOT/42/media/lua/server/EnshroudedSleep/SleepNotification_Server.lua"
+          BENEFIT_SERVER="$MOD_ROOT/42/media/lua/server/EnshroudedSleep/SleepBenefits_Server.lua"
+          BENEFIT_CLIENT="$MOD_ROOT/42/media/lua/client/EnshroudedSleep/SleepBenefits_Client.lua"
           SANDBOX_EN="$MOD_ROOT/42/media/lua/shared/Translate/EN/Sandbox.json"
+          MOODLES_EN="$MOD_ROOT/42/media/lua/shared/Translate/EN/Moodles.json"
+          RESTED_ICON="$MOD_ROOT/42/media/ui/Moodle_EnshroudedRested.png"
+          WELL_RESTED_ICON="$MOD_ROOT/42/media/ui/Moodle_EnshroudedWellRested.png"
           VERSION_VALUE="$(tr -d '\r\n' < VERSION)"
 
           [[ "$VERSION_VALUE" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
@@ -39,7 +44,12 @@ jobs:
           test -f "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/AwakePlayerProtection_Server.lua"
           test -f "$NOTIFY_SERVER"
           test -f "$MOD_ROOT/42/media/lua/client/EnshroudedSleep/SleepNotification_Client.lua"
+          test -f "$BENEFIT_SERVER"
+          test -f "$BENEFIT_CLIENT"
           test -f "$SANDBOX_EN"
+          test -f "$MOODLES_EN"
+          test -f "$RESTED_ICON"
+          test -f "$WELL_RESTED_ICON"
           test ! -e "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/AwakePlayerProtectionPrototype_Server.lua"
 
           test -f "$MOD_ROOT/common/media/AnimSets/.gitkeep"
@@ -71,6 +81,15 @@ jobs:
           grep -Fq 'option EnshroudedSleep.AwakePlayerProtectionEnabled' "$MOD_ROOT/42/media/sandbox-options.txt"
           grep -Fq 'option EnshroudedSleep.SleepNotificationsEnabled' "$MOD_ROOT/42/media/sandbox-options.txt"
           grep -A5 -F 'option EnshroudedSleep.SleepNotificationsEnabled' "$MOD_ROOT/42/media/sandbox-options.txt" | grep -Fq 'default = false'
+          grep -Fq 'option EnshroudedSleep.SleepBenefitsEnabled' "$MOD_ROOT/42/media/sandbox-options.txt"
+          grep -A5 -F 'option EnshroudedSleep.SleepBenefitsEnabled' "$MOD_ROOT/42/media/sandbox-options.txt" | grep -Fq 'default = false'
+          grep -Fq 'option EnshroudedSleep.RestedMinimumSleepHours' "$MOD_ROOT/42/media/sandbox-options.txt"
+          grep -Fq 'option EnshroudedSleep.RestedDurationHours' "$MOD_ROOT/42/media/sandbox-options.txt"
+          grep -Fq 'option EnshroudedSleep.RestedXPBonusPercent' "$MOD_ROOT/42/media/sandbox-options.txt"
+          grep -Fq 'option EnshroudedSleep.WellRestedMinimumSleepHours' "$MOD_ROOT/42/media/sandbox-options.txt"
+          grep -Fq 'option EnshroudedSleep.WellRestedDurationHours' "$MOD_ROOT/42/media/sandbox-options.txt"
+          grep -Fq 'option EnshroudedSleep.WellRestedXPBonusPercent' "$MOD_ROOT/42/media/sandbox-options.txt"
+          grep -Fq 'option EnshroudedSleep.WellRestedEnduranceRecoveryBonusPercent' "$MOD_ROOT/42/media/sandbox-options.txt"
           grep -Fq 'option EnshroudedSleep.DiagnosticsEnabled' "$MOD_ROOT/42/media/sandbox-options.txt"
           grep -Fq 'option EnshroudedSleep.DiagnosticForcedCompressionFactor' "$MOD_ROOT/42/media/sandbox-options.txt"
           ! grep -Fq 'DiagnosticAwakeProtectionPrototype' "$MOD_ROOT/42/media/sandbox-options.txt"
@@ -88,7 +107,17 @@ jobs:
           grep -Fq "World time is %s faster." "$NOTIFY_SERVER"
           grep -Fq "showServerChatMessage" "$MOD_ROOT/42/media/lua/client/EnshroudedSleep/SleepNotification_Client.lua"
 
-          # Keep the current public/admin examples synchronized with the runtime wording.
+          # Sleep benefits are an unreleased, independently disabled feature on this branch.
+          grep -Fq "SleepBenefitsEnabled" "$BENEFIT_SERVER"
+          grep -Fq "getWorldAgeHours" "$BENEFIT_SERVER"
+          grep -Fq 'resolveCharacterStat("ENDURANCE", "Endurance")' "$BENEFIT_SERVER"
+          grep -Fq "addXpNoMultiplier" "$BENEFIT_CLIENT"
+          grep -Fq 'require, "MF_ISMoodle"' "$BENEFIT_CLIENT"
+          grep -Fq 'Moodles_EnshroudedRested_Good_lvl4' "$MOODLES_EN"
+          grep -Fq 'Moodles_EnshroudedWellRested_Good_lvl4' "$MOODLES_EN"
+          grep -Fq "SPIKE-007" docs/spikes/SPIKE-007-sleep-benefits.md
+
+          # Keep the current public/admin notification examples synchronized with the released runtime wording.
           grep -Fq "World time is 20x faster." README.md
           grep -Fq "World time is 20x faster." workshop-description.bbcode
           grep -Fq "World time is 20x faster." "$SANDBOX_EN"
@@ -125,6 +154,8 @@ jobs:
               # 743x743; do not silently resize it as part of a code release.
               Path("Contents/mods/pz-enshrouded-sleep/42/poster.png"): (743, 743),
               Path("Contents/mods/pz-enshrouded-sleep/42/icon.png"): (32, 32),
+              Path("Contents/mods/pz-enshrouded-sleep/42/media/ui/Moodle_EnshroudedRested.png"): (30, 30),
+              Path("Contents/mods/pz-enshrouded-sleep/42/media/ui/Moodle_EnshroudedWellRested.png"): (30, 30),
           }
           for path, wanted in expected.items():
               data = path.read_bytes()
@@ -132,6 +163,8 @@ jobs:
               assert data[12:16] == b"IHDR", f"{path} has no PNG IHDR"
               actual = struct.unpack(">II", data[16:24])
               assert actual == wanted, f"{path}: expected {wanted}, got {actual}"
+              if path.name.startswith("Moodle_Enshrouded"):
+                  assert data[25] == 6, f"{path}: expected RGBA PNG color type 6, got {data[25]}"
           assert Path("preview.png").stat().st_size <= 1000 * 1024
           PY
 
