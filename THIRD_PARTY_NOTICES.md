@@ -17,19 +17,15 @@ Before any third-party code, asset, library, executable, model, sound, data file
 - redistribution and attribution requirements;
 - whether Steam Workshop credit is required and where it appears.
 
-## Optional runtime integrations / research references not redistributed
+## Research references / prior art not redistributed
 
-### Moodle Framework
+### Custom Moodle UI research
 
-The `feature/sleep-benefits` development branch can optionally use **Moodle Framework** by Tchernobill to display the Rested and Well Rested custom moodles.
+The Project Zomboid **Lifestyle** mod Lua supplied during development was reviewed as implementation prior art for Build 42 custom Moodle-style UI behavior. In particular, it demonstrated that a mod can use client `ISUIElement` rendering, vanilla Moodle layout resources, player Moodle state, configurable Moodle sizing, and custom icon/tooltips without requiring a custom Java/core patch.
 
-- Steam Workshop ID: `3396446795`
-- Mod ID: `MoodleFramework`
-- Integration surface: documented public `MF.createMoodle` / `MF.getMoodle(...):setValue(...)` API plus title/description helpers when available.
-- Redistribution: **none**. Enshrouded Sleep does not include Moodle Framework source code, binaries, textures, or other assets.
-- Dependency behavior: soft/optional. Sleep-benefit gameplay logic is designed to continue without the framework; only the custom Moodle UI is unavailable.
+Enshrouded Sleep's Rested / Well Rested renderer is independently written for this project. It does **not** include, copy, adapt verbatim, or redistribute Lifestyle source code, textures, icons, or other assets. A small optional compatibility check may read Lifestyle's already-existing runtime `LSMoodleManager` / player `LSMoodles` state when Lifestyle is actually installed, solely to reserve visible UI slots and avoid overlap; Enshrouded Sleep does not mutate that state and does not require Lifestyle.
 
-The framework's documented `30×30` alpha-enabled Moodle texture convention was used only as an interface/asset-dimension requirement. The Rested and Well Rested artwork distributed by Enshrouded Sleep is original project artwork and does not copy Moodle Framework or Lifestyle assets.
+Moodle Framework was also considered during SPIKE-007 as a possible optional UI integration. The final self-contained candidate does not require it and redistributes none of its code or assets.
 
 ### Comparative multiplayer-sleep prior art
 
