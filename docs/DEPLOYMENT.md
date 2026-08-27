@@ -66,18 +66,15 @@ Default classification:
 >= 9 game hours    -> Well Rested: +5% XP and +10% Endurance recovery for 24 game hours
 ```
 
-Sleeping beyond 12 hours still qualifies as Well Rested; oversleeping does not remove the reward. A qualifying sleep replaces/refreshes the current tier rather than stacking. A sub-threshold nap does not cancel an otherwise active benefit.
+Sleeping beyond the Well Rested threshold still qualifies as Well Rested; oversleeping does not remove the reward. A qualifying sleep replaces/refreshes the current tier rather than stacking. A sub-threshold nap does not cancel an otherwise active benefit.
 
-### Optional custom Moodle UI
+### Built-in custom Moodle UI
 
-The gameplay bonuses do not require a UI dependency. To display the custom Rested / Well Rested moodles, install the current Build 42 **Moodle Framework** by Tchernobill:
+The feature candidate includes its own Rested / Well Rested client Moodle renderer and original artwork. **No additional Workshop/UI dependency is required.**
 
-```text
-Workshop ID: 3396446795
-Mod ID: MoodleFramework
-```
+The renderer follows the player's current Build 42 Moodle-size option, positions the Enshrouded Sleep status after visible vanilla moodles, and uses installed vanilla Moodle background/outline resources at runtime. If Lifestyle is installed and its custom Moodle manager is active, Enshrouded Sleep performs a read-only slot-count compatibility check so its icon can be placed below active Lifestyle moodles rather than overlapping them.
 
-Enshrouded Sleep treats this as a soft integration. If Moodle Framework is missing or its client API fails, the sleep-benefit gameplay state continues and only the custom Moodle display is unavailable.
+The UI is presentation-only. A custom-Moodle display problem must not change sleep qualification, XP/Endurance effects, time compression, or awake-player protection.
 
 ## Steam Workshop server setup
 
@@ -88,7 +85,7 @@ WorkshopItems=3786842301
 Mods=pz-enshrouded-sleep
 ```
 
-If/when the Rested feature is promoted and the server wants the custom Moodle UI, add Moodle Framework using the host's normal Workshop/mod configuration mechanism. Do not create or redistribute a bundled copy of Moodle Framework.
+No additional Moodle/UI Workshop item is required for the sleep-benefit candidate.
 
 Players joining a Workshop-configured server should use the Workshop-distributed copy rather than maintaining a second manual copy.
 
@@ -124,7 +121,7 @@ Pay attention to:
 - `SleepBenefits` grants/clears matching actual sleep duration when the feature is enabled;
 - runaway/repeated XP bonus messages or implausible XP gains;
 - Well Rested reducing Endurance expenditure rather than only increasing recovery;
-- Moodle Framework errors or moodles remaining visible after expiry/death;
+- sleep-benefit Moodle UI errors, stale icons, or overlap with vanilla/Lifestyle moodles;
 - `WRITE_FAILURE_FAIL_OPEN` messages;
 - recurring Enshrouded Sleep Lua exceptions;
 - unusual server responsiveness or log volume;
@@ -159,6 +156,7 @@ Useful prefixes include:
 [EnshroudedSleepNotify][CLIENT]
 [EnshroudedSleepBenefits][SERVER]
 [EnshroudedSleepBenefits][CLIENT]
+[EnshroudedSleepBenefits][MOODLE]
 [EnshroudedSleepActionDiag][SERVER]
 [EnshroudedSleepActionDiag][CLIENT]
 [EnshroudedSleepSurvivalDiag][SERVER]
@@ -195,9 +193,7 @@ If the feature-branch reward system causes XP, Endurance, Moodle, or compatibili
 EnshroudedSleep.SleepBenefitsEnabled=false
 ```
 
-The server clears active Rested / Well Rested benefit state. Proportional sleep, awake-player protection, and notification behavior remain independently configured.
-
-If the gameplay bonuses work but Moodle Framework causes UI errors, remove/disable Moodle Framework instead; Enshrouded Sleep is designed to retain the benefits without the optional custom Moodle UI.
+The server clears active Rested / Well Rested benefit state. Proportional sleep, awake-player protection, and notification behavior remain independently configured. There is no external Moodle dependency to remove; the custom UI ships as part of the candidate and is designed to fail independently of gameplay authority.
 
 ## Full rollback
 
