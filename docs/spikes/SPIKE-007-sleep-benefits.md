@@ -37,6 +37,22 @@ EnshroudedSleep.WellRestedEnduranceRecoveryBonusPercent=10.0
 
 If `WellRestedMinimumSleepHours` is configured below `RestedMinimumSleepHours`, the runtime clamps the effective Well Rested threshold upward to the Rested threshold.
 
+## Feature-branch deployment preflight
+
+A SPIKE-007 result is valid only when the dedicated server and owning client are both running the same `feature/sleep-benefits` development package.
+
+Project Zomboid can discover more than one copy of a mod with the same Mod ID from local and Workshop locations. In particular, a public Workshop `pz-enshrouded-sleep` copy can supply stale `sandbox-options.txt` data even when another copy supplies runtime Lua. For feature-branch testing, keep **one effective copy of Mod ID `pz-enshrouded-sleep` on the test client**. Temporarily remove/unsubscribe the released Workshop copy or otherwise eliminate the duplicate before loading the branch package; restore the normal Workshop deployment after testing.
+
+Before testing sleep qualification, verify all of the following in the logs/UI:
+
+- client loads `[EnshroudedSleepBenefits][CLIENT]` and `[EnshroudedSleepBenefits][MOODLE]`;
+- server loads `[EnshroudedSleepBenefits][SERVER]` and prints the development `CONFIG` line;
+- client/server development build strings report `0.1.1+sleep-benefits-dev` when the corresponding packet path is exercised;
+- the admin Sandbox page shows the Rested / Well Rested options with translated labels;
+- there are no `ERROR unknown SandboxOption "EnshroudedSleep.SleepBenefits..."` messages.
+
+Raw labels such as `Sandbox_SleepBenefitsEnabled`, missing benefit options, unknown-option errors, or absent benefit client load banners mean the deployment is mixed/stale. Stop the gameplay portion of the SPIKE and correct the package deployment first.
+
 ## Build 42.20 feasibility basis
 
 ### Sleep duration and persistence
@@ -53,7 +69,7 @@ Build 42 exposes the `AddXP` Lua event on the owning client and the standard `ad
 
 A recursion guard prevents bonus XP from recursively generating additional bonus XP if the underlying call also reaches the event path. The flat-XP function is used specifically so the added percentage is not run through ordinary XP multipliers a second time.
 
-This client path still requires live multiplayer validation for synchronization and interaction with other XP-altering mods.
+This client path still requires live multiplayer validation for synchronization and interaction with other XP-altering mods. A test performed only with an administrator account is not sufficient to clear the normal-player anti-cheat boundary; repeat the XP check with a non-admin player when a second/normal test account is available and inspect AntiCheatXP-related logs.
 
 ### Endurance-recovery bonus
 
@@ -127,6 +143,7 @@ With `SleepBenefitsEnabled=true`:
 4. Confirm observed total gain is approximately `1.05×` baseline rather than recursively compounding.
 5. Confirm no repeated Lua exception or runaway XP loop.
 6. Repeat with a non-default sandbox percentage.
+7. When possible, repeat with a non-admin player and inspect AntiCheatXP-related logs; an admin-only pass does not validate the normal-player anti-cheat boundary.
 
 ### Tier D — Endurance
 
@@ -152,4 +169,6 @@ With `SleepBenefitsEnabled=true`:
 
 ## GO / NO-GO gate
 
-Do not promote this feature from the branch into a released Beta solely on static/API inspection. Require at least one clean two-player dedicated-server test covering reward classification, XP, Endurance recovery, expiry, and built-in Moodle display, with no recurring Enshrouded Sleep Lua errors.
+A clean one-player run is useful preliminary evidence for configuration, reward classification, XP arithmetic, Endurance recovery, persistence, and UI behavior, but it is not the release gate.
+
+Do not promote this feature from the branch into a released Beta solely on static/API inspection or an administrator-only one-player run. Require at least one clean two-player dedicated-server test covering reward classification, XP, Endurance recovery, expiry, and built-in Moodle display, including at least one normal/non-admin player when practical, with no recurring Enshrouded Sleep Lua errors or anti-cheat regression.
