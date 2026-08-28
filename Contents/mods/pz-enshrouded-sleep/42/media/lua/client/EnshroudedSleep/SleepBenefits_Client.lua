@@ -1,23 +1,5 @@
 -- Enshrouded Sleep - owning-client Rested / Well Rested behavior
 -- Development candidate based on Public Beta v0.1.1 for Project Zomboid Build 42.20+
---
--- PURPOSE
--- -------
--- Receive server-authoritative sleep-benefit state, apply the configured XP bonus
--- to positive AddXP events, and drive Enshrouded Sleep's self-contained custom
--- Rested / Well Rested Moodle UI.
---
--- SAFETY
--- ------
--- * The client does not decide whether sleep qualified for a benefit.
--- * XP bonus percentages come only from server SleepBenefitState packets.
--- * Bonus XP uses addXpNoMultiplier() and a recursion guard so the additional XP
---   is not multiplied again or recursively awarded.
--- * Death clears the local reward state immediately; the server remains the
---   authoritative persisted-state owner and subsequently confirms the clear.
--- * The custom Moodle renderer is presentation-only. A UI failure must not alter
---   XP, Endurance, sleep qualification, or proportional time behavior.
--- * No third-party Moodle framework or Lifestyle code/assets are redistributed.
 
 if not isClient() then return end
 
@@ -27,6 +9,7 @@ local PREFIX = "[EnshroudedSleepBenefits][CLIENT]"
 local MODULE = "EnshroudedSleep"
 local COMMAND = "SleepBenefitState"
 local PROTOCOL_VERSION = 1
+local BUILD_VERSION = "0.1.1+sleep-benefits-dev"
 local BENEFIT_NONE = "none"
 local BENEFIT_RESTED = "rested"
 local BENEFIT_WELL_RESTED = "well-rested"
@@ -45,6 +28,7 @@ local applyingBonusXP = false
 local xpCapabilityDisabled = false
 local lastStateSignature = nil
 local lastError = nil
+local lastServerBuild = nil
 
 local function log(message)
     print(PREFIX .. " " .. tostring(message))
@@ -132,8 +116,6 @@ local function applyState(args)
     local enduranceRecoveryBonusPercent = math.max(0, tonumber(args.enduranceRecoveryBonusPercent) or 0)
     local lastQualifyingSleepHours = math.max(0, tonumber(args.lastQualifyingSleepHours) or 0)
 
-    -- A stale/in-flight pre-death packet must never reactivate the local reward
-    -- before the server's authoritative death clear reaches this client.
     if localPlayerIsDead() then
         benefitType = BENEFIT_NONE
         expiresAtWorldHour = -1
@@ -178,7 +160,18 @@ local function onServerCommand(module, command, args)
         logErrorOnce("unsupported SleepBenefitState protocolVersion=" .. tostring(args.protocolVersion))
         return
     end
-    clearError()
+
+    local serverBuild = tostring(args.buildVersion or "unknown")
+    if serverBuild ~= lastServerBuild then
+        lastServerBuild = serverBuild
+        log("SERVER_BUILD | " .. serverBuild)
+    end
+    if serverBuild ~= BUILD_VERSION then
+        logErrorOnce("BUILD_MISMATCH | client=" .. BUILD_VERSION .. " | server=" .. serverBuild)
+    else
+        clearError()
+    end
+
     applyState(args)
 end
 
@@ -255,4 +248,4 @@ if Events.OnCreatePlayer then Events.OnCreatePlayer.Add(function() pcall(MoodleU
 if Events.OnPlayerDeath then Events.OnPlayerDeath.Add(onPlayerDeath) end
 
 pcall(MoodleUI.refresh)
-log("Loaded Rested / Well Rested owning-client benefit handler with self-contained Moodle UI.")
+log("Loaded Rested / Well Rested client | build=" .. BUILD_VERSION .. " | self-contained Moodle UI.")
