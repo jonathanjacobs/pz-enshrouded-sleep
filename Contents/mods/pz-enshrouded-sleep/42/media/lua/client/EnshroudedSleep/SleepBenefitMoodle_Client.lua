@@ -2,10 +2,14 @@
 -- Development candidate based on Public Beta v0.1.1 for Project Zomboid Build 42.20+
 --
 -- This renderer is intentionally narrow: it draws one non-stacking positive
--- sleep-benefit status using Enshrouded Sleep artwork and vanilla Moodle UI
--- resources. It does not register a custom vanilla MoodleType and does not depend
--- on Moodle Framework or Lifestyle. Lifestyle was reviewed as implementation
+-- sleep-benefit status using Enshrouded Sleep artwork and installed vanilla Moodle
+-- UI resources. It does not register a custom vanilla MoodleType and does not
+-- depend on Moodle Framework or Lifestyle. Lifestyle was reviewed as implementation
 -- prior art only; no third-party code or artwork is redistributed here.
+--
+-- Presentation is fail-isolated. Any unexpected renderer/UI bridge exception
+-- circuit-breaks this Moodle for the current client session rather than throwing
+-- once per frame or affecting the XP/Endurance/sleep systems.
 
 if not isClient() then return {} end
 
@@ -22,8 +26,11 @@ local TOP_OFFSET = 120
 local RIGHT_OFFSET = 10
 local SLOT_GAP = 10
 
--- Mirrors the current Build 42 MoodleType registry so our slot can be placed
--- immediately below vanilla moodles without patching the vanilla MoodlesUI.
+-- Mirrors the B42.20 base MoodleType registry so the Enshrouded Sleep slot can be
+-- placed immediately below visible vanilla moodles without patching MoodlesUI.
+-- Third-party custom Moodle renderers remain a compatibility-test boundary; the
+-- Lifestyle special case below is read-only because that mod is present on the
+-- target server and exposes enough runtime state to avoid overlap safely.
 local VANILLA_MOODLES = {
     "ENDURANCE", "TIRED", "HUNGRY", "PANIC", "SICK", "BORED", "UNHAPPY",
     "BLEEDING", "WET", "HAS_A_COLD", "ANGRY", "STRESS", "THIRST", "INJURED",
@@ -42,6 +49,7 @@ local state = {
 local instance = nil
 local lastError = nil
 local loggedLifestyleCompatibility = false
+local uiCapabilityDisabled = false
 
 local function log(message)
     print(PREFIX .. " " .. tostring(message))
@@ -63,6 +71,13 @@ local function safeMethod(obj, methodName, ...)
     return value
 end
 
+local function disableUI(element, reason)
+    if uiCapabilityDisabled then return end
+    uiCapabilityDisabled = true
+    logErrorOnce("UI_DISABLED | " .. tostring(reason))
+    if element then pcall(function() element:setVisible(false) end) end
+end
+
 local function currentWorldAgeHours()
     if type(getGameTime) ~= "function" then return nil end
     local ok, gt = pcall(getGameTime)
@@ -82,8 +97,8 @@ local function isActive()
     return true
 end
 
--- Vanilla B42 supports 32/48/64/80/96/128 Moodle sizes; the seventh option
--- follows the configured real font-size index. This mirrors MoodlesUI sizing.
+-- B42.20 supports 32/48/64/80/96/128 Moodle sizes. Option 7 follows the
+-- configured real-font-size index; this mirrors vanilla MoodlesUI sizing.
 local function getMoodleSize()
     local core = type(getCore) == "function" and getCore() or nil
     if not core then return 32 end
@@ -123,6 +138,7 @@ local function countVisibleVanillaMoodles(player)
         if okType and moodleType then
             local level = tonumber(safeMethod(moodles, "getMoodleLevel", moodleType)) or 0
             local visible = level > 0
+            -- Vanilla hides FOOD_EATEN until the highest positive level.
             if key == "FOOD_EATEN" and level < 3 then visible = false end
             if visible then count = count + 1 end
         end
@@ -131,9 +147,8 @@ local function countVisibleVanillaMoodles(player)
 end
 
 -- Lifestyle uses its own ISUIElement moodles and exposes their active levels in
--- player ModData. If Lifestyle is actually loaded, reserve those visible slots so
--- Enshrouded Sleep appears below them rather than drawing over them. This is a
--- read-only compatibility observation; Lifestyle is not required.
+-- player ModData. When it is already loaded, reserve those active slots so the
+-- Enshrouded Sleep icon does not overlap them. This is read-only and optional.
 local function countVisibleLifestyleMoodles(player)
     local okManager, manager = pcall(function() return LSMoodleManager end)
     if not okManager or type(manager) ~= "table" then return 0 end
@@ -258,17 +273,17 @@ function SleepBenefitMoodle:drawTooltip()
     local description
     local lines = {}
     if state.benefitType == BENEFIT_WELL_RESTED then
-        title = translated("Moodles_EnshroudedWellRested_Good_lvl4", "Well Rested")
+        title = translated("Moodles_EnshroudedWellRested", "Well Rested")
         description = translated(
-            "Moodles_EnshroudedWellRested_Good_desc_lvl4",
+            "Moodles_EnshroudedWellRested_desc",
             "You feel exceptionally refreshed after a long, restorative sleep."
         )
         lines[#lines + 1] = "+" .. formatPercent(state.xpBonusPercent) .. " Experience Gain"
         lines[#lines + 1] = "+" .. formatPercent(state.enduranceRecoveryBonusPercent) .. " Endurance Recovery"
     else
-        title = translated("Moodles_EnshroudedRested_Good_lvl4", "Rested")
+        title = translated("Moodles_EnshroudedRested", "Rested")
         description = translated(
-            "Moodles_EnshroudedRested_Good_desc_lvl4",
+            "Moodles_EnshroudedRested_desc",
             "You feel refreshed after a solid sleep."
         )
         lines[#lines + 1] = "+" .. formatPercent(state.xpBonusPercent) .. " Experience Gain"
@@ -311,7 +326,7 @@ function SleepBenefitMoodle:drawTooltip()
     end
 end
 
-function SleepBenefitMoodle:render()
+function SleepBenefitMoodle:renderUnsafe()
     if not isActive() then
         self:setVisible(false)
         return
@@ -331,7 +346,7 @@ function SleepBenefitMoodle:render()
     local icon = type(getTexture) == "function" and getTexture(iconPath) or nil
 
     if background then
-        -- Positive Moodle tint. The custom artwork carries the tier-specific color.
+        -- Positive Moodle tint; the original icon art carries the tier-specific color.
         self:drawTextureScaled(background, 0, 0, size, size, 1, 0.45, 0.85, 0.48)
     end
     if border then self:drawTextureScaled(border, 0, 0, size, size, 1, 1, 1, 1) end
@@ -345,7 +360,13 @@ function SleepBenefitMoodle:render()
     ISUIElement.render(self)
 end
 
-function SleepBenefitMoodle:update()
+function SleepBenefitMoodle:render()
+    if uiCapabilityDisabled then return end
+    local ok, err = pcall(self.renderUnsafe, self)
+    if not ok then disableUI(self, "render failed: " .. tostring(err)) end
+end
+
+function SleepBenefitMoodle:updateUnsafe()
     ISUIElement.update(self)
     if not isActive() then
         self:setVisible(false)
@@ -355,7 +376,15 @@ function SleepBenefitMoodle:update()
     self:updatePlacement()
 end
 
+function SleepBenefitMoodle:update()
+    if uiCapabilityDisabled then return end
+    local ok, err = pcall(self.updateUnsafe, self)
+    if not ok then disableUI(self, "update failed: " .. tostring(err)) end
+end
+
 local function ensureInstance()
+    if uiCapabilityDisabled then return nil end
+
     local playerNum, player = getLocalPlayer()
     if not player then return nil end
     if instance then
@@ -373,13 +402,22 @@ local function ensureInstance()
     end)
 
     if not ok or not created then
-        logErrorOnce("could not create self-contained Moodle UI: " .. tostring(created))
+        disableUI(nil, "could not create self-contained Moodle UI: " .. tostring(created))
         return nil
     end
 
     instance = created
     log("Loaded self-contained Rested / Well Rested Moodle UI.")
     return instance
+end
+
+local function applyVisibility()
+    if uiCapabilityDisabled then return false end
+    local ui = ensureInstance()
+    if not ui then return false end
+    ui:setVisible(isActive())
+    if isActive() then ui:updatePlacement() end
+    return true
 end
 
 function UI.setState(newState)
@@ -395,30 +433,31 @@ function UI.setState(newState)
         state.enduranceRecoveryBonusPercent = 0
     end
 
-    local ui = ensureInstance()
-    if ui then
-        ui:setVisible(isActive())
-        ui:updatePlacement()
+    if uiCapabilityDisabled then return false end
+    local ok, result = pcall(applyVisibility)
+    if not ok then
+        disableUI(instance, "state update failed: " .. tostring(result))
+        return false
     end
+    return result == true
 end
 
 function UI.refresh()
-    local ui = ensureInstance()
-    if ui then
-        ui:setVisible(isActive())
-        if isActive() then ui:updatePlacement() end
+    if uiCapabilityDisabled then return false end
+    local ok, result = pcall(applyVisibility)
+    if not ok then
+        disableUI(instance, "refresh failed: " .. tostring(result))
+        return false
     end
+    return result == true
 end
 
 function UI.hide()
-    if instance then instance:setVisible(false) end
+    if instance then pcall(function() instance:setVisible(false) end) end
 end
 
-if Events.OnCreatePlayer then
-    Events.OnCreatePlayer.Add(function() UI.refresh() end)
-end
-if Events.OnPlayerDeath then
-    Events.OnPlayerDeath.Add(function() UI.hide() end)
+function UI.isDisabled()
+    return uiCapabilityDisabled
 end
 
 return UI
