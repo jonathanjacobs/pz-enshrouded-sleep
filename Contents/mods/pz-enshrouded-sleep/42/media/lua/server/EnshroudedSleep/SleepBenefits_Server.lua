@@ -30,7 +30,8 @@
 --   reduced by this module.
 -- * XP is awarded by the owning client through the standard AddXP event because
 --   Build 42 exposes that event client-side; the server supplies the percentage.
--- * Moodle Framework integration is client/UI-only and is not required here.
+-- * The self-contained Moodle renderer is client/UI-only and is not required by
+--   this authoritative server controller.
 
 if isClient() then return end
 
@@ -163,6 +164,7 @@ local function clearBenefit(player, reason, nowWorldHour)
         if data then
             data[KEY_TYPE] = BENEFIT_NONE
             data[KEY_EXPIRES] = nil
+            data[KEY_LAST_SLEEP] = 0
         end
         return false
     end
@@ -376,7 +378,10 @@ local function update()
             previousAsleepByPlayer[key] = false
             previousEnduranceByPlayer[key] = nil
             clearBenefit(player, "death", nowWorldHour)
-            sendState(player, key, config, nowWorldHour, true)
+            -- Do not force a packet every tick while a dead IsoPlayer remains in
+            -- the online roster. Signature/heartbeat deduplication sends the clear
+            -- transition once and then only the low-frequency authoritative state.
+            sendState(player, key, config, nowWorldHour, false)
         elseif not config.enabled then
             sleepStartByPlayer[key] = nil
             previousAsleepByPlayer[key] = asleep
