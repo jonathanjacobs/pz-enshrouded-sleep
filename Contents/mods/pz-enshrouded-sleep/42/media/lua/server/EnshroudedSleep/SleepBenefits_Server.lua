@@ -55,6 +55,7 @@ local KEY_LAST_SLEEP = "EnshroudedSleepBenefitLastQualifyingSleepHours"
 local sleepStartByPlayer = {}
 local previousAsleepByPlayer = {}
 local previousEnduranceByPlayer = {}
+local clearAcknowledgedByPlayer = {}
 local lastSentSignatureByPlayer = {}
 local lastSentAtByPlayer = {}
 local enduranceStat = nil
@@ -157,23 +158,25 @@ local function writeBenefit(player, benefitType, expiresAtWorldHour, sleepHours)
     return true
 end
 
-local function clearBenefit(player, reason, nowWorldHour)
-    local current = readBenefit(player, nowWorldHour)
-    if current == BENEFIT_NONE then
-        local data = getModData(player)
-        if data then
-            data[KEY_TYPE] = BENEFIT_NONE
-            data[KEY_EXPIRES] = nil
-            data[KEY_LAST_SLEEP] = 0
-        end
-        return false
-    end
+local function clearBenefit(player, reason)
+    local data = getModData(player)
+    if not data then return false end
 
-    if writeBenefit(player, BENEFIT_NONE, nil, 0) then
+    local storedType = tostring(data[KEY_TYPE] or BENEFIT_NONE)
+    local storedExpires = data[KEY_EXPIRES]
+    local storedLastSleep = tonumber(data[KEY_LAST_SLEEP]) or 0
+    local alreadyClear = storedType == BENEFIT_NONE and storedExpires == nil and storedLastSleep == 0
+    if alreadyClear then return false end
+
+    local hadGameplayBenefit = storedType == BENEFIT_RESTED or storedType == BENEFIT_WELL_RESTED
+    data[KEY_TYPE] = BENEFIT_NONE
+    data[KEY_EXPIRES] = nil
+    data[KEY_LAST_SLEEP] = 0
+
+    if hadGameplayBenefit then
         log("CLEAR | player=" .. playerName(player) .. " | reason=" .. tostring(reason))
-        return true
     end
-    return false
+    return true
 end
 
 local function classifySleep(config, sleepHours)
@@ -235,6 +238,13 @@ local function readEndurance(player)
 end
 
 local function applyEnduranceRecoveryBonus(player, key, config, benefitType, asleep)
+    -- Avoid touching the Endurance capability or Stats object unless this player
+    -- is actually an awake Well Rested player with a non-zero recovery bonus.
+    if asleep == true or benefitType ~= BENEFIT_WELL_RESTED or config.wellEndurancePercent <= EPSILON then
+        previousEnduranceByPlayer[key] = nil
+        return
+    end
+
     local current, stats = readEndurance(player)
     if current == nil or not stats then
         previousEnduranceByPlayer[key] = nil
@@ -242,12 +252,6 @@ local function applyEnduranceRecoveryBonus(player, key, config, benefitType, asl
     end
 
     local previous = previousEnduranceByPlayer[key]
-
-    if asleep == true or benefitType ~= BENEFIT_WELL_RESTED or config.wellEndurancePercent <= EPSILON then
-        previousEnduranceByPlayer[key] = current
-        return
-    end
-
     if previous ~= nil and current > previous + EPSILON then
         local vanillaRecovery = current - previous
         local extra = vanillaRecovery * (config.wellEndurancePercent / 100.0)
@@ -279,8 +283,14 @@ local function applyEnduranceRecoveryBonus(player, key, config, benefitType, asl
     previousEnduranceByPlayer[key] = current
 end
 
-local function stateForClient(player, config, nowWorldHour)
-    local benefitType, expires, lastSleep = readBenefit(player, nowWorldHour)
+local function stateForClient(player, config, nowWorldHour, knownBenefitType, knownExpires, knownLastSleep)
+    local benefitType = knownBenefitType
+    local expires = knownExpires
+    local lastSleep = knownLastSleep
+    if benefitType == nil then
+        benefitType, expires, lastSleep = readBenefit(player, nowWorldHour)
+    end
+
     local xpPercent = 0.0
     local endurancePercent = 0.0
 
@@ -304,13 +314,13 @@ local function stateForClient(player, config, nowWorldHour)
     }
 end
 
-local function sendState(player, key, config, nowWorldHour, force)
+local function sendState(player, key, config, nowWorldHour, force, knownBenefitType, knownExpires, knownLastSleep)
     if type(sendServerCommand) ~= "function" then
         logErrorOnce("sendServerCommand() unavailable; sleep-benefit client state not sent")
         return
     end
 
-    local args = stateForClient(player, config, nowWorldHour)
+    local args = stateForClient(player, config, nowWorldHour, knownBenefitType, knownExpires, knownLastSleep)
     local signature = table.concat({
         tostring(args.benefitType),
         string.format("%.4f", tonumber(args.expiresAtWorldHour) or -1),
@@ -377,22 +387,31 @@ local function update()
             sleepStartByPlayer[key] = nil
             previousAsleepByPlayer[key] = false
             previousEnduranceByPlayer[key] = nil
-            clearBenefit(player, "death", nowWorldHour)
-            -- Do not force a packet every tick while a dead IsoPlayer remains in
-            -- the online roster. Signature/heartbeat deduplication sends the clear
-            -- transition once and then only the low-frequency authoritative state.
-            sendState(player, key, config, nowWorldHour, false)
+            if clearAcknowledgedByPlayer[key] ~= "death" then
+                clearBenefit(player, "death")
+                clearAcknowledgedByPlayer[key] = "death"
+            end
+            -- The clear transition is sent once and then only the normal heartbeat;
+            -- the known-clear state avoids re-reading ModData every server tick.
+            sendState(player, key, config, nowWorldHour, false, BENEFIT_NONE, nil, 0)
         elseif not config.enabled then
             sleepStartByPlayer[key] = nil
             previousAsleepByPlayer[key] = asleep
             previousEnduranceByPlayer[key] = nil
-            clearBenefit(player, "SleepBenefitsEnabled=false", nowWorldHour)
-            sendState(player, key, config, nowWorldHour, false)
+            if clearAcknowledgedByPlayer[key] ~= "disabled" then
+                clearBenefit(player, "SleepBenefitsEnabled=false")
+                clearAcknowledgedByPlayer[key] = "disabled"
+            end
+            sendState(player, key, config, nowWorldHour, false, BENEFIT_NONE, nil, 0)
         else
-            local benefitType, expires = readBenefit(player, nowWorldHour)
+            clearAcknowledgedByPlayer[key] = nil
+
+            local benefitType, expires, lastSleep = readBenefit(player, nowWorldHour)
             if benefitType == BENEFIT_NONE and expires ~= nil and expires <= nowWorldHour then
-                clearBenefit(player, "expired", nowWorldHour)
+                clearBenefit(player, "expired")
                 benefitType = BENEFIT_NONE
+                expires = nil
+                lastSleep = 0
             end
 
             if asleep and not wasAsleep then
@@ -406,14 +425,15 @@ local function update()
                 if started ~= nil and nowWorldHour >= started then
                     local sleepHours = nowWorldHour - started
                     grantForSleep(player, config, sleepHours, nowWorldHour)
-                    benefitType = readBenefit(player, nowWorldHour)
+                    benefitType, expires, lastSleep = readBenefit(player, nowWorldHour)
                 end
             end
 
             previousAsleepByPlayer[key] = asleep
-            benefitType = readBenefit(player, nowWorldHour)
             applyEnduranceRecoveryBonus(player, key, config, benefitType, asleep)
-            sendState(player, key, config, nowWorldHour, false)
+            -- Reuse the state already read for this tick instead of fetching the
+            -- same ModData a second time solely for client synchronization.
+            sendState(player, key, config, nowWorldHour, false, benefitType, expires, lastSleep)
         end
     end
 
@@ -424,6 +444,7 @@ local function update()
             sleepStartByPlayer[key] = nil
             previousAsleepByPlayer[key] = nil
             previousEnduranceByPlayer[key] = nil
+            clearAcknowledgedByPlayer[key] = nil
             lastSentSignatureByPlayer[key] = nil
             lastSentAtByPlayer[key] = nil
         end
