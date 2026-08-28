@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - optional multiplayer sleep-status notifications
--- Public Beta v0.1.1 for Project Zomboid Build 42.20+
+-- Development candidate based on Public Beta v0.1.1 for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -11,7 +11,7 @@
 -- This module is observational. It never changes GameTime, player state, sleep
 -- policy, or awake-player protection. The authoritative controller still owns
 -- MinutesPerDay. Notifications are derived from settled authoritative
--- MinutesPerDay so chat cannot become a second policy engine.
+-- MinutesPerDay so presentation cannot become a second policy engine.
 
 if isClient() then return end
 
@@ -19,7 +19,7 @@ local PREFIX = "[EnshroudedSleepNotify][SERVER]"
 local MODULE = "EnshroudedSleep"
 local COMMAND = "SleepNotification"
 local PROTOCOL_VERSION = 1
-local BUILD_VERSION = "0.1.1"
+local BUILD_VERSION = "0.1.1+sleep-benefits-dev"
 local EPSILON = 0.0001
 
 local baselineMinutesPerDay = nil
@@ -74,7 +74,8 @@ local function logConfigIfChanged(config)
     if signature == lastConfigSignature then return end
     lastConfigSignature = signature
     log(
-        "CONFIG | Enabled=" .. tostring(config.modEnabled)
+        "CONFIG | build=" .. BUILD_VERSION
+        .. " | Enabled=" .. tostring(config.modEnabled)
         .. " | SleepNotificationsEnabled=" .. tostring(config.notificationsEnabled)
         .. " | DiagnosticForced=" .. tostring(config.diagnosticForced)
     )
@@ -249,4 +250,4 @@ else
     Events.OnTick.Add(update)
 end
 
-log("Loaded Public Beta v0.1.1 optional sleep-status broadcaster; server-admin controlled and disabled unless SleepNotificationsEnabled=true.")
+log("Loaded sleep-status broadcaster | build=" .. BUILD_VERSION .. " | disabled unless SleepNotificationsEnabled=true.")
