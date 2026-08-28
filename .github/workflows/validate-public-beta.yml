@@ -22,14 +22,18 @@ jobs:
           MOD_ROOT="Contents/mods/pz-enshrouded-sleep"
           RUNTIME_LUA="$MOD_ROOT/42/media/lua"
           NOTIFY_SERVER="$MOD_ROOT/42/media/lua/server/EnshroudedSleep/SleepNotification_Server.lua"
+          NOTIFY_CLIENT="$MOD_ROOT/42/media/lua/client/EnshroudedSleep/SleepNotification_Client.lua"
           BENEFIT_SERVER="$MOD_ROOT/42/media/lua/server/EnshroudedSleep/SleepBenefits_Server.lua"
+          BENEFIT_CONFIG_DIAG="$MOD_ROOT/42/media/lua/server/EnshroudedSleep/SleepBenefitsConfigDiag_Server.lua"
           BENEFIT_CLIENT="$MOD_ROOT/42/media/lua/client/EnshroudedSleep/SleepBenefits_Client.lua"
           BENEFIT_MOODLE="$MOD_ROOT/42/media/lua/client/EnshroudedSleep/SleepBenefitMoodle_Client.lua"
+          SANDBOX_OPTIONS="$MOD_ROOT/42/media/sandbox-options.txt"
           SANDBOX_EN="$MOD_ROOT/42/media/lua/shared/Translate/EN/Sandbox.json"
           MOODLES_EN="$MOD_ROOT/42/media/lua/shared/Translate/EN/Moodles.json"
           RESTED_ICON="$MOD_ROOT/42/media/ui/Moodle_EnshroudedRested.png"
           WELL_RESTED_ICON="$MOD_ROOT/42/media/ui/Moodle_EnshroudedWellRested.png"
           VERSION_VALUE="$(tr -d '\r\n' < VERSION)"
+          DEV_BUILD="$VERSION_VALUE+sleep-benefits-dev"
 
           [[ "$VERSION_VALUE" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           test -f workshop.txt
@@ -41,11 +45,12 @@ jobs:
           test -f "$MOD_ROOT/42/mod.info"
           test -f "$MOD_ROOT/42/poster.png"
           test -f "$MOD_ROOT/42/icon.png"
-          test -f "$MOD_ROOT/42/media/sandbox-options.txt"
+          test -f "$SANDBOX_OPTIONS"
           test -f "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/AwakePlayerProtection_Server.lua"
           test -f "$NOTIFY_SERVER"
-          test -f "$MOD_ROOT/42/media/lua/client/EnshroudedSleep/SleepNotification_Client.lua"
+          test -f "$NOTIFY_CLIENT"
           test -f "$BENEFIT_SERVER"
+          test -f "$BENEFIT_CONFIG_DIAG"
           test -f "$BENEFIT_CLIENT"
           test -f "$BENEFIT_MOODLE"
           test -f "$SANDBOX_EN"
@@ -80,39 +85,64 @@ jobs:
           grep -Fxq "tags=Build 42;Multiplayer" workshop.txt
           grep -Fxq "visibility=public" workshop.txt
 
-          grep -Fq 'option EnshroudedSleep.AwakePlayerProtectionEnabled' "$MOD_ROOT/42/media/sandbox-options.txt"
-          grep -Fq 'option EnshroudedSleep.SleepNotificationsEnabled' "$MOD_ROOT/42/media/sandbox-options.txt"
-          grep -A5 -F 'option EnshroudedSleep.SleepNotificationsEnabled' "$MOD_ROOT/42/media/sandbox-options.txt" | grep -Fq 'default = false'
-          grep -Fq 'option EnshroudedSleep.SleepBenefitsEnabled' "$MOD_ROOT/42/media/sandbox-options.txt"
-          grep -A5 -F 'option EnshroudedSleep.SleepBenefitsEnabled' "$MOD_ROOT/42/media/sandbox-options.txt" | grep -Fq 'default = false'
-          grep -Fq 'option EnshroudedSleep.RestedMinimumSleepHours' "$MOD_ROOT/42/media/sandbox-options.txt"
-          grep -Fq 'option EnshroudedSleep.RestedDurationHours' "$MOD_ROOT/42/media/sandbox-options.txt"
-          grep -Fq 'option EnshroudedSleep.RestedXPBonusPercent' "$MOD_ROOT/42/media/sandbox-options.txt"
-          grep -Fq 'option EnshroudedSleep.WellRestedMinimumSleepHours' "$MOD_ROOT/42/media/sandbox-options.txt"
-          grep -Fq 'option EnshroudedSleep.WellRestedDurationHours' "$MOD_ROOT/42/media/sandbox-options.txt"
-          grep -Fq 'option EnshroudedSleep.WellRestedXPBonusPercent' "$MOD_ROOT/42/media/sandbox-options.txt"
-          grep -Fq 'option EnshroudedSleep.WellRestedEnduranceRecoveryBonusPercent' "$MOD_ROOT/42/media/sandbox-options.txt"
-          grep -Fq 'option EnshroudedSleep.DiagnosticsEnabled' "$MOD_ROOT/42/media/sandbox-options.txt"
-          grep -Fq 'option EnshroudedSleep.DiagnosticForcedCompressionFactor' "$MOD_ROOT/42/media/sandbox-options.txt"
-          ! grep -Fq 'DiagnosticAwakeProtectionPrototype' "$MOD_ROOT/42/media/sandbox-options.txt"
+          grep -Fq 'option EnshroudedSleep.AwakePlayerProtectionEnabled' "$SANDBOX_OPTIONS"
+          grep -Fq 'option EnshroudedSleep.SleepNotificationsEnabled' "$SANDBOX_OPTIONS"
+          grep -A6 -F 'option EnshroudedSleep.SleepNotificationsEnabled' "$SANDBOX_OPTIONS" | grep -Fq 'default = false'
+          grep -Fq 'option EnshroudedSleep.SleepBenefitsEnabled' "$SANDBOX_OPTIONS"
+          grep -A6 -F 'option EnshroudedSleep.SleepBenefitsEnabled' "$SANDBOX_OPTIONS" | grep -Fq 'default = false'
+          grep -Fq 'option EnshroudedSleep.RestedMinimumSleepHours' "$SANDBOX_OPTIONS"
+          grep -Fq 'option EnshroudedSleep.RestedDurationHours' "$SANDBOX_OPTIONS"
+          grep -Fq 'option EnshroudedSleep.RestedXPBonusPercent' "$SANDBOX_OPTIONS"
+          grep -Fq 'option EnshroudedSleep.WellRestedMinimumSleepHours' "$SANDBOX_OPTIONS"
+          grep -Fq 'option EnshroudedSleep.WellRestedDurationHours' "$SANDBOX_OPTIONS"
+          grep -Fq 'option EnshroudedSleep.WellRestedXPBonusPercent' "$SANDBOX_OPTIONS"
+          grep -Fq 'option EnshroudedSleep.WellRestedEnduranceRecoveryBonusPercent' "$SANDBOX_OPTIONS"
+          grep -Fq 'option EnshroudedSleep.DiagnosticsEnabled' "$SANDBOX_OPTIONS"
+          grep -Fq 'option EnshroudedSleep.DiagnosticForcedCompressionFactor' "$SANDBOX_OPTIONS"
+          ! grep -Fq 'DiagnosticAwakeProtectionPrototype' "$SANDBOX_OPTIONS"
+
+          # Every custom option must explicitly bind its translated display label.
+          for option in \
+            Enabled PartialSleepSpeedScale AwakePlayerProtectionEnabled SleepNotificationsEnabled \
+            SleepBenefitsEnabled RestedMinimumSleepHours RestedDurationHours RestedXPBonusPercent \
+            WellRestedMinimumSleepHours WellRestedDurationHours WellRestedXPBonusPercent \
+            WellRestedEnduranceRecoveryBonusPercent DiagnosticsEnabled DiagnosticForcedCompressionFactor
+          do
+            grep -A8 -F "option EnshroudedSleep.$option" "$SANDBOX_OPTIONS" \
+              | grep -Fq "translation = EnshroudedSleep_$option"
+            grep -Fq "\"Sandbox_EnshroudedSleep_$option\"" "$SANDBOX_EN"
+          done
 
           grep -Fq "Loaded Public Beta v$VERSION_VALUE awake-player survival protection." "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/AwakePlayerProtection_Server.lua"
           grep -Fq "Loaded Public Beta v$VERSION_VALUE multiplayer-server calendar-compression controller." "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/EnshroudedSleep_Server.lua"
           grep -Fq "Loaded Public Beta v$VERSION_VALUE authoritative MinutesPerDay replication." "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/ClockStateSync_Server.lua"
           grep -Fq "Loaded Public Beta v$VERSION_VALUE client MinutesPerDay synchronization." "$MOD_ROOT/42/media/lua/client/EnshroudedSleep/ClockStateSync_Client.lua"
-          grep -Fq "Loaded Public Beta v$VERSION_VALUE optional sleep-status broadcaster" "$NOTIFY_SERVER"
-          grep -Fq "Loaded Public Beta v$VERSION_VALUE optional sleep-status client display" "$MOD_ROOT/42/media/lua/client/EnshroudedSleep/SleepNotification_Client.lua"
+          grep -Fq "Loaded sleep-status broadcaster | build=" "$NOTIFY_SERVER"
+          grep -Fq "Loaded sleep-status banner | build=" "$NOTIFY_CLIENT"
           grep -Fq "buildVersion = \"$VERSION_VALUE\"" "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/ClockStateSync_Server.lua"
-          grep -Fq "BUILD_VERSION = \"$VERSION_VALUE\"" "$NOTIFY_SERVER"
+          grep -Fq "BUILD_VERSION = \"$DEV_BUILD\"" "$NOTIFY_SERVER"
+          grep -Fq "BUILD_VERSION = \"$DEV_BUILD\"" "$NOTIFY_CLIENT"
           grep -Fq "SleepNotificationsEnabled=true" "$NOTIFY_SERVER"
-          grep -Fq "CONFIG | Enabled=" "$NOTIFY_SERVER"
+          grep -Fq "CONFIG | build=" "$NOTIFY_SERVER"
           grep -Fq "World time is %s faster." "$NOTIFY_SERVER"
-          grep -Fq "showServerChatMessage" "$MOD_ROOT/42/media/lua/client/EnshroudedSleep/SleepNotification_Client.lua"
+          grep -Fq 'require "ISUI/ISUIElement"' "$NOTIFY_CLIENT"
+          grep -Fq 'EnshroudedSleepNotificationBanner' "$NOTIFY_CLIENT"
+          grep -Fq 'BUILD_MISMATCH' "$NOTIFY_CLIENT"
+          grep -Fq 'UI_DISABLED' "$NOTIFY_CLIENT"
+          if grep -Fq 'showServerChatMessage' "$NOTIFY_CLIENT"; then
+            echo "ERROR: inaccessible ChatManager notification bridge reintroduced"
+            exit 1
+          fi
 
           # Sleep benefits are an unreleased, independently disabled feature on this branch.
           grep -Fq "SleepBenefitsEnabled" "$BENEFIT_SERVER"
           grep -Fq "getWorldAgeHours" "$BENEFIT_SERVER"
           grep -Fq 'resolveCharacterStat("ENDURANCE", "Endurance")' "$BENEFIT_SERVER"
+          grep -Fq "buildVersion = \"$DEV_BUILD\"" "$BENEFIT_SERVER"
+          grep -Fq "BUILD_VERSION = \"$DEV_BUILD\"" "$BENEFIT_CLIENT"
+          grep -Fq 'BUILD_MISMATCH' "$BENEFIT_CLIENT"
+          grep -Fq 'CONFIG | build=' "$BENEFIT_CONFIG_DIAG"
+          grep -Fq "BUILD_VERSION = \"$DEV_BUILD\"" "$BENEFIT_CONFIG_DIAG"
           grep -Fq "addXpNoMultiplier" "$BENEFIT_CLIENT"
           grep -Fq 'require "EnshroudedSleep/SleepBenefitMoodle_Client"' "$BENEFIT_CLIENT"
           grep -Fq 'require "ISUI/ISUIElement"' "$BENEFIT_MOODLE"
