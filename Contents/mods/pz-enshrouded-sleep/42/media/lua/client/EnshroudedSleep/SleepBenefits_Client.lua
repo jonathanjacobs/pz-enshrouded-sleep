@@ -13,6 +13,8 @@
 -- * XP bonus percentages come only from server SleepBenefitState packets.
 -- * Bonus XP uses addXpNoMultiplier() and a recursion guard so the additional XP
 --   is not multiplied again or recursively awarded.
+-- * Death clears the local reward state immediately; the server remains the
+--   authoritative persisted-state owner and subsequently confirms the clear.
 -- * The custom Moodle renderer is presentation-only. A UI failure must not alter
 --   XP, Endurance, sleep qualification, or proportional time behavior.
 -- * No third-party Moodle framework or Lifestyle code/assets are redistributed.
@@ -59,6 +61,17 @@ local function clearError()
     lastError = nil
 end
 
+local function localPlayer()
+    return type(getPlayer) == "function" and getPlayer() or nil
+end
+
+local function localPlayerIsDead()
+    local player = localPlayer()
+    if not player then return false end
+    local ok, dead = pcall(function() return player:isDead() end)
+    return ok and dead == true
+end
+
 local function currentWorldAgeHours()
     if type(getGameTime) ~= "function" then return nil end
     local ok, gt = pcall(getGameTime)
@@ -71,6 +84,7 @@ local function currentWorldAgeHours()
 end
 
 local function stateIsActive()
+    if localPlayerIsDead() then return false end
     if state.benefitType ~= BENEFIT_RESTED and state.benefitType ~= BENEFIT_WELL_RESTED then
         return false
     end
@@ -88,17 +102,51 @@ local function pushMoodleState()
     end
 end
 
+local function clearLocalBenefit(reason)
+    local wasActive = state.benefitType ~= BENEFIT_NONE
+        or (tonumber(state.xpBonusPercent) or 0) > EPSILON
+        or (tonumber(state.enduranceRecoveryBonusPercent) or 0) > EPSILON
+
+    state.benefitType = BENEFIT_NONE
+    state.expiresAtWorldHour = -1
+    state.xpBonusPercent = 0
+    state.enduranceRecoveryBonusPercent = 0
+    state.lastQualifyingSleepHours = 0
+
+    pushMoodleState()
+    pcall(MoodleUI.hide)
+
+    if wasActive and reason then
+        log("LOCAL_CLEAR | reason=" .. tostring(reason))
+    end
+end
+
 local function applyState(args)
     local benefitType = tostring(args.benefitType or BENEFIT_NONE)
     if benefitType ~= BENEFIT_RESTED and benefitType ~= BENEFIT_WELL_RESTED then
         benefitType = BENEFIT_NONE
     end
 
+    local expiresAtWorldHour = tonumber(args.expiresAtWorldHour) or -1
+    local xpBonusPercent = math.max(0, tonumber(args.xpBonusPercent) or 0)
+    local enduranceRecoveryBonusPercent = math.max(0, tonumber(args.enduranceRecoveryBonusPercent) or 0)
+    local lastQualifyingSleepHours = math.max(0, tonumber(args.lastQualifyingSleepHours) or 0)
+
+    -- A stale/in-flight pre-death packet must never reactivate the local reward
+    -- before the server's authoritative death clear reaches this client.
+    if localPlayerIsDead() then
+        benefitType = BENEFIT_NONE
+        expiresAtWorldHour = -1
+        xpBonusPercent = 0
+        enduranceRecoveryBonusPercent = 0
+        lastQualifyingSleepHours = 0
+    end
+
     state.benefitType = benefitType
-    state.expiresAtWorldHour = tonumber(args.expiresAtWorldHour) or -1
-    state.xpBonusPercent = math.max(0, tonumber(args.xpBonusPercent) or 0)
-    state.enduranceRecoveryBonusPercent = math.max(0, tonumber(args.enduranceRecoveryBonusPercent) or 0)
-    state.lastQualifyingSleepHours = math.max(0, tonumber(args.lastQualifyingSleepHours) or 0)
+    state.expiresAtWorldHour = expiresAtWorldHour
+    state.xpBonusPercent = xpBonusPercent
+    state.enduranceRecoveryBonusPercent = enduranceRecoveryBonusPercent
+    state.lastQualifyingSleepHours = lastQualifyingSleepHours
     state.diagnosticsEnabled = args.diagnosticsEnabled == true
 
     local signature = table.concat({
@@ -138,7 +186,7 @@ local function onAddXP(character, perk, amount)
     if applyingBonusXP or xpCapabilityDisabled then return end
     if not stateIsActive() then return end
 
-    local player = getPlayer and getPlayer() or nil
+    local player = localPlayer()
     if not player or character ~= player then return end
 
     local numericAmount = tonumber(amount)
@@ -173,13 +221,20 @@ end
 
 local function onPlayerUpdate(player)
     if not player then return end
+    if localPlayerIsDead() then
+        if state.benefitType ~= BENEFIT_NONE then clearLocalBenefit("death-observed") end
+        return
+    end
     if stateIsActive() then return end
     if state.benefitType == BENEFIT_NONE then return end
 
-    state.benefitType = BENEFIT_NONE
-    state.xpBonusPercent = 0
-    state.enduranceRecoveryBonusPercent = 0
-    pushMoodleState()
+    clearLocalBenefit("expired-locally")
+end
+
+local function onPlayerDeath(player)
+    local ownPlayer = localPlayer()
+    if player and ownPlayer and player ~= ownPlayer then return end
+    clearLocalBenefit("death-event")
 end
 
 if Events.OnServerCommand then
@@ -197,7 +252,7 @@ end
 
 if Events.OnPlayerUpdate then Events.OnPlayerUpdate.Add(onPlayerUpdate) end
 if Events.OnCreatePlayer then Events.OnCreatePlayer.Add(function() pcall(MoodleUI.refresh) end) end
-if Events.OnPlayerDeath then Events.OnPlayerDeath.Add(function() pcall(MoodleUI.hide) end) end
+if Events.OnPlayerDeath then Events.OnPlayerDeath.Add(onPlayerDeath) end
 
 pcall(MoodleUI.refresh)
 log("Loaded Rested / Well Rested owning-client benefit handler with self-contained Moodle UI.")
