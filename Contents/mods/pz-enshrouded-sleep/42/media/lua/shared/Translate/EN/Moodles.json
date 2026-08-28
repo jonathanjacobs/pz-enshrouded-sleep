@@ -1,6 +1,6 @@
 {
-  "Moodles_EnshroudedRested_Good_lvl4": "Rested",
-  "Moodles_EnshroudedRested_Good_desc_lvl4": "You feel refreshed after a solid sleep.",
-  "Moodles_EnshroudedWellRested_Good_lvl4": "Well Rested",
-  "Moodles_EnshroudedWellRested_Good_desc_lvl4": "You feel exceptionally refreshed after a long, restorative sleep."
+  "Moodles_EnshroudedRested": "Rested",
+  "Moodles_EnshroudedRested_desc": "You feel refreshed after a solid sleep.",
+  "Moodles_EnshroudedWellRested": "Well Rested",
+  "Moodles_EnshroudedWellRested_desc": "You feel exceptionally refreshed after a long, restorative sleep."
 }
