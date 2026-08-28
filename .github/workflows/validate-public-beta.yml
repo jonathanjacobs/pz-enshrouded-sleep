@@ -24,6 +24,7 @@ jobs:
           NOTIFY_SERVER="$MOD_ROOT/42/media/lua/server/EnshroudedSleep/SleepNotification_Server.lua"
           BENEFIT_SERVER="$MOD_ROOT/42/media/lua/server/EnshroudedSleep/SleepBenefits_Server.lua"
           BENEFIT_CLIENT="$MOD_ROOT/42/media/lua/client/EnshroudedSleep/SleepBenefits_Client.lua"
+          BENEFIT_MOODLE="$MOD_ROOT/42/media/lua/client/EnshroudedSleep/SleepBenefitMoodle_Client.lua"
           SANDBOX_EN="$MOD_ROOT/42/media/lua/shared/Translate/EN/Sandbox.json"
           MOODLES_EN="$MOD_ROOT/42/media/lua/shared/Translate/EN/Moodles.json"
           RESTED_ICON="$MOD_ROOT/42/media/ui/Moodle_EnshroudedRested.png"
@@ -46,6 +47,7 @@ jobs:
           test -f "$MOD_ROOT/42/media/lua/client/EnshroudedSleep/SleepNotification_Client.lua"
           test -f "$BENEFIT_SERVER"
           test -f "$BENEFIT_CLIENT"
+          test -f "$BENEFIT_MOODLE"
           test -f "$SANDBOX_EN"
           test -f "$MOODLES_EN"
           test -f "$RESTED_ICON"
@@ -112,10 +114,19 @@ jobs:
           grep -Fq "getWorldAgeHours" "$BENEFIT_SERVER"
           grep -Fq 'resolveCharacterStat("ENDURANCE", "Endurance")' "$BENEFIT_SERVER"
           grep -Fq "addXpNoMultiplier" "$BENEFIT_CLIENT"
-          grep -Fq 'require, "MF_ISMoodle"' "$BENEFIT_CLIENT"
-          grep -Fq 'Moodles_EnshroudedRested_Good_lvl4' "$MOODLES_EN"
-          grep -Fq 'Moodles_EnshroudedWellRested_Good_lvl4' "$MOODLES_EN"
+          grep -Fq 'require "EnshroudedSleep/SleepBenefitMoodle_Client"' "$BENEFIT_CLIENT"
+          grep -Fq 'require "ISUI/ISUIElement"' "$BENEFIT_MOODLE"
+          grep -Fq 'getOptionMoodleSize' "$BENEFIT_MOODLE"
+          grep -Fq '_Moodles_BGsolid.png' "$BENEFIT_MOODLE"
+          grep -Fq '_Moodles_BGoutline.png' "$BENEFIT_MOODLE"
+          grep -Fq 'UI_DISABLED' "$BENEFIT_MOODLE"
+          grep -Fq 'Moodles_EnshroudedRested' "$MOODLES_EN"
+          grep -Fq 'Moodles_EnshroudedWellRested' "$MOODLES_EN"
           grep -Fq "SPIKE-007" docs/spikes/SPIKE-007-sleep-benefits.md
+          if grep -RFq 'MF_ISMoodle' "$BENEFIT_CLIENT" "$BENEFIT_MOODLE"; then
+            echo "ERROR: external Moodle Framework runtime dependency reintroduced"
+            exit 1
+          fi
 
           # Keep the current public/admin notification examples synchronized with the released runtime wording.
           grep -Fq "World time is 20x faster." README.md
@@ -154,6 +165,10 @@ jobs:
               # 743x743; do not silently resize it as part of a code release.
               Path("Contents/mods/pz-enshrouded-sleep/42/poster.png"): (743, 743),
               Path("Contents/mods/pz-enshrouded-sleep/42/icon.png"): (32, 32),
+              # Current SPIKE-007 art is 30x30 RGBA and the self-contained renderer
+              # scales it to the configured B42 Moodle slot size. Higher-resolution
+              # masters may replace these after visual validation without changing
+              # the runtime contract.
               Path("Contents/mods/pz-enshrouded-sleep/42/media/ui/Moodle_EnshroudedRested.png"): (30, 30),
               Path("Contents/mods/pz-enshrouded-sleep/42/media/ui/Moodle_EnshroudedWellRested.png"): (30, 30),
           }
