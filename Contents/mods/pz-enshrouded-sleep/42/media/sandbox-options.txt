@@ -4,6 +4,7 @@ option EnshroudedSleep.Enabled = {
     type = boolean,
     default = true,
     page = EnshroudedSleep,
+    translation = EnshroudedSleep_Enabled,
 }
 
 option EnshroudedSleep.PartialSleepSpeedScale = {
@@ -12,24 +13,28 @@ option EnshroudedSleep.PartialSleepSpeedScale = {
     max = 5.0,
     default = 1.0,
     page = EnshroudedSleep,
+    translation = EnshroudedSleep_PartialSleepSpeedScale,
 }
 
 option EnshroudedSleep.AwakePlayerProtectionEnabled = {
     type = boolean,
     default = true,
     page = EnshroudedSleep,
+    translation = EnshroudedSleep_AwakePlayerProtectionEnabled,
 }
 
 option EnshroudedSleep.SleepNotificationsEnabled = {
     type = boolean,
     default = false,
     page = EnshroudedSleep,
+    translation = EnshroudedSleep_SleepNotificationsEnabled,
 }
 
 option EnshroudedSleep.SleepBenefitsEnabled = {
     type = boolean,
     default = false,
     page = EnshroudedSleep,
+    translation = EnshroudedSleep_SleepBenefitsEnabled,
 }
 
 option EnshroudedSleep.RestedMinimumSleepHours = {
@@ -38,6 +43,7 @@ option EnshroudedSleep.RestedMinimumSleepHours = {
     max = 24.0,
     default = 6.0,
     page = EnshroudedSleep,
+    translation = EnshroudedSleep_RestedMinimumSleepHours,
 }
 
 option EnshroudedSleep.RestedDurationHours = {
@@ -46,6 +52,7 @@ option EnshroudedSleep.RestedDurationHours = {
     max = 168.0,
     default = 12.0,
     page = EnshroudedSleep,
+    translation = EnshroudedSleep_RestedDurationHours,
 }
 
 option EnshroudedSleep.RestedXPBonusPercent = {
@@ -54,6 +61,7 @@ option EnshroudedSleep.RestedXPBonusPercent = {
     max = 100.0,
     default = 5.0,
     page = EnshroudedSleep,
+    translation = EnshroudedSleep_RestedXPBonusPercent,
 }
 
 option EnshroudedSleep.WellRestedMinimumSleepHours = {
@@ -62,6 +70,7 @@ option EnshroudedSleep.WellRestedMinimumSleepHours = {
     max = 24.0,
     default = 9.0,
     page = EnshroudedSleep,
+    translation = EnshroudedSleep_WellRestedMinimumSleepHours,
 }
 
 option EnshroudedSleep.WellRestedDurationHours = {
@@ -70,6 +79,7 @@ option EnshroudedSleep.WellRestedDurationHours = {
     max = 168.0,
     default = 24.0,
     page = EnshroudedSleep,
+    translation = EnshroudedSleep_WellRestedDurationHours,
 }
 
 option EnshroudedSleep.WellRestedXPBonusPercent = {
@@ -78,6 +88,7 @@ option EnshroudedSleep.WellRestedXPBonusPercent = {
     max = 100.0,
     default = 5.0,
     page = EnshroudedSleep,
+    translation = EnshroudedSleep_WellRestedXPBonusPercent,
 }
 
 option EnshroudedSleep.WellRestedEnduranceRecoveryBonusPercent = {
@@ -86,12 +97,14 @@ option EnshroudedSleep.WellRestedEnduranceRecoveryBonusPercent = {
     max = 100.0,
     default = 10.0,
     page = EnshroudedSleep,
+    translation = EnshroudedSleep_WellRestedEnduranceRecoveryBonusPercent,
 }
 
 option EnshroudedSleep.DiagnosticsEnabled = {
     type = boolean,
     default = false,
     page = EnshroudedSleep,
+    translation = EnshroudedSleep_DiagnosticsEnabled,
 }
 
 option EnshroudedSleep.DiagnosticForcedCompressionFactor = {
@@ -100,4 +113,5 @@ option EnshroudedSleep.DiagnosticForcedCompressionFactor = {
     max = 20.0,
     default = 1.0,
     page = EnshroudedSleep,
+    translation = EnshroudedSleep_DiagnosticForcedCompressionFactor,
 }
