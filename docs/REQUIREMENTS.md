@@ -15,6 +15,7 @@ Enshrouded Sleep is a multiplayer-server mod. Local/standalone single-player sup
 - **CalendarCompressionFactor** — factor by which game-world/calendar time is accelerated relative to native day length.
 - **EffectiveMinutesPerDay** — `BaselineMinutesPerDay / CalendarCompressionFactor`.
 - **Awake player** — a living player whose `isAsleep()` is not true.
+- **Rested / Well Rested benefit** — optional, non-stacking post-sleep gameplay reward whose qualification and expiry are server-authoritative.
 
 ## Core clock and sleep behavior
 
@@ -196,6 +197,75 @@ A chat/UI bridge failure must degrade independently and must never affect the sl
 
 Server/client synchronization and optional notifications must use predefined named command handlers and structured data. Runtime code must not depend on dynamic execution APIs such as `loadstring` or `loadstream` for server-supplied code. This preserves the command architecture required by Project Zomboid 42.20.4 and later security behavior.
 
+## Optional Rested / Well Rested sleep benefits
+
+### R35 — Sleep benefits are independently configurable and opt-in
+
+`SleepBenefitsEnabled` controls the voluntary-sleep reward system independently of proportional sleep, awake-player protection, and sleep notifications. It must default to `false`. Disabling it must stop the XP/endurance bonuses and clear active Rested / Well Rested benefit state without disabling Enshrouded Sleep clock behavior.
+
+### R36 — Qualification uses actual game-world sleep duration
+
+The server must determine a sleep attempt from `IsoPlayer:isAsleep()` transitions and measure duration using authoritative game-world time (`GameTime:getWorldAgeHours()`). Qualification is based on game hours slept, not wall-clock time.
+
+The current in-progress sleep attempt must remain session-scoped: disconnecting or restarting the server while a character is asleep must not convert offline elapsed world time into qualifying sleep.
+
+### R37 — Default tiers and all reward values are administrator-adjustable
+
+The default policy is:
+
+```text
+sleep < 6 hours      -> no new benefit
+6 <= sleep < 9      -> Rested
+sleep >= 9          -> Well Rested
+
+Rested:
+  duration = 12 game hours
+  XP bonus = 5%
+
+Well Rested:
+  duration = 24 game hours
+  XP bonus = 5%
+  Endurance recovery bonus = 10%
+```
+
+The Rested/Well Rested minimum sleep thresholds, durations, XP percentages, and Well Rested Endurance-recovery percentage must be server sandbox options. If the configured Well Rested threshold is below the Rested threshold, runtime behavior must safely clamp the effective Well Rested threshold upward to the Rested threshold.
+
+Sleeping beyond the Well Rested threshold must remain Well Rested; oversleeping must not remove the reward.
+
+### R38 — Benefits do not stack
+
+At most one Rested / Well Rested benefit may be active for a player. A new qualifying sleep replaces or refreshes the current tier rather than stacking multipliers or durations. A sleep attempt below the Rested minimum does not itself cancel an otherwise active, unexpired benefit.
+
+### R39 — Earned benefit state persists by game-world expiry; death clears it
+
+Once awarded, the benefit type and expiry world hour may be stored in player ModData so an already-earned benefit can survive ordinary reconnect/server restart behavior. Expiry must continue to use game-world hours.
+
+Death must clear the active benefit. Removing/disabling the feature must not require a database migration or leave a gameplay modifier active.
+
+### R40 — XP bonus is server-authoritative and must not recursively compound
+
+The dedicated server must observe positive Build 42 `AddXP` events and determine the reward from the server-authored active benefit and server sandbox percentage. The event-supplied perk must receive the bonus; the implementation must not maintain a skill allowlist or require the client to request or mint bonus XP.
+
+Bonus XP must be added as flat/no-multiplier XP and protected by a per-player recursion guard so a configured 5% reward remains approximately 5% rather than being multiplied again or recursively re-awarded.
+
+A missing/failing XP bridge must fail open for the reward feature and must not affect sleep/time behavior.
+
+### R41 — Well Rested boosts recovery, not maximum Endurance or Endurance expenditure
+
+While Well Rested is active, the server may amplify only **positive** observed Endurance deltas by the configured percentage. Negative Endurance deltas must remain untouched. Corrected Endurance must never exceed the normal maximum of `1.0`.
+
+This correction is directional rather than source-specific: positive Endurance changes produced by another mod may also be amplified. This limitation must be documented and validated before release.
+
+### R42 — Custom Moodle display is self-contained and presentation-only
+
+Rested and Well Rested must be displayable by an Enshrouded Sleep-owned client `ISUIElement`; the gameplay feature must not require an external Moodle framework or another Workshop dependency.
+
+The renderer may reference Project Zomboid's installed vanilla Moodle background/outline textures at runtime and draw original Enshrouded Sleep icon artwork over them. It must follow the player's current Build 42 Moodle-size setting and position itself after visible vanilla moodles rather than patching Project Zomboid Java/core files.
+
+Compatibility logic may read another installed mod's public/runtime state solely to avoid UI overlap—for example, detecting active Lifestyle moodle slots—but must not require, mutate, bundle, or redistribute that mod's code or assets.
+
+A custom-Moodle UI failure must degrade independently: benefit qualification, expiry, XP reward, Endurance reward, proportional sleep, and awake-player protection must remain unaffected.
+
 ## Out of scope
 
 - local/standalone single-player support;
@@ -203,7 +273,7 @@ Server/client synchronization and optional notifications must use predefined nam
 - ready/not-ready voting or lobby readiness tracking;
 - global active-simulation fast-forward during partial sleep;
 - broad automatic compensation of unmeasured world systems;
-- guaranteed compatibility with every sleep, survival, time-altering, or chat/UI mod;
+- guaranteed compatibility with every sleep, survival, time-altering, XP, endurance, or chat/UI mod;
 - Project Zomboid Java/core-file patching for ordinary Workshop distribution.
 
 Current validation status belongs in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md); future work belongs in [`ROADMAP.md`](ROADMAP.md); operational defaults belong in [`DEPLOYMENT.md`](DEPLOYMENT.md).

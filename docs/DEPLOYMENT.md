@@ -7,6 +7,8 @@ Project Zomboid Mod ID: `pz-enshrouded-sleep`
 Steam Workshop ID: `3786842301`  
 Current validated compatibility checkpoint: Project Zomboid `42.20.4` (`b0bbce05d5`)
 
+The Rested / Well Rested sleep-benefit system described below is accepted into `main` for the next production release and is **not part of the released v0.1.1 package**. It remains disabled by default and must be explicitly enabled by a server administrator.
+
 ## Normal server configuration
 
 ```text
@@ -14,6 +16,7 @@ EnshroudedSleep.Enabled=true
 EnshroudedSleep.PartialSleepSpeedScale=1.0
 EnshroudedSleep.AwakePlayerProtectionEnabled=true
 EnshroudedSleep.SleepNotificationsEnabled=false
+EnshroudedSleep.SleepBenefitsEnabled=false
 EnshroudedSleep.DiagnosticsEnabled=false
 EnshroudedSleep.DiagnosticForcedCompressionFactor=1.0
 ```
@@ -24,6 +27,7 @@ Administrator meaning:
 - `PartialSleepSpeedScale` — scales normal proportional partial-sleep calendar acceleration; `1.0` is neutral.
 - `AwakePlayerProtectionEnabled` — protects supported awake-player survival/metabolism fields during partial sleep; disable this first when isolating a compatibility problem in the protection layer.
 - `SleepNotificationsEnabled` — server-administrator switch for concise player-facing sleep-state messages. Disabled by default and has no effect on sleep/time policy, client clock synchronization, or awake-player protection.
+- `SleepBenefitsEnabled` — optional Rested / Well Rested reward layer. Disabled by default; when enabled it does not change sleep eligibility or proportional time compression.
 - `DiagnosticsEnabled` — enables high-volume troubleshooting telemetry; leave off during routine play.
 - `DiagnosticForcedCompressionFactor` — isolated one-player regression tool; keep at `1.0` during normal multiplayer operation.
 
@@ -35,14 +39,53 @@ When notifications are enabled, partial-sleep messages use the settled authorita
 
 All-awake and all-asleep transitions use short special messages rather than claiming a misleading multiplier during vanilla full-sleep handoff.
 
-The in-game sandbox tooltips contain fuller option descriptions. The canonical clock/protection behavior is in [`REQUIREMENTS.md`](REQUIREMENTS.md).
+The in-game sandbox tooltips contain fuller option descriptions. The canonical clock/protection/benefit behavior is in [`REQUIREMENTS.md`](REQUIREMENTS.md).
+
+## Sleep-benefit configuration — feature branch
+
+Default candidate settings:
+
+```text
+EnshroudedSleep.SleepBenefitsEnabled=false
+
+EnshroudedSleep.RestedMinimumSleepHours=6.0
+EnshroudedSleep.RestedDurationHours=12.0
+EnshroudedSleep.RestedXPBonusPercent=5.0
+
+EnshroudedSleep.WellRestedMinimumSleepHours=9.0
+EnshroudedSleep.WellRestedDurationHours=24.0
+EnshroudedSleep.WellRestedXPBonusPercent=5.0
+EnshroudedSleep.WellRestedEnduranceRecoveryBonusPercent=10.0
+```
+
+Default classification:
+
+```text
+< 6 game hours     -> no new benefit
+6 to < 9 hours     -> Rested: +5% XP for 12 game hours
+>= 9 game hours    -> Well Rested: +5% XP and +10% Endurance recovery for 24 game hours
+```
+
+Sleeping beyond the Well Rested threshold still qualifies as Well Rested; oversleeping does not remove the reward. A qualifying sleep replaces/refreshes the current tier rather than stacking. A sub-threshold nap does not cancel an otherwise active benefit.
+
+### Built-in custom Moodle UI
+
+The feature candidate includes its own Rested / Well Rested client Moodle renderer and original artwork. **No additional Workshop/UI dependency is required.**
+
+The renderer follows the player's current Build 42 Moodle-size option, positions the Enshrouded Sleep status after visible vanilla moodles, and uses installed vanilla Moodle background/outline resources at runtime. If Lifestyle is installed and its custom Moodle manager is active, Enshrouded Sleep performs a read-only slot-count compatibility check so its icon can be placed below active Lifestyle moodles rather than overlapping them.
+
+The UI is presentation-only. A custom-Moodle display problem must not change sleep qualification, XP/Endurance effects, time compression, or awake-player protection.
 
 ## Steam Workshop server setup
+
+Released Enshrouded Sleep package:
 
 ```text
 WorkshopItems=3786842301
 Mods=pz-enshrouded-sleep
 ```
+
+No additional Moodle/UI Workshop item is required for the sleep-benefit candidate.
 
 Players joining a Workshop-configured server should use the Workshop-distributed copy rather than maintaining a second manual copy.
 
@@ -53,19 +96,19 @@ Players joining a Workshop-configured server should use the Workshop-distributed
 3. Back up the world/save and server configuration.
 4. Preserve the previous known-good package/configuration when practical.
 5. Update the existing Workshop item/server package.
-6. Verify the normal configuration above unless the release notes explicitly require otherwise. For the WHG v0.1.1 live notification test, explicitly set `SleepNotificationsEnabled=true`; it defaults to `false`.
-7. Start the server and confirm the controller, clock sync, roster logger, awake-protection module, and notification modules load without an Enshrouded Sleep Lua exception.
-8. Confirm the notification server emits a low-volume `CONFIG` line showing the effective `SleepNotificationsEnabled` value. For the WHG live test it should report `SleepNotificationsEnabled=true`.
-9. Confirm native baseline `MinutesPerDay` while all living players are awake.
-10. During the first natural partial-sleep event, confirm partial mode appears and later returns to baseline.
-11. If `SleepNotificationsEnabled=true`, confirm one concise chat message appears per effective sleep-state change without repeated spam.
+6. Verify the normal configuration above unless the release notes explicitly require otherwise.
+7. Start the server and confirm the controller, clock sync, roster logger, awake-protection module, notification modules, and—when present in the candidate—sleep-benefit modules load without an Enshrouded Sleep Lua exception.
+8. Confirm native baseline `MinutesPerDay` while all living players are awake.
+9. During the first natural partial-sleep event, confirm partial mode appears and later returns to baseline.
+10. If `SleepNotificationsEnabled=true`, confirm one concise chat message appears per effective sleep-state change without repeated spam.
+11. If the deployed production package enables `SleepBenefitsEnabled=true`, perform the SPIKE-007 reward/XP/Endurance/Moodle smoke test and preserve the live-validation logs.
 12. Preserve early session logs after a material runtime update.
 
 Workshop authoring/publication mechanics are maintained separately in [`STEAM_WORKSHOP.md`](STEAM_WORKSHOP.md).
 
 ## Routine monitoring
 
-With verbose diagnostics disabled, low-volume controller/roster/protection transitions should provide enough context to identify normal sleep-state changes without generating large logs.
+With verbose diagnostics disabled, low-volume controller/roster/protection/benefit transitions should provide enough context to identify normal sleep-state changes without generating large logs.
 
 Pay attention to:
 
@@ -75,10 +118,14 @@ Pay attention to:
 - recurring client clock corrections;
 - notification `CONFIG` state matching the intended administrator setting;
 - repeated or missing sleep-status notifications when the option is enabled;
+- `SleepBenefits` grants/clears matching actual sleep duration when the feature is enabled;
+- runaway/repeated XP bonus messages or implausible XP gains;
+- Well Rested reducing Endurance expenditure rather than only increasing recovery;
+- sleep-benefit Moodle UI errors, stale icons, or overlap with vanilla/Lifestyle moodles;
 - `WRITE_FAILURE_FAIL_OPEN` messages;
 - recurring Enshrouded Sleep Lua exceptions;
 - unusual server responsiveness or log volume;
-- conflicts with mods that alter sleep, time, CharacterStats, nutrition, timed actions, or chat UI.
+- conflicts with mods that alter sleep, time, CharacterStats, nutrition, timed actions, XP, Endurance, or chat/UI.
 
 ## Focused diagnostics
 
@@ -107,6 +154,9 @@ Useful prefixes include:
 [EnshroudedSleepAwakeProtect][SERVER]
 [EnshroudedSleepNotify][SERVER]
 [EnshroudedSleepNotify][CLIENT]
+[EnshroudedSleepBenefits][SERVER]
+[EnshroudedSleepBenefits][CLIENT]
+[EnshroudedSleepBenefits][MOODLE]
 [EnshroudedSleepActionDiag][SERVER]
 [EnshroudedSleepActionDiag][CLIENT]
 [EnshroudedSleepSurvivalDiag][SERVER]
@@ -135,9 +185,19 @@ EnshroudedSleep.SleepNotificationsEnabled=false
 
 This has no effect on time compression, client clock synchronization, or awake-player protection.
 
+## Sleep-benefit-only rollback
+
+If the feature-branch reward system causes XP, Endurance, Moodle, or compatibility problems, disable only:
+
+```text
+EnshroudedSleep.SleepBenefitsEnabled=false
+```
+
+The server clears active Rested / Well Rested benefit state. Proportional sleep, awake-player protection, and notification behavior remain independently configured. There is no external Moodle dependency to remove; the custom UI ships as part of the candidate and is designed to fail independently of gameplay authority.
+
 ## Full rollback
 
-Use a full rollback for core clock/controller/synchronization failures, recurring Enshrouded Sleep exceptions, serious server instability, or player/world-state problems that cannot be isolated to awake protection.
+Use a full rollback for core clock/controller/synchronization failures, recurring Enshrouded Sleep exceptions, serious server instability, or player/world-state problems that cannot be isolated to an optional layer.
 
 1. Stop the server cleanly.
 2. Preserve incident logs and the affected save/configuration.
@@ -145,8 +205,10 @@ Use a full rollback for core clock/controller/synchronization failures, recurrin
 4. Restore the prior package/configuration if needed.
 5. Restart and confirm native future sleep/time behavior.
 
-The mod does not maintain a custom persistent sleep database. Removing it returns future sleep/time behavior to vanilla. World-time-driven changes that already occurred require a prior save backup if they need to be undone.
+The mod does not maintain a custom persistent sleep database. The feature-branch Rested system stores only small per-character ModData fields for an earned benefit and expiry; disabling/removing the mod stops using those values. World-time-driven changes that already occurred require a prior save backup if they need to be undone.
 
 ## Operational boundary
 
 Awake-player protection does not stop external world/calendar systems from advancing with compressed game time. Food aging, generators, vehicles, farming, corpses, weather, and other vanilla/modded world systems remain outside the protection layer unless separately addressed in a future release.
+
+Rested / Well Rested durations intentionally expire in game-world hours, so partial-sleep world-time acceleration also advances the remaining benefit duration faster in real time.

@@ -19,6 +19,16 @@ Before any third-party code, asset, library, executable, model, sound, data file
 
 ## Research references / prior art not redistributed
 
+### Custom Moodle UI research
+
+The Project Zomboid **Lifestyle** mod Lua supplied during development was reviewed as implementation prior art for Build 42 custom Moodle-style UI behavior. In particular, it demonstrated that a mod can use client `ISUIElement` rendering, vanilla Moodle layout resources, player Moodle state, configurable Moodle sizing, and custom icon/tooltips without requiring a custom Java/core patch.
+
+Enshrouded Sleep's Rested / Well Rested renderer is independently written for this project. It does **not** include, copy, adapt verbatim, or redistribute Lifestyle source code, textures, icons, or other assets. A small optional compatibility check may read Lifestyle's already-existing runtime `LSMoodleManager` / player `LSMoodles` state when Lifestyle is actually installed, solely to reserve visible UI slots and avoid overlap; Enshrouded Sleep does not mutate that state and does not require Lifestyle.
+
+Moodle Framework was also considered during SPIKE-007 as a possible optional UI integration. The final self-contained candidate does not require it and redistributes none of its code or assets.
+
+### Comparative multiplayer-sleep prior art
+
 The following Project Zomboid mods have been examined during design/debugging to understand multiplayer-sleep behavior and implementation constraints:
 
 - **TrueSleep** — reviewed as comparative prior art for multiplayer sleep behavior.

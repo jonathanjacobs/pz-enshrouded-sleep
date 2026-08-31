@@ -12,8 +12,9 @@ The initial directory README was only scaffolding. That was incomplete because t
 | [`ADR-001-use-minutes-per-day-for-partial-sleep.md`](ADR-001-use-minutes-per-day-for-partial-sleep.md) | Accepted | Use `GameTime:MinutesPerDay` for partial-sleep calendar compression rather than global simulation fast-forward. |
 | [`ADR-002-extend-vanilla-sleep-lifecycle.md`](ADR-002-extend-vanilla-sleep-lifecycle.md) | Accepted | Use vanilla instantiated-player/sleep lifecycle semantics and restore baseline before vanilla full-sleep handoff. |
 | [`ADR-003-mirror-authoritative-minutes-per-day-to-clients.md`](ADR-003-mirror-authoritative-minutes-per-day-to-clients.md) | Accepted | Explicitly mirror the authoritative server `MinutesPerDay` to clients for coherent local clock pacing. |
+| [`ADR-004-award-sleep-benefit-xp-on-server.md`](ADR-004-award-sleep-benefit-xp-on-server.md) | Accepted | Observe standard XP events and award Rested / Well Rested flat bonus XP on the authoritative server. |
 
-No ADR-004 exists yet. [`SPIKE-004`](../spikes/SPIKE-004-health-time-domains.md) is deliberately an investigation first; an ADR should be created only if its evidence leads to a new durable policy, such as targeted compensation or a deployment-time compression cap.
+[`SPIKE-004`](../spikes/SPIKE-004-health-time-domains.md) remains deliberately an investigation first; a separate ADR should be created only if its evidence leads to a new durable policy, such as targeted compensation or a deployment-time compression cap.
 
 ## ADR convention
 

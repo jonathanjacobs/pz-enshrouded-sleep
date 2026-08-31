@@ -17,6 +17,26 @@ Week-long Public Beta server evidence now supports repeated proportional compres
 
 Continue broader population and mod-stack coverage after v1.0 without implying universal compatibility. Use verbose diagnostics only for focused evidence windows.
 
+`main` now carries the optional **Rested / Well Rested** reward layer developed on `feature/sleep-benefits` for servers where sleeping is permitted but not required. The feature is still unreleased and remains disabled by default until explicitly enabled by a server administrator.
+
+## SPIKE-007 — voluntary sleep rewards
+
+Goal: determine whether optional sleep can provide a modest positive incentive without becoming mandatory or distorting combat/skill balance.
+
+Current feature-branch defaults:
+
+- `<6` game hours slept → no new benefit;
+- `6–<9` hours → **Rested**, +5% XP for 12 game hours;
+- `>=9` hours → **Well Rested**, +5% XP and +10% Endurance recovery for 24 game hours;
+- all thresholds, durations, and percentages are server sandbox options;
+- benefits do not stack;
+- Rested / Well Rested use an Enshrouded Sleep-owned `ISUIElement` Moodle renderer and original artwork; no external Moodle framework is required;
+- the renderer follows the player's current B42 Moodle size and includes read-only Lifestyle stack coexistence when Lifestyle is detected.
+
+Completed checkpoint: the ADR-004 server-authoritative XP path passed a one-player dedicated-server run at an unambiguous `100%` setting, producing exact flat bonus arithmetic across Carving, Fitness, Sprinting, and Strength without recursion or a relevant runtime error. The configured percentage is a direct input to the validated formula, and the module has no access-level/admin-mode branch; default `5%` and non-admin behavior are not separate implementation gates.
+
+SPIKE-007 is accepted for integration into `main`. Broader two-player validation of reward classification, XP gain, positive Endurance recovery, expiry/reconnect/death behavior, feature-only rollback, built-in Moodle display/scaling, and vanilla/Lifestyle stack coexistence will be collected during the next production release. The live-validation plan remains in [`spikes/SPIKE-007-sleep-benefits.md`](spikes/SPIKE-007-sleep-benefits.md) and tracking issue [#10](https://github.com/jonathanjacobs/pz-enshrouded-sleep/issues/10).
+
 ## SPIKE-005 — external world systems
 
 Existing controlled evidence covers food aging/spoilage, generator fuel, vehicle fuel, and vehicle battery drain. Generator wear, frozen food, farming/crops, unloaded catch-up behavior, and compensation feasibility remain subsystem-specific open questions. Detailed measurements and future test protocols remain in [`spikes/SPIKE-005-world-system-time-domains.md`](spikes/SPIKE-005-world-system-time-domains.md).

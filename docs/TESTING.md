@@ -10,11 +10,12 @@ Run after runtime/configuration changes, a new release candidate, or a relevant 
 
 1. Start the dedicated server and confirm no Enshrouded Sleep Lua exception.
 2. Connect at least one client and confirm no Enshrouded Sleep client exception.
-3. Confirm the core controller, client clock sync, roster logger, awake-protection module, and sleep-notification modules load.
+3. Confirm the core controller, client clock sync, roster logger, awake-protection module, sleep-notification modules, and—on the feature branch—sleep-benefit modules load.
 4. With all living players awake, confirm authoritative/client `MinutesPerDay` remains at the native baseline.
 5. Confirm `DiagnosticsEnabled=false` does not produce high-frequency diagnostic telemetry.
 6. Confirm `DiagnosticForcedCompressionFactor=1.0` is inert.
 7. With `SleepNotificationsEnabled=false`, confirm no Enshrouded Sleep sleep-state chat messages are emitted.
+8. With `SleepBenefitsEnabled=false`, confirm no Rested/Well Rested grant occurs and no XP/Endurance modification is applied.
 
 Project Zomboid 42.20.4 (`b0bbce05d5`) passed the startup/baseline/client-sync compatibility checkpoint used as the basis for v0.1.1. See [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md) for the evidence boundary.
 
@@ -48,9 +49,60 @@ v0.1.1 intentionally ships the optional notification path for live Public Beta v
 
 The relevant low-volume prefixes are `[EnshroudedSleepNotify][SERVER]` and `[EnshroudedSleepNotify][CLIENT]`. A client chat-bridge failure should circuit-break notification display for that client session without affecting sleep/time behavior. If the notification path causes a live compatibility issue, disable `SleepNotificationsEnabled` first and preserve the server/client logs before changing the core sleep configuration.
 
+## SPIKE-007 — Rested / Well Rested validation
+
+This procedure covers the unreleased Rested / Well Rested feature accepted from `feature/sleep-benefits` into `main`. Use it for focused checks and for live validation during the next production release. The full multiplayer sequence uses at least two connected living players and the defaults documented in [`spikes/SPIKE-007-sleep-benefits.md`](spikes/SPIKE-007-sleep-benefits.md).
+
+Enable:
+
+```text
+EnshroudedSleep.SleepBenefitsEnabled=true
+```
+
+Keep normal multiplayer diagnostics settings unless collecting a focused trace:
+
+```text
+EnshroudedSleep.DiagnosticsEnabled=false
+EnshroudedSleep.DiagnosticForcedCompressionFactor=1.0
+```
+
+Minimum smoke sequence:
+
+1. Sleep `< 6` game hours and wake; confirm no new benefit.
+2. Sleep `6` to `< 9` game hours; confirm Rested is granted for the configured duration.
+3. Produce a repeatable positive XP event and confirm approximately `1.05×` total XP at the default 5% bonus, with a matching server `XP_BONUS` diagnostic and no recursive XP loop.
+4. Sleep `>= 9` game hours; confirm Well Rested replaces Rested.
+5. Deplete Endurance, then recover under controlled conditions; confirm positive recovery is approximately `1.10×` baseline at the default setting while Endurance expenditure itself is unchanged.
+6. Confirm Endurance never exceeds `1.0`.
+7. Confirm a sub-threshold nap does not cancel an active unexpired benefit.
+8. Confirm a later qualifying sleep refreshes/replaces rather than stacks.
+9. Confirm expiry follows game-world hours.
+10. Disconnect/reconnect after earning a benefit and confirm its remaining world-time duration persists.
+11. Confirm death clears the benefit.
+12. Set `SleepBenefitsEnabled=false` and confirm the reward disappears while proportional sleep continues normally.
+
+Built-in Moodle/UI checks:
+
+1. Confirm no additional Moodle/UI Workshop dependency is required.
+2. Rested shows only the Rested icon; Well Rested shows only the Well Rested icon.
+3. Hover text shows the correct title, server-supplied XP/Endurance percentages, and remaining game time.
+4. Confirm the icon tracks at least the default Moodle size and one larger configured Moodle size without overlap or severe scaling artifacts.
+5. Create one or more vanilla moodles and confirm the Enshrouded Sleep icon moves below the visible vanilla stack.
+6. Confirm benefit expiry, death, and `SleepBenefitsEnabled=false` hide the icon.
+7. If Lifestyle is installed for compatibility testing, activate one or more Lifestyle custom moodles and confirm the Enshrouded Sleep icon reserves their occupied slots rather than drawing over them.
+8. Confirm a Moodle renderer/texture failure, if induced during development, does not stop XP/Endurance effects or alter sleep/time behavior.
+
+No Lifestyle or other third-party custom-Moodle code/assets are part of the candidate; Lifestyle is only a coexistence test target.
+
+For the focused server-XP feasibility test, a one-player dedicated-server run is sufficient. Set both XP bonus percentages to `100` so the result is unambiguous, keep diagnostics enabled only for the test window, and use a character below the tested perk's maximum level. Record XP immediately before and after a normal XP-producing action such as exercise for Fitness, then repeat with a different ordinary skill action if practical. A successful event should produce one server `XP_BONUS` line whose `bonus` equals its `base`, and the character should receive approximately twice the underlying gain. Restore the intended percentages and disable verbose diagnostics afterward. Because every configured percentage uses the same direct formula and the module has no access-level/admin-mode branch, separate default-`5%` and non-admin feasibility runs are not required.
+
+The server log—not a client `XP_BONUS` line—is authoritative for this retest. Confirm the log names the same perk being trained, contains no repeated XP exception or runaway loop, and that the client continues receiving the Moodle state. Broader two-player behavior is a live-validation target for the next production release.
+
+The detailed acceptance cases, current GO decision, and evidence boundary are maintained in [`spikes/SPIKE-007-sleep-benefits.md`](spikes/SPIKE-007-sleep-benefits.md).
+
 ## Tier 3 — Public Beta multiplayer protection field test
 
-This is the principal Beta validation path.
+This remains the principal released-Beta awake-protection validation path.
 
 Recommended normal configuration is maintained in [`DEPLOYMENT.md`](DEPLOYMENT.md).
 
@@ -88,6 +140,9 @@ Useful prefixes include:
 [EnshroudedSleepAwakeProtect][SERVER]
 [EnshroudedSleepNotify][SERVER]
 [EnshroudedSleepNotify][CLIENT]
+[EnshroudedSleepBenefits][SERVER]
+[EnshroudedSleepBenefits][CLIENT]
+[EnshroudedSleepBenefits][MOODLE]
 [EnshroudedSleepActionDiag][SERVER]
 [EnshroudedSleepActionDiag][CLIENT]
 [EnshroudedSleepSurvivalDiag][SERVER]
@@ -141,7 +196,7 @@ Packaging/publication checks are intentionally not duplicated here. Use:
 
 For a new Build 42 release:
 
-1. review changes affecting `GameTime`, multiplayer sleep/lifecycle, CharacterStats, Nutrition, networking/command APIs, and any subsystem touched by the release;
+1. review changes affecting `GameTime`, multiplayer sleep/lifecycle, CharacterStats, Nutrition, XP, Endurance, networking/command APIs, Moodle UI conventions, and any subsystem touched by the release;
 2. check runtime Lua for removed/restricted APIs introduced by the game update;
 3. run Tier 1;
 4. run Tier 2 if clock/sleep/network behavior may have changed;
