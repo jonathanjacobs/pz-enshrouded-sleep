@@ -1,24 +1,23 @@
 # Documentation ownership
 
-This file defines where mutable project information belongs so the repository does not maintain multiple competing copies of the same facts.
+This file defines where mutable project information belongs so the repository does not maintain competing copies of the same facts.
 
 | Information | Canonical source |
-|---|---|
-| Public/player overview and current release identity | [`../README.md`](../README.md) and [`../VERSION`](../VERSION) |
+| --- | --- |
+| Public/player overview and current release identity | [`../README.md`](../README.md), [`../VERSION`](../VERSION), and [`../CHANGELOG.md`](../CHANGELOG.md) |
 | Normative runtime behavior | [`REQUIREMENTS.md`](REQUIREMENTS.md) |
 | Implementation design and component responsibilities | [`ARCHITECTURE.md`](ARCHITECTURE.md) and [`adr/`](adr/) |
-| Server installation, configuration, monitoring, and rollback | [`DEPLOYMENT.md`](DEPLOYMENT.md) |
-| Current regression and field-test procedures | [`TESTING.md`](TESTING.md) |
-| Historical validation chronology | [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md) |
+| Current work and release-exit criteria | [`ROADMAP.md`](ROADMAP.md) |
+| Repeatable test procedures | [`TESTING.md`](TESTING.md) |
+| Observed validation outcomes | [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md) |
 | Detailed experimental evidence | [`spikes/`](spikes/) |
-| Current/future work and release-exit criteria | [`ROADMAP.md`](ROADMAP.md) |
-| Steam Workshop packaging/publication procedure | [`STEAM_WORKSHOP.md`](STEAM_WORKSHOP.md) |
-| Release gates | [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md) |
-| Release-to-release change summary | [`../CHANGELOG.md`](../CHANGELOG.md) |
-| Mod-policy/provenance rules | [`PZ_MODDING_POLICY.md`](PZ_MODDING_POLICY.md), [`../THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md), and [`../ASSET_LICENSE.md`](../ASSET_LICENSE.md) |
+| Server installation, configuration, monitoring, and rollback | [`DEPLOYMENT.md`](DEPLOYMENT.md) |
+| Workshop publication | [`STEAM_WORKSHOP.md`](STEAM_WORKSHOP.md) |
+| Release gate | [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md) |
+| Policy and provenance | [`PZ_MODDING_POLICY.md`](PZ_MODDING_POLICY.md), [`../COMPLIANCE.md`](../COMPLIANCE.md), [`../THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md), and [`../ASSET_LICENSE.md`](../ASSET_LICENSE.md) |
 
 ## Duplication rule
 
-Other documents may repeat a small fact when it is required for immediate usability or safety—for example the two Steam/PZ identifiers in deployment instructions, the normal diagnostics defaults in a rollback procedure, or a release gate in the checklist. They should not reproduce long formulas, validation tables, experimental narratives, roadmaps, or complete configuration explanations when a canonical document already owns that material.
+Repeat a small fact only when necessary for immediate usability or safety. Do not duplicate complete specifications, validation tables, experimental narratives, roadmaps, or configuration explanations that already have a canonical home.
 
-When behavior changes, update the canonical source first and replace secondary explanations with links where practical.
+Update the canonical source first when behavior changes; replace secondary detail with a link where practical.

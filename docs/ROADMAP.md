@@ -1,28 +1,23 @@
 # Roadmap
 
-This is the single canonical roadmap for Enshrouded Sleep. Current runtime semantics belong in [`REQUIREMENTS.md`](REQUIREMENTS.md), implementation detail in [`ARCHITECTURE.md`](ARCHITECTURE.md), and completed evidence in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md).
+This file owns current work and release-exit criteria. Runtime semantics belong in [`REQUIREMENTS.md`](REQUIREMENTS.md); completed evidence belongs in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md).
 
-## Current phase — Public Beta field validation
+## Current phase — v1.0 release-candidate readiness
 
-The current priority is broad multiplayer evidence for the awake-player protection path and the existing proportional-sleep/client-sync architecture under real server conditions. Public Beta v0.1.1 also places the optional administrator-controlled sleep-notification path into live WHG field validation.
+Week-long Public Beta server evidence now supports repeated proportional compression, baseline restoration, vanilla full-sleep handoff, changing multiplayer populations, and stable operation in the normal server mod stack. The observed results and their limits are recorded in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md).
+
+### Remaining release-candidate evidence
+
+- review owning-client logs from representative partial- and full-sleep transitions for clock continuity and client exceptions;
+- deliberately exercise join, disconnect, death, and respawn transitions during partial sleep and check for stale correction state;
+- smoke-test opt-in sleep notifications, including one-message-per-transition behavior and notification-only rollback;
+- verify awake-protection soft rollback and full-mod rollback through the documented operational procedures;
+- record whether CPU cost and normal log volume remain acceptable at the representative tested population;
+- complete the package, provenance, policy, and deployment checks in [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md).
+
+Continue broader population and mod-stack coverage after v1.0 without implying universal compatibility. Use verbose diagnostics only for focused evidence windows.
 
 In parallel, `feature/sleep-benefits` is evaluating an optional **Rested / Well Rested** reward layer for servers where sleeping is permitted but not required. That work is tracked as SPIKE-007 and is not yet released.
-
-### Field goals
-
-- exercise 3–12+ living-player populations and multiple sleeping fractions;
-- verify multiple awake players can be protected simultaneously while sleepers remain vanilla-authoritative;
-- exercise joins, disconnects, deaths, respawns, and rapidly changing denominators;
-- repeat sleep/wake cycles across long sessions;
-- monitor client clock continuity and exact baseline restoration;
-- observe eating/drinking/activity behavior under natural multiplayer partial sleep;
-- characterize CPU/server cost and normal log volume at larger populations;
-- identify conflicts with mods that alter sleep, `MinutesPerDay`, CharacterStats, nutrition, timed actions, XP, Endurance, or chat/UI;
-- validate protection-only soft rollback and full-mod rollback in normal operations;
-- validate the v0.1.1 opt-in sleep-notification path during normal WHG multiplayer use, including one-message-per-transition behavior and notification-only rollback;
-- run focused regression checkpoints after relevant Project Zomboid updates, with 42.20.4 currently recorded for startup/baseline/client-sync compatibility.
-
-Verbose diagnostics should be used for focused evidence windows rather than left enabled continuously.
 
 ## SPIKE-007 — voluntary sleep rewards
 
@@ -40,54 +35,22 @@ Current feature-branch defaults:
 
 Before promotion, require a clean dedicated-multiplayer test of reward classification, XP gain, positive Endurance recovery, expiry/reconnect/death behavior, feature-only rollback, built-in Moodle display/scaling, and vanilla/Lifestyle stack coexistence. The detailed test gate is in [`spikes/SPIKE-007-sleep-benefits.md`](spikes/SPIKE-007-sleep-benefits.md).
 
-## Public Beta exit criteria
-
-Move toward a stable release candidate when representative field evidence supports all of the following:
-
-- no recurring clock-jump/client synchronization defect during ordinary play;
-- no global acceleration of awake active simulation;
-- reliable baseline restoration and vanilla all-asleep handoff;
-- awake-player protection remains stable across representative multiplayer populations;
-- common direct effects such as eating, drinking, activity, sleep/wake, and lifecycle changes are not materially distorted;
-- sleeping-player physiology remains outside the correction path;
-- joins/disconnects/deaths/respawns do not leave stale player correction state;
-- CPU/log volume is operationally acceptable;
-- representative mod-stack interaction is stable enough for routine use;
-- opt-in player-facing notifications complete their dedicated smoke test without repeated spam or coupling to sleep/time behavior;
-- any promoted sleep-benefit feature has passed its dedicated XP/Endurance/persistence/UI regression and remains independently disableable;
-- major external world-time side effects are documented/accepted or addressed through separate evidence-backed work;
-- Workshop install/update/rollback is repeatable.
-
 ## SPIKE-005 — external world systems
 
-Continue subsystem-specific characterization of systems affected by accelerated game-world time. Existing controlled evidence includes food aging/spoilage, generator fuel, vehicle fuel, and vehicle battery drain; detailed measurements remain in [`spikes/SPIKE-005-world-system-time-domains.md`](spikes/SPIKE-005-world-system-time-domains.md).
+Existing controlled evidence covers food aging/spoilage, generator fuel, vehicle fuel, and vehicle battery drain. Generator wear, frozen food, farming/crops, unloaded catch-up behavior, and compensation feasibility remain subsystem-specific open questions. Detailed measurements and future test protocols remain in [`spikes/SPIKE-005-world-system-time-domains.md`](spikes/SPIKE-005-world-system-time-domains.md).
 
-Priority unresolved areas include:
+Unsupported systems remain vanilla until evidence justifies a specific policy; SPIKE-005 is not a blanket mandate to compensate world systems.
 
-- generator wear/condition;
-- frozen-food behavior;
-- farming/crop maturation;
-- unloaded/off-screen catch-up behavior where relevant;
-- compensation feasibility and save/synchronization risk for any subsystem proposed for special handling.
+## Later work
 
-SPIKE-005 is not a blanket mandate to compensate world systems. Unsupported systems remain vanilla until evidence justifies a specific policy.
+- Consider a read-only administrator status panel for population, sleepers, compression, and active mode.
+- Run focused compatibility regressions after relevant Project Zomboid updates.
+- Expand representative population and mod-stack coverage without claiming universal compatibility.
 
-## Administrator UX
+## Stable-release boundary
 
-Potential follow-up: a read-only admin runtime status panel showing live population, sleepers, effective compression, native/current `MinutesPerDay`, and active mode. This should remain separate from editable sandbox configuration.
-
-## Stable/v1.0 readiness
-
-A stable release requires reliable representative multiplayer behavior, no known high-severity player/save/world-state risk, concise administration, repeatable deployment/rollback, documented world-time interactions, and compatibility claims limited to tested combinations.
+A stable release requires reliable representative multiplayer behavior, no known high-severity player/save/world-state risk, repeatable deployment and rollback, documented world-time interactions, and compatibility claims limited to tested combinations. Optional experimental features require their own validation gate before inclusion.
 
 ## Non-goals
 
-The project is not trying to:
-
-- support local/standalone single-player;
-- replace vanilla fatigue/sleep eligibility;
-- create a readiness/voting system;
-- globally fast-forward active simulation;
-- patch Project Zomboid Java/core files for ordinary Workshop distribution;
-- guarantee compatibility with every mod;
-- preemptively compensate every world-time-driven system.
+The project does not aim to support standalone single-player, replace vanilla sleep eligibility, create a readiness/voting system, globally fast-forward active simulation, patch Project Zomboid Java/core files for ordinary distribution, guarantee compatibility with every mod, or preemptively compensate every world-time-driven system.
