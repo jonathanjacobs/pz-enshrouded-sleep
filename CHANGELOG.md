@@ -25,6 +25,10 @@ No changes yet.
 - Added SPIKE-007 documentation and a dedicated multiplayer validation procedure. The feature is included in v1.0.0, remains disabled by default, and will collect broader multiplayer evidence during live validation.
 - Escaped literal percentage signs in sandbox tooltips so Build 42's Java formatter does not treat player-facing examples/defaults as format directives.
 
+### Changed
+
+- Removed stale Alpha, Beta, unreleased, and feature-branch wording from current v1.0.0 player, administrator, and test surfaces while preserving historical release evidence.
+
 ## [0.1.1] - 2026-08-26
 
 **Public Beta live-field release.** Adds optional administrator-controlled sleep-state notifications and records the Project Zomboid 42.20.4 compatibility checkpoint. Notification behavior is being validated live on the WHG server rather than treated as pre-qualified before Workshop deployment.

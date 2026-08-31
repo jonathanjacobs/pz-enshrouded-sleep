@@ -51,7 +51,7 @@ The relevant low-volume prefixes are `[EnshroudedSleepNotify][SERVER]` and `[Ens
 
 ## SPIKE-007 — Rested / Well Rested validation
 
-This procedure covers the unreleased Rested / Well Rested feature accepted from `feature/sleep-benefits` into `main`. Use it for focused checks and for live validation during the next production release. The full multiplayer sequence uses at least two connected living players and the defaults documented in [`spikes/SPIKE-007-sleep-benefits.md`](spikes/SPIKE-007-sleep-benefits.md).
+This procedure covers the Rested / Well Rested feature included in the v1.0.0 release candidate. Use it for focused checks and for live validation during production deployment. The full multiplayer sequence uses at least two connected living players and the defaults documented in [`spikes/SPIKE-007-sleep-benefits.md`](spikes/SPIKE-007-sleep-benefits.md).
 
 Enable:
 
@@ -92,7 +92,7 @@ Built-in Moodle/UI checks:
 7. If Lifestyle is installed for compatibility testing, activate one or more Lifestyle custom moodles and confirm the Enshrouded Sleep icon reserves their occupied slots rather than drawing over them.
 8. Confirm a Moodle renderer/texture failure, if induced during development, does not stop XP/Endurance effects or alter sleep/time behavior.
 
-No Lifestyle or other third-party custom-Moodle code/assets are part of the candidate; Lifestyle is only a coexistence test target.
+No Lifestyle or other third-party custom-Moodle code/assets are bundled; Lifestyle is only a coexistence test target.
 
 For the focused server-XP feasibility test, a one-player dedicated-server run is sufficient. Set both XP bonus percentages to `100` so the result is unambiguous, keep diagnostics enabled only for the test window, and use a character below the tested perk's maximum level. Record XP immediately before and after a normal XP-producing action such as exercise for Fitness, then repeat with a different ordinary skill action if practical. A successful event should produce one server `XP_BONUS` line whose `bonus` equals its `base`, and the character should receive approximately twice the underlying gain. Restore the intended percentages and disable verbose diagnostics afterward. Because every configured percentage uses the same direct formula and the module has no access-level/admin-mode branch, separate default-`5%` and non-admin feasibility runs are not required.
 
@@ -100,9 +100,9 @@ The server log—not a client `XP_BONUS` line—is authoritative for this retest
 
 The detailed acceptance cases, current GO decision, and evidence boundary are maintained in [`spikes/SPIKE-007-sleep-benefits.md`](spikes/SPIKE-007-sleep-benefits.md).
 
-## Tier 3 — Public Beta multiplayer protection field test
+## Tier 3 — multiplayer protection field test
 
-This remains the principal released-Beta awake-protection validation path.
+This remains the principal awake-protection validation path.
 
 Recommended normal configuration is maintained in [`DEPLOYMENT.md`](DEPLOYMENT.md).
 
@@ -151,7 +151,7 @@ Useful prefixes include:
 
 ## Isolated forced-compression regression
 
-`DiagnosticForcedCompressionFactor>1` is reserved for controlled support/regression work with exactly one living awake player and verbose diagnostics enabled. It should not be used to generate normal multiplayer Beta evidence.
+`DiagnosticForcedCompressionFactor>1` is reserved for controlled support/regression work with exactly one living awake player and verbose diagnostics enabled. It should not be used to generate normal multiplayer release evidence.
 
 Expected safety behavior:
 

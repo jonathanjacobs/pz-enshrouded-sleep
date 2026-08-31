@@ -48,7 +48,7 @@ The in-game sandbox tooltips contain fuller option descriptions. The canonical c
 
 ## Sleep-benefit configuration — v1.0.0
 
-Default candidate settings:
+Default v1.0.0 settings:
 
 ```text
 EnshroudedSleep.SleepBenefitsEnabled=false
@@ -102,7 +102,7 @@ Players joining a Workshop-configured server should use the Workshop-distributed
 4. Preserve the previous known-good package/configuration when practical.
 5. Update the existing Workshop item/server package.
 6. Verify the normal configuration above unless the release notes explicitly require otherwise.
-7. Start the server and confirm the controller, clock sync, roster logger, awake-protection module, notification modules, and—when present in the candidate—sleep-benefit modules load without an Enshrouded Sleep Lua exception.
+7. Start the server and confirm the controller, clock sync, roster logger, awake-protection module, notification modules, and sleep-benefit modules load without an Enshrouded Sleep Lua exception.
 8. Confirm native baseline `MinutesPerDay` while all living players are awake.
 9. During the first natural partial-sleep event, confirm partial mode appears and later returns to baseline.
 10. If `SleepNotificationsEnabled=true`, confirm one concise chat message appears per effective sleep-state change without repeated spam.
@@ -192,13 +192,13 @@ This has no effect on time compression, client clock synchronization, or awake-p
 
 ## Sleep-benefit-only rollback
 
-If the feature-branch reward system causes XP, Endurance, Moodle, or compatibility problems, disable only:
+If the v1.0.0 sleep-benefit system causes XP, Endurance, Moodle, or compatibility problems, disable only:
 
 ```text
 EnshroudedSleep.SleepBenefitsEnabled=false
 ```
 
-The server clears active Rested / Well Rested benefit state. Proportional sleep, awake-player protection, and notification behavior remain independently configured. There is no external Moodle dependency to remove; the custom UI ships as part of the candidate and is designed to fail independently of gameplay authority.
+The server clears active Rested / Well Rested benefit state. Proportional sleep, awake-player protection, and notification behavior remain independently configured. There is no external Moodle dependency to remove; the custom UI ships as part of v1.0.0 and is designed to fail independently of gameplay authority.
 
 ## Full rollback
 
@@ -210,7 +210,7 @@ Use a full rollback for core clock/controller/synchronization failures, recurrin
 4. Restore the prior package/configuration if needed.
 5. Restart and confirm native future sleep/time behavior.
 
-The mod does not maintain a custom persistent sleep database. The feature-branch Rested system stores only small per-character ModData fields for an earned benefit and expiry; disabling/removing the mod stops using those values. World-time-driven changes that already occurred require a prior save backup if they need to be undone.
+The mod does not maintain a custom persistent sleep database. The v1.0.0 Rested system stores only small per-character ModData fields for an earned benefit and expiry; disabling/removing the mod stops using those values. World-time-driven changes that already occurred require a prior save backup if they need to be undone.
 
 ## Operational boundary
 

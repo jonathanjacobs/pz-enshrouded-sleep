@@ -29,7 +29,7 @@ This repository is the authoritative development workspace for Enshrouded Sleep.
 - `main` is the v1.0.0 Release Candidate line and includes the merged Rested / Well Rested implementation.
 - `feature/sleep-benefits` is retained as development history; current behavior and remaining live-validation boundaries are tracked on `main` in `docs/ROADMAP.md`, `docs/VALIDATION_HISTORY.md`, and `docs/spikes/SPIKE-007-sleep-benefits.md`.
 - The server-authoritative XP path has focused one-player dedicated-server evidence. Broader multiplayer behavior remains a live-release validation item; do not represent it as already proven.
-- Before interpreting a feature-branch test, confirm the client and dedicated server run the same development package. Duplicate local/Workshop copies with the same Mod ID can produce mixed Lua and sandbox-option versions.
+- Before interpreting a release-candidate test, confirm the client and dedicated server run the same package. Duplicate local/Workshop copies with the same Mod ID can produce mixed Lua and sandbox-option versions.
 - Keep sleep benefits independently disableable and presentation failures isolated from gameplay, clock, and awake-player-protection behavior.
 
 ## Engineering boundaries
