@@ -12,7 +12,7 @@ Current version: **v1.0.0**
 
 Validated Project Zomboid baseline: **42.20.4**
 
-Steam Workshop ID: **3786842301**
+[![Buy Me A Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://buymeacoffee.com/jonathanjacobs)
 
 ## What it does
 
@@ -93,3 +93,6 @@ Source-code licensing is in [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE); creativ
 **Project Zomboid / The Indie Stone:** Enshrouded Sleep is an unofficial community mod. It is not developed by, affiliated with, sponsored by, endorsed by, or otherwise official to The Indie Stone.
 
 **Enshrouded / Keen Games:** Enshrouded Sleep is not developed by, affiliated with, sponsored by, or endorsed by Keen Games. The name refers to general multiplayer-sleep design inspiration only; no Enshrouded code, assets, or game content are redistributed.
+
+## SUPPORT THIS MOD!
+[![Buy Me A Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://buymeacoffee.com/jonathanjacobs)
