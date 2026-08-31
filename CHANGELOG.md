@@ -6,7 +6,13 @@ This file records **what changed between releases**. Detailed test evidence belo
 
 ## [Unreleased]
 
-### Added — SPIKE-007 sleep benefits candidate
+No changes yet.
+
+## [1.0.0] - 2026-08-31
+
+**Release candidate.** Integrates the optional Rested / Well Rested reward layer into `main` and aligns the repository package, runtime, Workshop metadata, and public documentation on v1.0.0. Steam Workshop publication and broader live multiplayer validation remain separate deployment steps.
+
+### Added — Rested / Well Rested sleep benefits
 
 - Added independently configurable `SleepBenefitsEnabled`, disabled by default.
 - Added server sandbox controls for Rested/Well Rested minimum sleep hours, benefit durations, XP percentages, and Well Rested Endurance-recovery percentage.
@@ -16,7 +22,7 @@ This file records **what changed between releases**. Detailed test evidence belo
 - Added server-side directional Well Rested Endurance recovery amplification that does not reduce Endurance expenditure or increase maximum Endurance.
 - Added a self-contained Rested / Well Rested `ISUIElement` Moodle renderer using original Enshrouded Sleep artwork and installed vanilla Moodle background/outline resources; no external Moodle framework is required.
 - Added configured B42 Moodle-size tracking, vanilla Moodle stack-aware placement, hover details with live remaining game time, and read-only Lifestyle slot coexistence when Lifestyle is detected.
-- Added SPIKE-007 documentation and dedicated multiplayer validation procedure. The feature is accepted into `main` for the next production release, remains disabled by default, and will collect broader multiplayer evidence during live validation.
+- Added SPIKE-007 documentation and a dedicated multiplayer validation procedure. The feature is included in v1.0.0, remains disabled by default, and will collect broader multiplayer evidence during live validation.
 - Escaped literal percentage signs in sandbox tooltips so Build 42's Java formatter does not treat player-facing examples/defaults as format directives.
 
 ## [0.1.1] - 2026-08-26

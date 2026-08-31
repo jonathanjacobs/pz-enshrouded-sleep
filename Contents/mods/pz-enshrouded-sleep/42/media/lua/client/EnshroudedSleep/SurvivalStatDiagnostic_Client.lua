@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - focused owning-client survival-stat diagnostic
--- Public Beta v0.1.1 for Project Zomboid Build 42.20+
+-- Release Candidate v1.0.0 for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -121,4 +121,4 @@ end
 
 Events.OnTick.Add(sample)
 
-log("Loaded Public Beta v0.1.1 owning-client survival-stat diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")
+log("Loaded Release Candidate v1.0.0 owning-client survival-stat diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")

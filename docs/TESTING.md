@@ -10,7 +10,7 @@ Run after runtime/configuration changes, a new release candidate, or a relevant 
 
 1. Start the dedicated server and confirm no Enshrouded Sleep Lua exception.
 2. Connect at least one client and confirm no Enshrouded Sleep client exception.
-3. Confirm the core controller, client clock sync, roster logger, awake-protection module, sleep-notification modules, and—on the feature branch—sleep-benefit modules load.
+3. Confirm the core controller, client clock sync, roster logger, awake-protection module, sleep-notification modules, and v1.0.0 sleep-benefit modules load.
 4. With all living players awake, confirm authoritative/client `MinutesPerDay` remains at the native baseline.
 5. Confirm `DiagnosticsEnabled=false` does not produce high-frequency diagnostic telemetry.
 6. Confirm `DiagnosticForcedCompressionFactor=1.0` is inert.

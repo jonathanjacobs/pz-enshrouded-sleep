@@ -165,8 +165,25 @@ A client `WARN:MISSING in SettingsTable: AntiCheatXP` line was part of a larger 
 
 **Evidence boundary:** these were one-player runs. They establish the revised server XP mechanism and configurable percentage arithmetic: the same formula handles `100%`, the default `5%`, and other administrator-selected values, and the module has no access-level/admin-mode branch. They do not yet validate broader two-player operation, death clearing, feature-disable rollback, expiry, or wider Moodle coexistence behavior. Those are live-validation targets for the next production release rather than blockers to integration into `main`.
 
+## v1.0.0 release-candidate package validation — 2026-08-31
+
+After the sleep-benefit integration reached `main`, the release-candidate preparation aligned `VERSION`, both `mod.info` files, runtime build identifiers, README status, changelog, Workshop metadata, and administrator-facing release documentation on `v1.0.0` / `Release Candidate`.
+
+The local static validation equivalent passed:
+
+- authoritative package-tree and required-file checks;
+- Mod ID, Workshop ID, version, status, and build-string consistency;
+- sandbox-option presence and English translation bindings;
+- server-authoritative XP invariants and absence of client XP minting;
+- sandbox/Moodle JSON parsing;
+- Workshop preview, mod poster/icon, and Rested / Well Rested PNG dimensions and color-type checks;
+- rejection guards for removed dynamic-code APIs and external Moodle-framework dependencies; and
+- Project Zomboid's bundled Kahlua/Lua compiler parsed all `22` runtime Lua files.
+
+**Validation boundary:** this is source/package validation, not a new gameplay run. It does not publish the Steam Workshop item, update any installed client/server copy, or expand the focused one-player sleep-benefit evidence described above.
+
 ## Evidence boundary
 
 The architecture is strongly supported for proportional calendar compression, server/client day-length synchronization, baseline restoration, vanilla full-sleep handoff, normal-speed awake simulation, the measured SPIKE-004 time domains, the confirmed SPIKE-005 world-system examples, and controlled plus field SPIKE-006 awake-protection evidence. Project Zomboid 42.20.4 additionally has a recorded startup/baseline/client-sync compatibility checkpoint.
 
-The v0.1.1 notification system is a live Public Beta field-validation feature until WHG evidence is collected. Do not infer compatibility or compensation for untested systems from this summary. Use the detailed SPIKE record when a claim needs exact test conditions or measured ratios.
+The notification path and the v1.0.0 optional Rested / Well Rested layer retain the live-validation boundaries recorded above. Do not infer compatibility or compensation for untested systems from this summary. Use the detailed SPIKE record when a claim needs exact test conditions or measured ratios.

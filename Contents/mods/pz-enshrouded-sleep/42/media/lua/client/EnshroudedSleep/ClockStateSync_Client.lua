@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - client MinutesPerDay synchronization
--- Public Beta v0.1.1 for Project Zomboid Build 42.20+
+-- Release Candidate v1.0.0 for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -14,7 +14,7 @@
 -- clients retained their native day length and visibly snapped when vanilla
 -- corrected TimeOfDay. v0.0.6 introduced explicit ClockState replication, and
 -- v0.0.7 fixed a Kahlua multi-return conversion bug. That synchronization model
--- remains the validated design used by Public Beta v0.1.1.
+-- remains the validated design used by Release Candidate v1.0.0.
 --
 -- MUTATION BOUNDARY
 -- -----------------
@@ -159,7 +159,7 @@ end
 
 if Events.OnServerCommand then
     Events.OnServerCommand.Add(onServerCommand)
-    log("Loaded Public Beta v0.1.1 client MinutesPerDay synchronization.")
+    log("Loaded Release Candidate v1.0.0 client MinutesPerDay synchronization.")
 else
     log("ERROR | Events.OnServerCommand unavailable; client clock replication disabled")
 end

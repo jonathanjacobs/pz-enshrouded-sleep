@@ -1,13 +1,18 @@
-# Public Beta Deployment Guide
+# Release Candidate Deployment Guide
 
 This document owns server installation, normal configuration, monitoring, diagnostics, and rollback. Product semantics belong in [`REQUIREMENTS.md`](REQUIREMENTS.md); test evidence belongs in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md).
 
-Current release: `v0.1.1`  
-Project Zomboid Mod ID: `pz-enshrouded-sleep`  
-Steam Workshop ID: `3786842301`  
+Current repository/package candidate: `v1.0.0`
+
+Currently published Workshop release: `v0.1.1` until the existing Workshop item is updated
+
+Project Zomboid Mod ID: `pz-enshrouded-sleep`
+
+Steam Workshop ID: `3786842301`
+
 Current validated compatibility checkpoint: Project Zomboid `42.20.4` (`b0bbce05d5`)
 
-The Rested / Well Rested sleep-benefit system described below is accepted into `main` for the next production release and is **not part of the released v0.1.1 package**. It remains disabled by default and must be explicitly enabled by a server administrator.
+The Rested / Well Rested sleep-benefit system described below is included in the v1.0.0 release candidate on `main`. It remains disabled by default and must be explicitly enabled by a server administrator. Updating GitHub does not update the installed client/server copies or Steam Workshop item.
 
 ## Normal server configuration
 
@@ -41,7 +46,7 @@ All-awake and all-asleep transitions use short special messages rather than clai
 
 The in-game sandbox tooltips contain fuller option descriptions. The canonical clock/protection/benefit behavior is in [`REQUIREMENTS.md`](REQUIREMENTS.md).
 
-## Sleep-benefit configuration — feature branch
+## Sleep-benefit configuration — v1.0.0
 
 Default candidate settings:
 
@@ -70,7 +75,7 @@ Sleeping beyond the Well Rested threshold still qualifies as Well Rested; oversl
 
 ### Built-in custom Moodle UI
 
-The feature candidate includes its own Rested / Well Rested client Moodle renderer and original artwork. **No additional Workshop/UI dependency is required.**
+v1.0.0 includes its own Rested / Well Rested client Moodle renderer and original artwork. **No additional Workshop/UI dependency is required.**
 
 The renderer follows the player's current Build 42 Moodle-size option, positions the Enshrouded Sleep status after visible vanilla moodles, and uses installed vanilla Moodle background/outline resources at runtime. If Lifestyle is installed and its custom Moodle manager is active, Enshrouded Sleep performs a read-only slot-count compatibility check so its icon can be placed below active Lifestyle moodles rather than overlapping them.
 
@@ -78,14 +83,14 @@ The UI is presentation-only. A custom-Moodle display problem must not change sle
 
 ## Steam Workshop server setup
 
-Released Enshrouded Sleep package:
+Enshrouded Sleep server identifiers:
 
 ```text
 WorkshopItems=3786842301
 Mods=pz-enshrouded-sleep
 ```
 
-No additional Moodle/UI Workshop item is required for the sleep-benefit candidate.
+No additional Moodle/UI Workshop item is required for the sleep-benefit feature.
 
 Players joining a Workshop-configured server should use the Workshop-distributed copy rather than maintaining a second manual copy.
 

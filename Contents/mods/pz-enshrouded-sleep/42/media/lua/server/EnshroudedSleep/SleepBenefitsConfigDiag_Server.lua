@@ -4,7 +4,7 @@
 if isClient() then return end
 
 local PREFIX = "[EnshroudedSleepBenefits][SERVER]"
-local BUILD_VERSION = "0.1.1+sleep-benefits-server-xp-dev"
+local BUILD_VERSION = "1.0.0"
 local lastSignature = nil
 
 local function value(vars, key, fallback)

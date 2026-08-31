@@ -2,11 +2,13 @@
 
 This file owns current work and release-exit criteria. Runtime semantics belong in [`REQUIREMENTS.md`](REQUIREMENTS.md); completed evidence belongs in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md).
 
-## Current phase — v1.0 release-candidate readiness
+## Current phase — v1.0.0 release candidate
 
 Week-long Public Beta server evidence now supports repeated proportional compression, baseline restoration, vanilla full-sleep handoff, changing multiplayer populations, and stable operation in the normal server mod stack. The observed results and their limits are recorded in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md).
 
-### Remaining release-candidate evidence
+The v1.0.0 repository/package candidate is prepared on `main`. GitHub release creation, Steam Workshop publication, and the deployment checks below remain separate actions.
+
+### Remaining production-release and live-validation evidence
 
 - review owning-client logs from representative partial- and full-sleep transitions for clock continuity and client exceptions;
 - deliberately exercise join, disconnect, death, and respawn transitions during partial sleep and check for stale correction state;
@@ -17,13 +19,13 @@ Week-long Public Beta server evidence now supports repeated proportional compres
 
 Continue broader population and mod-stack coverage after v1.0 without implying universal compatibility. Use verbose diagnostics only for focused evidence windows.
 
-`main` now carries the optional **Rested / Well Rested** reward layer developed on `feature/sleep-benefits` for servers where sleeping is permitted but not required. The feature is still unreleased and remains disabled by default until explicitly enabled by a server administrator.
+`main` now carries the optional **Rested / Well Rested** reward layer developed on `feature/sleep-benefits` for servers where sleeping is permitted but not required. It is part of the v1.0.0 release candidate and remains disabled by default until explicitly enabled by a server administrator.
 
 ## SPIKE-007 — voluntary sleep rewards
 
 Goal: determine whether optional sleep can provide a modest positive incentive without becoming mandatory or distorting combat/skill balance.
 
-Current feature-branch defaults:
+Current v1.0.0 defaults:
 
 - `<6` game hours slept → no new benefit;
 - `6–<9` hours → **Rested**, +5% XP for 12 game hours;

@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - awake-player survival protection
--- Public Beta v0.1.1 for Project Zomboid Build 42.20+
+-- Release Candidate v1.0.0 for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -29,7 +29,7 @@
 --
 -- BETA NOTE
 -- ---------
--- SPIKE-006 passed controlled passive and active-effect tests at 20x. Public Beta
+-- SPIKE-006 passed controlled passive and active-effect tests at 20x. Release Candidate
 -- broadens validation to real multiplayer populations and mod stacks. Admins can
 -- disable AwakePlayerProtectionEnabled independently if a compatibility problem
 -- is suspected; the proportional sleep/calendar controller continues to operate.
@@ -400,6 +400,6 @@ end
 
 Events.OnTick.Add(onTick)
 
-log("Loaded Public Beta v0.1.1 awake-player survival protection.")
+log("Loaded Release Candidate v1.0.0 awake-player survival protection.")
 log("Normal partial sleep protects all awake living players; sleeping players remain vanilla-authoritative.")
 log("Supported fields: Hunger, Thirst, Fatigue, Calories, Carbohydrates, Proteins, Lipids, Weight.")

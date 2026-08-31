@@ -1,4 +1,4 @@
-name: Validate Public Beta Package
+name: Validate Release Candidate Package
 
 on:
   push:
@@ -33,7 +33,6 @@ jobs:
           RESTED_ICON="$MOD_ROOT/42/media/ui/Moodle_EnshroudedRested.png"
           WELL_RESTED_ICON="$MOD_ROOT/42/media/ui/Moodle_EnshroudedWellRested.png"
           VERSION_VALUE="$(tr -d '\r\n' < VERSION)"
-          DEV_BUILD="$VERSION_VALUE+sleep-benefits-server-xp-dev"
 
           [[ "$VERSION_VALUE" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           test -f workshop.txt
@@ -72,16 +71,16 @@ jobs:
           grep -Fxq "id=pz-enshrouded-sleep" "$MOD_ROOT/42/mod.info"
           grep -Fxq "modversion=$VERSION_VALUE" "$MOD_ROOT/mod.info"
           grep -Fxq "modversion=$VERSION_VALUE" "$MOD_ROOT/42/mod.info"
-          grep -Fq "Public Beta" "$MOD_ROOT/mod.info"
-          grep -Fq "Public Beta" "$MOD_ROOT/42/mod.info"
-          grep -Fq "Public Beta" README.md
+          grep -Fq "Release Candidate" "$MOD_ROOT/mod.info"
+          grep -Fq "Release Candidate" "$MOD_ROOT/42/mod.info"
+          grep -Fq "Release Candidate" README.md
           grep -Fq "Current version: **v$VERSION_VALUE**" README.md
           grep -Fq "Validated Project Zomboid baseline: **42.20.4**" README.md
           grep -Fq "Version:[/b] $VERSION_VALUE" workshop-description.bbcode
           grep -Fq "Tested with:[/b] Project Zomboid 42.20.4" workshop-description.bbcode
           grep -Fxq "id=3786842301" workshop.txt
-          grep -Fxq "title=Enshrouded Sleep - Public Beta" workshop.txt
-          grep -Fq "description=Public Beta v$VERSION_VALUE " workshop.txt
+          grep -Fxq "title=Enshrouded Sleep - Release Candidate" workshop.txt
+          grep -Fq "description=Release Candidate v$VERSION_VALUE " workshop.txt
           grep -Fxq "tags=Build 42;Multiplayer" workshop.txt
           grep -Fxq "visibility=public" workshop.txt
 
@@ -113,15 +112,15 @@ jobs:
             grep -Fq "\"Sandbox_EnshroudedSleep_$option\"" "$SANDBOX_EN"
           done
 
-          grep -Fq "Loaded Public Beta v$VERSION_VALUE awake-player survival protection." "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/AwakePlayerProtection_Server.lua"
-          grep -Fq "Loaded Public Beta v$VERSION_VALUE multiplayer-server calendar-compression controller." "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/EnshroudedSleep_Server.lua"
-          grep -Fq "Loaded Public Beta v$VERSION_VALUE authoritative MinutesPerDay replication." "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/ClockStateSync_Server.lua"
-          grep -Fq "Loaded Public Beta v$VERSION_VALUE client MinutesPerDay synchronization." "$MOD_ROOT/42/media/lua/client/EnshroudedSleep/ClockStateSync_Client.lua"
+          grep -Fq "Loaded Release Candidate v$VERSION_VALUE awake-player survival protection." "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/AwakePlayerProtection_Server.lua"
+          grep -Fq "Loaded Release Candidate v$VERSION_VALUE multiplayer-server calendar-compression controller." "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/EnshroudedSleep_Server.lua"
+          grep -Fq "Loaded Release Candidate v$VERSION_VALUE authoritative MinutesPerDay replication." "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/ClockStateSync_Server.lua"
+          grep -Fq "Loaded Release Candidate v$VERSION_VALUE client MinutesPerDay synchronization." "$MOD_ROOT/42/media/lua/client/EnshroudedSleep/ClockStateSync_Client.lua"
           grep -Fq "Loaded sleep-status broadcaster | build=" "$NOTIFY_SERVER"
           grep -Fq "Loaded sleep-status banner | build=" "$NOTIFY_CLIENT"
           grep -Fq "buildVersion = \"$VERSION_VALUE\"" "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/ClockStateSync_Server.lua"
-          grep -Fq "BUILD_VERSION = \"$DEV_BUILD\"" "$NOTIFY_SERVER"
-          grep -Fq "BUILD_VERSION = \"$DEV_BUILD\"" "$NOTIFY_CLIENT"
+          grep -Fq "BUILD_VERSION = \"$VERSION_VALUE\"" "$NOTIFY_SERVER"
+          grep -Fq "BUILD_VERSION = \"$VERSION_VALUE\"" "$NOTIFY_CLIENT"
           grep -Fq "SleepNotificationsEnabled=true" "$NOTIFY_SERVER"
           grep -Fq "CONFIG | build=" "$NOTIFY_SERVER"
           grep -Fq "World time is %s faster." "$NOTIFY_SERVER"
@@ -134,15 +133,15 @@ jobs:
             exit 1
           fi
 
-          # Sleep benefits are an unreleased, independently disabled feature on this branch.
+          # Sleep benefits are a released-candidate, independently disabled feature.
           grep -Fq "SleepBenefitsEnabled" "$BENEFIT_SERVER"
           grep -Fq "getWorldAgeHours" "$BENEFIT_SERVER"
           grep -Fq 'resolveCharacterStat("ENDURANCE", "Endurance")' "$BENEFIT_SERVER"
-          grep -Fq "buildVersion = \"$DEV_BUILD\"" "$BENEFIT_SERVER"
-          grep -Fq "BUILD_VERSION = \"$DEV_BUILD\"" "$BENEFIT_CLIENT"
+          grep -Fq "buildVersion = \"$VERSION_VALUE\"" "$BENEFIT_SERVER"
+          grep -Fq "BUILD_VERSION = \"$VERSION_VALUE\"" "$BENEFIT_CLIENT"
           grep -Fq 'BUILD_MISMATCH' "$BENEFIT_CLIENT"
           grep -Fq 'CONFIG | build=' "$BENEFIT_CONFIG_DIAG"
-          grep -Fq "BUILD_VERSION = \"$DEV_BUILD\"" "$BENEFIT_CONFIG_DIAG"
+          grep -Fq "BUILD_VERSION = \"$VERSION_VALUE\"" "$BENEFIT_CONFIG_DIAG"
           grep -Fq "addXpNoMultiplier" "$BENEFIT_SERVER"
           grep -Fq "Events.AddXP.Add" "$BENEFIT_SERVER"
           grep -Fq "XP_BONUS | player=" "$BENEFIT_SERVER"
@@ -178,12 +177,12 @@ jobs:
 
           # Every current release banner in runtime Lua must agree with VERSION.
           mapfile -t runtime_release_labels < <(
-            grep -RhoE 'Public (Alpha|Beta) v[0-9]+\.[0-9]+\.[0-9]+' "$RUNTIME_LUA" | sort -u || true
+            grep -RhoE '(Public Alpha|Public Beta|Release Candidate) v[0-9]+\.[0-9]+\.[0-9]+' "$RUNTIME_LUA" | sort -u || true
           )
           test "${#runtime_release_labels[@]}" -gt 0
           for label in "${runtime_release_labels[@]}"; do
-            if [[ "$label" != "Public Beta v$VERSION_VALUE" ]]; then
-              echo "ERROR: stale runtime release label found: $label (expected Public Beta v$VERSION_VALUE)"
+            if [[ "$label" != "Release Candidate v$VERSION_VALUE" ]]; then
+              echo "ERROR: stale runtime release label found: $label (expected Release Candidate v$VERSION_VALUE)"
               exit 1
             fi
           done
@@ -222,4 +221,4 @@ jobs:
           assert Path("preview.png").stat().st_size <= 1000 * 1024
           PY
 
-          echo "Public Beta package structure/version/artwork/compatibility checks passed for v$VERSION_VALUE."
+          echo "Release Candidate package structure/version/artwork/compatibility checks passed for v$VERSION_VALUE."

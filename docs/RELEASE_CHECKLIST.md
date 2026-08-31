@@ -2,9 +2,11 @@
 
 Use this checklist before a public GitHub release or Steam Workshop update. Do not mark a release ready until each applicable item is complete and supported by evidence.
 
+Current candidate: `v1.0.0`. Preparing and pushing the candidate to `origin/main` does not itself complete the deployment gate or publish the Steam Workshop item.
+
 ## General gate
 
-- [ ] `VERSION`, `CHANGELOG.md`, runtime version strings, and both `mod.info` files agree.
+- [x] `VERSION`, `CHANGELOG.md`, runtime version strings, and both `mod.info` files agree.
 - [ ] Public status, compatibility, configuration, and behavior claims match tested evidence.
 - [ ] The required procedures in [`TESTING.md`](TESTING.md) were run and observed outcomes were recorded in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md).
 - [ ] No known high-severity save, world, player, client, or server defect is being silently shipped.

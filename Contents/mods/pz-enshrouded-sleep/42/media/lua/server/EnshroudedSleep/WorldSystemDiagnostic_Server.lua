@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - SPIKE-005 non-mutating world-system diagnostic collector
--- Public Beta support diagnostic; development/field-investigation use only
+-- Release Candidate support diagnostic; development/field-investigation use only
 --
 -- Food aging is intentionally handled by FoodTimeDomainDiagnostic_Server.lua,
 -- which performs strict Food-class validation. This collector observes only

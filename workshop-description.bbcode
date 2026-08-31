@@ -1,8 +1,8 @@
-[h1]Enshrouded Sleep — Public Beta[/h1]
+[h1]Enshrouded Sleep — Release Candidate[/h1]
 
 Proportional multiplayer sleeping for Project Zomboid Build 42 servers.
 
-[b]Version:[/b] 0.1.1
+[b]Version:[/b] 1.0.0
 [b]Tested with:[/b] Project Zomboid 42.20.4
 [b]Workshop ID:[/b] 3786842301
 [b]Mod ID:[/b] pz-enshrouded-sleep
@@ -10,37 +10,38 @@ Proportional multiplayer sleeping for Project Zomboid Build 42 servers.
 [h2]What it does[/h2]
 When some, but not all, living players are asleep, Enshrouded Sleep proportionally compresses world/calendar time while awake players continue moving, fighting, driving, crafting, and interacting at normal active-simulation speed.
 
-Public Beta v0.1.1 protects awake players from the extra survival-needs/metabolism progression caused by that calendar compression. Hunger, thirst, fatigue, calories, carbohydrates, proteins, lipids, and weight progression are normalized toward the rate expected at the server's native day length. Sleeping players are never corrected.
+Release Candidate v1.0.0 protects awake players from the extra survival-needs/metabolism progression caused by that calendar compression. Hunger, thirst, fatigue, calories, carbohydrates, proteins, lipids, and weight progression are normalized toward the rate expected at the server's native day length. Sleeping players are never corrected.
 
 When all living players are asleep, Enshrouded Sleep restores the native day length and vanilla Project Zomboid full-sleep fast-forward takes over.
 
-[h2]What's new in v0.1.1[/h2]
-- Adds optional server-admin sleep-status broadcasts to connected players.
-- Reports the sleeping/living count, percentage, and effective settled calendar acceleration during partial sleep.
-- Records compatibility with Project Zomboid 42.20.4.
-- Cleans up Public Beta version/compatibility metadata and adds guards against removed 42.20.4 Lua dynamic-code APIs.
+[h2]What's new in v1.0.0[/h2]
+- Adds optional Rested / Well Rested rewards for qualifying sleep, disabled by default and configurable by the server administrator.
+- Awards XP bonuses authoritatively on the server and amplifies only positive Endurance recovery while Well Rested.
+- Adds a self-contained Rested / Well Rested Moodle display with no external Moodle framework dependency.
+- Retains optional server-admin sleep-status broadcasts and the Project Zomboid 42.20.4 compatibility checkpoint.
 
-The notification feature is being field-tested live during Public Beta. It is disabled by default and can be switched off independently without affecting proportional sleep, client clock sync, or awake-player protection.
+Notifications and sleep benefits are independently disabled by default. Either can be switched off without affecting proportional sleep, client clock sync, or awake-player protection.
 
-[h2]Public Beta[/h2]
-This is a Public Beta release. Back up your server before installing or updating. Controlled SPIKE-006 tests passed passive and active-effect validation, but broader multiplayer populations, mod-stack interactions, notification behavior, and long-session behavior are still being field-tested.
+[h2]Release Candidate[/h2]
+This is the v1.0.0 release candidate. Back up your server before installing or updating. Core proportional sleep and awake-player protection have controlled and live-server evidence. Focused dedicated-server testing validated the sleep-benefit XP path; broader multiplayer reward-lifecycle, Endurance, and Moodle-coexistence evidence will be collected during live release use.
 
 [h2]Build 42.20.4 compatibility[/h2]
-Public Beta v0.1.1 has a dedicated-server/client compatibility checkpoint on Project Zomboid 42.20.4 (b0bbce05d5): startup, baseline capture, normal all-awake operation, and server-to-client clock-state synchronization completed without a relevant Enshrouded Sleep Lua exception.
+Release Candidate v1.0.0 retains the dedicated-server/client compatibility checkpoint on Project Zomboid 42.20.4 (b0bbce05d5): startup, baseline capture, normal all-awake operation, and server-to-client clock-state synchronization completed without a relevant Enshrouded Sleep Lua exception.
 
 The 42.20.4 security hotfix removed Lua loadstring/loadstream. Enshrouded Sleep does not use either API; its multiplayer messages use predefined named commands and structured arguments rather than executable code sent by the server.
 
 [h2]Important time behavior[/h2]
-World/calendar time genuinely passes faster during partial sleep. External world systems such as spoilage, generators, farming, vehicles, weather, and other systems keyed to game-world time continue following vanilla world time. v0.1.1 only normalizes the explicitly supported awake-player survival fields listed above; it does not globally slow the world or compensate every subsystem.
+World/calendar time genuinely passes faster during partial sleep. External world systems such as spoilage, generators, farming, vehicles, weather, and other systems keyed to game-world time continue following vanilla world time. v1.0.0 only normalizes the explicitly supported awake-player survival fields listed above; it does not globally slow the world or compensate every subsystem.
 
 [h2]Configuration[/h2]
-Recommended Public Beta settings:
+Recommended Release Candidate settings:
 
 [code]
 EnshroudedSleep.Enabled=true
 EnshroudedSleep.PartialSleepSpeedScale=1.0
 EnshroudedSleep.AwakePlayerProtectionEnabled=true
 EnshroudedSleep.SleepNotificationsEnabled=false
+EnshroudedSleep.SleepBenefitsEnabled=false
 EnshroudedSleep.DiagnosticsEnabled=false
 EnshroudedSleep.DiagnosticForcedCompressionFactor=1.0
 [/code]
@@ -48,6 +49,8 @@ EnshroudedSleep.DiagnosticForcedCompressionFactor=1.0
 [b]AwakePlayerProtectionEnabled[/b] can be turned off independently if a compatibility issue is suspected. This returns awake survival progression to the older Alpha behavior while leaving proportional partial-sleep calendar compression active.
 
 [b]SleepNotificationsEnabled[/b] is an optional server-administrator setting, disabled by default. When enabled it posts concise sleep-state messages to connected players, such as [i][Enshrouded Sleep] 1/2 living players sleeping (50%). World time is 20x faster.[/i] It changes player-facing notifications only and does not affect sleep/time behavior, client clock synchronization, or awake-player protection.
+
+[b]SleepBenefitsEnabled[/b] is an optional server-administrator setting, disabled by default. When enabled, qualifying sleep grants non-stacking Rested / Well Rested rewards. Thresholds, durations, XP percentages, and Well Rested Endurance-recovery percentage are configurable.
 
 [b]DiagnosticsEnabled[/b] is a support/testing option and can generate very large logs, especially with multiple players. Leave it off for ordinary play unless collecting a focused dataset.
 
