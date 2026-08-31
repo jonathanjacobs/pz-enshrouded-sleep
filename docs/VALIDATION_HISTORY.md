@@ -132,8 +132,23 @@ The notification implementation is intentionally isolated from sleep/time policy
 
 **Live-validation status:** v0.1.1 is being deployed specifically so the notification path can be exercised under normal WHG multiplayer conditions. Publication is not being represented as prior proof that notification delivery is already field-validated. The post-deployment checks and success criteria are maintained in [`TESTING.md`](TESTING.md).
 
+## Public Beta v0.1.1 — week-long server field evidence
+
+A server-data archive covering routine v0.1.1 operation was reviewed on 2026-08-30. Across 38 dedicated-server sessions, the controller recorded 879 state transitions:
+
+- 87 proportional partial-sleep states;
+- 46 vanilla-full-sleep handoffs;
+- living populations up to seven players;
+- partial-sleep populations from two through six living players, with several sleeping fractions;
+- repeated restoration to the captured native `MinutesPerDay` baseline; and
+- no explicit Enshrouded Sleep-prefixed runtime error in the reviewed server DebugLogs.
+
+This is representative field evidence for the released core controller, server clock-state publication, awake-player protection, population recalculation, baseline restoration, and vanilla full-sleep handoff under the server's normal mod stack.
+
+**Evidence boundary:** the archive contains server logs, not affected owning-client DebugLogs. It does not establish client presentation/clock continuity throughout every transition, deliberate death/respawn safety, measured CPU cost, rollback, or compatibility outside the observed mod stack. Every recorded notification configuration had `SleepNotificationsEnabled=false`, so notification delivery and notification-only rollback remain unvalidated. The archive ran released v0.1.1 and contained no sleep-benefit module banners; it provides no evidence for the separate Rested / Well Rested experiment.
+
 ## Evidence boundary
 
-The architecture is strongly supported for proportional calendar compression, server/client day-length synchronization, baseline restoration, vanilla full-sleep handoff, normal-speed awake simulation, the measured SPIKE-004 time domains, the confirmed SPIKE-005 world-system examples, and controlled SPIKE-006 awake-protection feasibility. Project Zomboid 42.20.4 additionally has a recorded startup/baseline/client-sync compatibility checkpoint.
+The architecture is strongly supported for proportional calendar compression, server/client day-length synchronization, baseline restoration, vanilla full-sleep handoff, normal-speed awake simulation, the measured SPIKE-004 time domains, the confirmed SPIKE-005 world-system examples, and controlled plus field SPIKE-006 awake-protection evidence. Project Zomboid 42.20.4 additionally has a recorded startup/baseline/client-sync compatibility checkpoint.
 
 The v0.1.1 notification system is a live Public Beta field-validation feature until WHG evidence is collected. Do not infer compatibility or compensation for untested systems from this summary. Use the detailed SPIKE record when a claim needs exact test conditions or measured ratios.
