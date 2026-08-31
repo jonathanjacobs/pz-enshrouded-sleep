@@ -7,7 +7,7 @@ Project Zomboid Mod ID: `pz-enshrouded-sleep`
 Steam Workshop ID: `3786842301`  
 Current validated compatibility checkpoint: Project Zomboid `42.20.4` (`b0bbce05d5`)
 
-The Rested / Well Rested sleep-benefit system described below currently exists on `feature/sleep-benefits` and is **not yet part of the released v0.1.1 package**.
+The Rested / Well Rested sleep-benefit system described below is accepted into `main` for the next production release and is **not part of the released v0.1.1 package**. It remains disabled by default and must be explicitly enabled by a server administrator.
 
 ## Normal server configuration
 
@@ -101,7 +101,7 @@ Players joining a Workshop-configured server should use the Workshop-distributed
 8. Confirm native baseline `MinutesPerDay` while all living players are awake.
 9. During the first natural partial-sleep event, confirm partial mode appears and later returns to baseline.
 10. If `SleepNotificationsEnabled=true`, confirm one concise chat message appears per effective sleep-state change without repeated spam.
-11. If testing the feature branch with `SleepBenefitsEnabled=true`, perform the SPIKE-007 reward/XP/Endurance/Moodle smoke test before treating it as production-ready.
+11. If the deployed production package enables `SleepBenefitsEnabled=true`, perform the SPIKE-007 reward/XP/Endurance/Moodle smoke test and preserve the live-validation logs.
 12. Preserve early session logs after a material runtime update.
 
 Workshop authoring/publication mechanics are maintained separately in [`STEAM_WORKSHOP.md`](STEAM_WORKSHOP.md).

@@ -242,11 +242,11 @@ Once awarded, the benefit type and expiry world hour may be stored in player Mod
 
 Death must clear the active benefit. Removing/disabling the feature must not require a database migration or leave a gameplay modifier active.
 
-### R40 — XP bonus uses server-supplied percentages and must not recursively compound
+### R40 — XP bonus is server-authoritative and must not recursively compound
 
-The owning client may apply the XP reward through Build 42's positive `AddXP` event because that event is exposed client-side. The active tier and percentage must come from server-authored state; the client must not independently decide that sleep qualified.
+The dedicated server must observe positive Build 42 `AddXP` events and determine the reward from the server-authored active benefit and server sandbox percentage. The event-supplied perk must receive the bonus; the implementation must not maintain a skill allowlist or require the client to request or mint bonus XP.
 
-Bonus XP must be added as flat/no-multiplier XP and protected by a recursion guard so a configured 5% reward remains approximately 5% rather than being multiplied again or recursively re-awarded.
+Bonus XP must be added as flat/no-multiplier XP and protected by a per-player recursion guard so a configured 5% reward remains approximately 5% rather than being multiplied again or recursively re-awarded.
 
 A missing/failing XP bridge must fail open for the reward feature and must not affect sleep/time behavior.
 

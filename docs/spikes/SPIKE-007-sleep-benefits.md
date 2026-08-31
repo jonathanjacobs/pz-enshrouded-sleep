@@ -1,8 +1,10 @@
 # SPIKE-007 — Rested / Well Rested voluntary-sleep benefits
 
-Status: **IMPLEMENTED ON FEATURE BRANCH — IN-GAME VALIDATION REQUIRED**
+Status: **GO FOR MAIN INTEGRATION — LIVE MULTIPLAYER VALIDATION DEFERRED TO THE NEXT PRODUCTION RELEASE**
 
-Branch: `feature/sleep-benefits`
+Tracking issue: [GitHub issue #10](https://github.com/jonathanjacobs/pz-enshrouded-sleep/issues/10)
+
+Development branch: `feature/sleep-benefits` (accepted for integration into `main`)
 
 ## Question
 
@@ -37,17 +39,17 @@ EnshroudedSleep.WellRestedEnduranceRecoveryBonusPercent=10.0
 
 If `WellRestedMinimumSleepHours` is configured below `RestedMinimumSleepHours`, the runtime clamps the effective Well Rested threshold upward to the Rested threshold.
 
-## Feature-branch deployment preflight
+## Development-package deployment preflight
 
-A SPIKE-007 result is valid only when the dedicated server and owning client are both running the same `feature/sleep-benefits` development package.
+A SPIKE-007 result is valid only when the dedicated server and owning client are both running the same development package from the feature branch or its integrated `main` successor.
 
-Project Zomboid can discover more than one copy of a mod with the same Mod ID from local and Workshop locations. In particular, a public Workshop `pz-enshrouded-sleep` copy can supply stale `sandbox-options.txt` data even when another copy supplies runtime Lua. For feature-branch testing, keep **one effective copy of Mod ID `pz-enshrouded-sleep` on the test client**. Temporarily remove/unsubscribe the released Workshop copy or otherwise eliminate the duplicate before loading the branch package; restore the normal Workshop deployment after testing.
+Project Zomboid can discover more than one copy of a mod with the same Mod ID from local and Workshop locations. In particular, a public Workshop `pz-enshrouded-sleep` copy can supply stale `sandbox-options.txt` data even when another copy supplies runtime Lua. For development-package testing, keep **one effective copy of Mod ID `pz-enshrouded-sleep` on the test client**. Temporarily remove/unsubscribe the released Workshop copy or otherwise eliminate the duplicate before loading the development package; restore the normal Workshop deployment after testing.
 
 Before testing sleep qualification, verify all of the following in the logs/UI:
 
 - client loads `[EnshroudedSleepBenefits][CLIENT]` and `[EnshroudedSleepBenefits][MOODLE]`;
 - server loads `[EnshroudedSleepBenefits][SERVER]` and prints the development `CONFIG` line;
-- client/server development build strings report `0.1.1+sleep-benefits-dev` when the corresponding packet path is exercised;
+- client/server development build strings report `0.1.1+sleep-benefits-server-xp-dev` when the corresponding packet path is exercised;
 - the admin Sandbox page shows the Rested / Well Rested options with translated labels;
 - there are no `ERROR unknown SandboxOption "EnshroudedSleep.SleepBenefits..."` messages.
 
@@ -65,11 +67,11 @@ The awarded benefit type and expiry world hour are stored in player ModData so a
 
 ### XP bonus
 
-Build 42 exposes the `AddXP` Lua event on the owning client and the standard `addXpNoMultiplier(player, perk, amount)` Lua global. The implementation listens only to positive XP events for the local player and adds the configured percentage as flat bonus XP.
+Build 42's installed server `XpSystem/XpUpdate.lua` registers the `AddXP` Lua event with `(player, perk, amount)`. The implementation listens on the dedicated server for positive XP events, verifies the server-authored benefit, and adds the configured percentage to the event-supplied perk as flat bonus XP. No skill list is required: each qualifying event identifies the affected perk.
 
-A recursion guard prevents bonus XP from recursively generating additional bonus XP if the underlying call also reaches the event path. The flat-XP function is used specifically so the added percentage is not run through ordinary XP multipliers a second time.
+A per-player recursion guard prevents bonus XP from recursively generating additional bonus XP if the underlying call also reaches the event path. The flat-XP function is used specifically so the added percentage is not run through ordinary XP multipliers a second time.
 
-This client path still requires live multiplayer validation for synchronization and interaction with other XP-altering mods. A test performed only with an administrator account is not sufficient to clear the normal-player anti-cheat boundary; repeat the XP check with a non-admin player when a second/normal test account is available and inspect AntiCheatXP-related logs.
+The owning client does not award or request XP. This reduces the cheat surface and aligns the reward with the server's persisted benefit state, but the path still requires a live dedicated-server retest and interaction checks with other XP-altering mods.
 
 ### Endurance-recovery bonus
 
@@ -113,6 +115,37 @@ Contents/mods/pz-enshrouded-sleep/42/media/ui/Moodle_EnshroudedWellRested.png
 
 The visual language is intentionally playful/colorful and generally Moodle-like, but no Lifestyle, Project Zomboid, or other third-party icon artwork is copied. The client renderer scales the artwork to the player's configured Moodle size.
 
+## Preliminary one-player evidence — 2026-08-31
+
+Three dedicated-server sessions established useful preliminary evidence but do not satisfy the multiplayer GO gate:
+
+- matching feature packages loaded on client and server;
+- approximately `6.280` and `6.994` hours produced Rested, approximately `10.029` hours produced Well Rested, and an approximately `2.610`-hour sleep did not replace an active benefit;
+- an earned Well Rested state remained present across reconnect;
+- the second run logged `4,818` directional Endurance corrections at configured `10%` and `75%` values, with the expected arithmetic, no amplification of non-positive deltas, and no value above `1.0`;
+- XP settings of `5%`, `10%`, and `75%` produced no `XP_BONUS` diagnostic on the initial owning-client implementation, including while exercising a character whose Fitness and Strength were both below maximum;
+- client sandbox rendering emitted Java formatter warnings for literal `%` characters in four translated tooltips.
+
+Decision from the first two sessions: preserve the validated classification/persistence/Endurance paths, replace the unproven client XP bridge with the server-authoritative event path described above, and escape the affected tooltip percentages.
+
+### Server-authoritative XP retest — PASS
+
+The third session ran matching client/server build `0.1.1+sleep-benefits-server-xp-dev`. After a `7.695`-hour sleep granted Rested, the server recorded `35` XP bonus events at the deliberately unambiguous `100%` setting:
+
+| Perk | Events | Base XP | Bonus XP |
+| --- | ---: | ---: | ---: |
+| Carving | 9 | 22.5 | 22.5 |
+| Fitness | 5 | 5.0 | 5.0 |
+| Sprinting | 10 | 10.0 | 10.0 |
+| Strength | 11 | 15.4 | 15.4 |
+| **Total** | **35** | **52.9** | **52.9** |
+
+All `35` server calculations matched `bonus = base × 100 / 100`; no client `XP_BONUS` award occurred, no recursive/runaway award was observed, and no relevant Enshrouded Sleep Lua error or server anti-cheat rejection appeared. Coverage across four event-supplied perks supports the generic, no-allowlist design in ADR-004.
+
+The client printed vanilla `ServerSettingsScreen.lua` `WARN:MISSING in SettingsTable` messages for many server settings, including `AntiCheatXP`, `Mods`, `Map`, and `SteamVAC`. Build 42 emits that bulk warning when a server option lacks an entry in the screen's UI metadata table. It is not an anti-cheat violation and was not correlated with any rejected XP award.
+
+Decision: the focused server-authoritative XP checkpoint is **PASS**. The `100%` run exercised the same configurable formula used at the default `5%`, and the implementation has no access-level or admin-mode branch. A separate default-percentage or non-admin run is not required to validate this mechanism. The feature is accepted for `main`; broader two-player and lifecycle coverage will be collected during the next production release.
+
 ## Required validation
 
 ### Tier A — reward classification
@@ -137,13 +170,13 @@ With `SleepBenefitsEnabled=true`:
 
 ### Tier C — XP
 
-1. Record a repeatable XP-producing action without a benefit.
-2. Repeat while Rested with default `5%` XP bonus.
-3. Repeat while Well Rested with default `5%` XP bonus.
-4. Confirm observed total gain is approximately `1.05×` baseline rather than recursively compounding.
-5. Confirm no repeated Lua exception or runaway XP loop.
-6. Repeat with a non-default sandbox percentage.
-7. When possible, repeat with a non-admin player and inspect AntiCheatXP-related logs; an admin-only pass does not validate the normal-player anti-cheat boundary.
+1. For a focused one-player retest, set both XP percentages to `100%`, enable diagnostics, and use a character below the tested perk's maximum.
+2. Record the perk XP immediately before and after a normal XP-producing action.
+3. Confirm one server `XP_BONUS` line reports that perk and `bonus` approximately equal to `base`; confirm the observed total is approximately `2×` the underlying award.
+4. Repeat with a second perk if practical to confirm the event-supplied perk path is generic rather than Fitness-specific.
+5. Confirm there is no client `XP_BONUS` award path, repeated Lua exception, or runaway XP loop.
+6. Restore the intended production percentage after the focused diagnostic run. A default `5%` sample may be collected as an ordinary smoke check when the increments are large enough to measure reliably, but it is not a separate feasibility gate.
+7. When a second player becomes available, include XP in the broader dedicated-server regression; no distinct account-access-level path exists in this module.
 
 ### Tier D — Endurance
 
@@ -167,8 +200,8 @@ With `SleepBenefitsEnabled=true`:
 9. If Lifestyle is installed for coexistence testing, activate one or more Lifestyle moodles and confirm the Enshrouded Sleep icon reserves their occupied slots rather than overlapping them.
 10. Confirm no recurring renderer/texture exception; if the presentation layer fails, XP/Endurance and server sleep/time behavior must continue.
 
-## GO / NO-GO gate
+## GO / NO-GO decision
 
-A clean one-player run is useful preliminary evidence for configuration, reward classification, XP arithmetic, Endurance recovery, persistence, and UI behavior, but it is not the release gate.
+A clean one-player run established configuration, reward classification, XP arithmetic, Endurance recovery, persistence, and UI feasibility. Server authority, independent disablement, and the default-off sandbox setting bound the remaining deployment risk.
 
-Do not promote this feature from the branch into a released Beta solely on static/API inspection or an administrator-only one-player run. Require at least one clean two-player dedicated-server test covering reward classification, XP, Endurance recovery, expiry, and built-in Moodle display, including at least one normal/non-admin player when practical, with no recurring Enshrouded Sleep Lua errors or anti-cheat regression.
+Decision: **GO for integration into `main`**. The next production release may carry the opt-in feature and collect broader two-player evidence during live operation rather than blocking integration on a separate pre-release multiplayer session. Keep `SleepBenefitsEnabled=false` as the package default, retain feature-only rollback, monitor reward classification/XP/Endurance/expiry/Moodle behavior, and keep tracking issue #10 open until the planned live validation is reviewed.

@@ -147,6 +147,24 @@ This is representative field evidence for the released core controller, server c
 
 **Evidence boundary:** the archive contains server logs, not affected owning-client DebugLogs. It does not establish client presentation/clock continuity throughout every transition, deliberate death/respawn safety, measured CPU cost, rollback, or compatibility outside the observed mod stack. Every recorded notification configuration had `SleepNotificationsEnabled=false`, so notification delivery and notification-only rollback remain unvalidated. The archive ran released v0.1.1 and contained no sleep-benefit module banners; it provides no evidence for the separate Rested / Well Rested experiment.
 
+## SPIKE-007 preliminary one-player evidence — 2026-08-31
+
+Three focused feature-branch dedicated-server sessions provided preliminary evidence for the optional Rested / Well Rested experiment:
+
+- server sleep-duration classification produced Rested and Well Rested at the intended default thresholds and did not let a short sleep replace an active benefit;
+- earned Well Rested state persisted across reconnect;
+- `4,818` logged positive Endurance corrections followed the configured `10%` and `75%` arithmetic, left non-positive changes untouched, and did not exceed the normal maximum;
+- the original owning-client XP bridge produced no `XP_BONUS` diagnostic at `5%`, `10%`, or `75%`, even though the tested character's Fitness and Strength were below maximum;
+- literal `%` characters in four sandbox tooltips caused client-side Java formatter warnings.
+
+The failed XP observation was a NO-GO for the original client award design, not for the complete feature. The feature branch moved the award to a server `AddXP` observer with flat server XP and escaped the tooltip percentages.
+
+The subsequent `0.1.1+sleep-benefits-server-xp-dev` retest passed the focused server-XP checkpoint. A `7.695`-hour sleep granted Rested, after which the canonical server DebugLog recorded `35` awards across Carving, Fitness, Sprinting, and Strength. The observed base total was `52.9` XP and the bonus total was `52.9` XP at the configured `100%`; all event arithmetic matched, no client award path ran, and no recursion, relevant Lua error, or server anti-cheat rejection appeared.
+
+A client `WARN:MISSING in SettingsTable: AntiCheatXP` line was part of a larger vanilla `ServerSettingsScreen.lua` UI-metadata list that also included `Mods`, `Map`, `SteamVAC`, and many unrelated settings. It does not report an anti-cheat violation or rejected XP award.
+
+**Evidence boundary:** these were one-player runs. They establish the revised server XP mechanism and configurable percentage arithmetic: the same formula handles `100%`, the default `5%`, and other administrator-selected values, and the module has no access-level/admin-mode branch. They do not yet validate broader two-player operation, death clearing, feature-disable rollback, expiry, or wider Moodle coexistence behavior. Those are live-validation targets for the next production release rather than blockers to integration into `main`.
+
 ## Evidence boundary
 
 The architecture is strongly supported for proportional calendar compression, server/client day-length synchronization, baseline restoration, vanilla full-sleep handoff, normal-speed awake simulation, the measured SPIKE-004 time domains, the confirmed SPIKE-005 world-system examples, and controlled plus field SPIKE-006 awake-protection evidence. Project Zomboid 42.20.4 additionally has a recorded startup/baseline/client-sync compatibility checkpoint.

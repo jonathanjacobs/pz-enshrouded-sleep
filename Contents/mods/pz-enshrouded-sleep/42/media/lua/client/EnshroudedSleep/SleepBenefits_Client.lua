@@ -9,7 +9,7 @@ local PREFIX = "[EnshroudedSleepBenefits][CLIENT]"
 local MODULE = "EnshroudedSleep"
 local COMMAND = "SleepBenefitState"
 local PROTOCOL_VERSION = 1
-local BUILD_VERSION = "0.1.1+sleep-benefits-dev"
+local BUILD_VERSION = "0.1.1+sleep-benefits-server-xp-dev"
 local BENEFIT_NONE = "none"
 local BENEFIT_RESTED = "rested"
 local BENEFIT_WELL_RESTED = "well-rested"
@@ -24,8 +24,6 @@ local state = {
     diagnosticsEnabled = false,
 }
 
-local applyingBonusXP = false
-local xpCapabilityDisabled = false
 local lastStateSignature = nil
 local lastError = nil
 local lastServerBuild = nil
@@ -175,43 +173,6 @@ local function onServerCommand(module, command, args)
     applyState(args)
 end
 
-local function onAddXP(character, perk, amount)
-    if applyingBonusXP or xpCapabilityDisabled then return end
-    if not stateIsActive() then return end
-
-    local player = localPlayer()
-    if not player or character ~= player then return end
-
-    local numericAmount = tonumber(amount)
-    if numericAmount == nil or numericAmount <= EPSILON then return end
-
-    local percent = tonumber(state.xpBonusPercent) or 0
-    if percent <= EPSILON then return end
-
-    local bonus = numericAmount * (percent / 100.0)
-    if bonus <= EPSILON then return end
-
-    if type(addXpNoMultiplier) ~= "function" then
-        xpCapabilityDisabled = true
-        logErrorOnce("addXpNoMultiplier() unavailable; Rested XP bonus disabled for this client session")
-        return
-    end
-
-    applyingBonusXP = true
-    local ok, err = pcall(addXpNoMultiplier, player, perk, bonus)
-    applyingBonusXP = false
-
-    if not ok then
-        xpCapabilityDisabled = true
-        logErrorOnce("addXpNoMultiplier failed; Rested XP bonus disabled for this client session: " .. tostring(err))
-        return
-    end
-
-    if state.diagnosticsEnabled then
-        log(string.format("XP_BONUS | base=%.6f | percent=%.3f | bonus=%.6f | perk=%s", numericAmount, percent, bonus, tostring(perk)))
-    end
-end
-
 local function onPlayerUpdate(player)
     if not player then return end
     if localPlayerIsDead() then
@@ -234,13 +195,6 @@ if Events.OnServerCommand then
     Events.OnServerCommand.Add(onServerCommand)
 else
     logErrorOnce("Events.OnServerCommand unavailable; sleep-benefit client state disabled")
-end
-
-if Events.AddXP then
-    Events.AddXP.Add(onAddXP)
-else
-    xpCapabilityDisabled = true
-    logErrorOnce("Events.AddXP unavailable; Rested XP bonus disabled")
 end
 
 if Events.OnPlayerUpdate then Events.OnPlayerUpdate.Add(onPlayerUpdate) end

@@ -12,11 +12,12 @@ This file records **what changed between releases**. Detailed test evidence belo
 - Added server sandbox controls for Rested/Well Rested minimum sleep hours, benefit durations, XP percentages, and Well Rested Endurance-recovery percentage.
 - Default candidate policy: `<6h` no new benefit; `6–<9h` Rested (`+5%` XP for 12 game hours); `>=9h` Well Rested (`+5%` XP and `+10%` Endurance recovery for 24 game hours).
 - Added server-authoritative sleep-duration classification, persisted earned-benefit expiry, death/disable clearing, and non-stacking replacement/refresh behavior.
-- Added owning-client XP bonus handling using positive `AddXP` events plus flat `addXpNoMultiplier()` bonus XP with recursion protection.
+- Added server-authoritative XP bonus handling using positive server `AddXP` events plus flat `addXpNoMultiplier()` bonus XP with per-player recursion protection. The initial owning-client approach was replaced after focused live testing produced no bonus awards.
 - Added server-side directional Well Rested Endurance recovery amplification that does not reduce Endurance expenditure or increase maximum Endurance.
 - Added a self-contained Rested / Well Rested `ISUIElement` Moodle renderer using original Enshrouded Sleep artwork and installed vanilla Moodle background/outline resources; no external Moodle framework is required.
 - Added configured B42 Moodle-size tracking, vanilla Moodle stack-aware placement, hover details with live remaining game time, and read-only Lifestyle slot coexistence when Lifestyle is detected.
-- Added SPIKE-007 documentation and dedicated multiplayer validation procedure. The feature remains on `feature/sleep-benefits` and is not yet promoted into a released Beta.
+- Added SPIKE-007 documentation and dedicated multiplayer validation procedure. The feature is accepted into `main` for the next production release, remains disabled by default, and will collect broader multiplayer evidence during live validation.
+- Escaped literal percentage signs in sandbox tooltips so Build 42's Java formatter does not treat player-facing examples/defaults as format directives.
 
 ## [0.1.1] - 2026-08-26
 

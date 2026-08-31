@@ -28,8 +28,9 @@
 -- * Well Rested endurance recovery is directional: only observed positive
 --   Endurance deltas receive the configured percentage bonus. Depletion is never
 --   reduced by this module.
--- * XP is awarded by the owning client through the standard AddXP event because
---   Build 42 exposes that event client-side; the server supplies the percentage.
+-- * XP is observed and awarded on the server through the standard AddXP event.
+--   The event supplies the affected player/perk/amount, so no skill allowlist is
+--   required and clients never mint bonus XP.
 -- * The self-contained Moodle renderer is client/UI-only and is not required by
 --   this authoritative server controller.
 
@@ -55,11 +56,13 @@ local KEY_LAST_SLEEP = "EnshroudedSleepBenefitLastQualifyingSleepHours"
 local sleepStartByPlayer = {}
 local previousAsleepByPlayer = {}
 local previousEnduranceByPlayer = {}
+local applyingBonusXPByPlayer = {}
 local clearAcknowledgedByPlayer = {}
 local lastSentSignatureByPlayer = {}
 local lastSentAtByPlayer = {}
 local enduranceStat = nil
 local enduranceCapabilityDisabled = false
+local xpCapabilityDisabled = false
 local lastError = nil
 
 local function log(message)
@@ -146,6 +149,59 @@ local function readBenefit(player, nowWorldHour)
     end
 
     return benefitType, expires, lastSleep
+end
+
+local function xpPercentForBenefit(config, benefitType)
+    if benefitType == BENEFIT_RESTED then return config.restedXPPercent end
+    if benefitType == BENEFIT_WELL_RESTED then return config.wellXPPercent end
+    return 0.0
+end
+
+local function onAddXP(player, perk, amount)
+    if xpCapabilityDisabled or not player or perk == nil then return end
+
+    local key = playerKey(player)
+    if applyingBonusXPByPlayer[key] then return end
+
+    local config = getConfig()
+    if not config.enabled then return end
+    if Probe.safeMethod(player, "isDead") == true then return end
+
+    local nowWorldHour = worldAgeHours()
+    if nowWorldHour == nil then return end
+
+    local benefitType = readBenefit(player, nowWorldHour)
+    local percent = xpPercentForBenefit(config, benefitType)
+    if percent <= EPSILON then return end
+
+    local numericAmount = tonumber(amount)
+    if numericAmount == nil or numericAmount <= EPSILON then return end
+
+    local bonus = numericAmount * (percent / 100.0)
+    if bonus <= EPSILON then return end
+
+    if type(addXpNoMultiplier) ~= "function" then
+        xpCapabilityDisabled = true
+        logErrorOnce("addXpNoMultiplier() unavailable; Rested XP bonus disabled for this server session")
+        return
+    end
+
+    applyingBonusXPByPlayer[key] = true
+    local ok, err = pcall(addXpNoMultiplier, player, perk, bonus)
+    applyingBonusXPByPlayer[key] = nil
+
+    if not ok then
+        xpCapabilityDisabled = true
+        logErrorOnce("addXpNoMultiplier failed; Rested XP bonus disabled for this server session: " .. tostring(err))
+        return
+    end
+
+    if config.diagnosticsEnabled then
+        log(string.format(
+            "XP_BONUS | player=%s | base=%.6f | percent=%.3f | bonus=%.6f | perk=%s",
+            playerName(player), numericAmount, percent, bonus, tostring(perk)
+        ))
+    end
 end
 
 local function writeBenefit(player, benefitType, expiresAtWorldHour, sleepHours)
@@ -303,7 +359,7 @@ local function stateForClient(player, config, nowWorldHour, knownBenefitType, kn
 
     return {
         protocolVersion = PROTOCOL_VERSION,
-        buildVersion = "0.1.1+sleep-benefits-dev",
+        buildVersion = "0.1.1+sleep-benefits-server-xp-dev",
         benefitType = benefitType,
         expiresAtWorldHour = expires or -1,
         lastQualifyingSleepHours = lastSleep or 0,
@@ -455,6 +511,13 @@ if Events.OnTickEvenPaused then
     Events.OnTickEvenPaused.Add(update)
 else
     Events.OnTick.Add(update)
+end
+
+if Events.AddXP then
+    Events.AddXP.Add(onAddXP)
+else
+    xpCapabilityDisabled = true
+    logErrorOnce("Events.AddXP unavailable; Rested XP bonus disabled")
 end
 
 log("Loaded optional Rested / Well Rested server benefit controller; disabled unless SleepBenefitsEnabled=true.")

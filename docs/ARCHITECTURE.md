@@ -144,12 +144,12 @@ SleepBenefits_Server.lua
     -> measures sleep in GameTime:getWorldAgeHours()
     -> classifies Rested / Well Rested from server sandbox thresholds
     -> stores awarded benefit type + expiry world hour in player ModData
+    -> observes positive AddXP events and awards flat bonus XP to the event perk
     -> amplifies only positive Endurance recovery while Well Rested
     -> sends SleepBenefitState only to the owning client
 
 SleepBenefits_Client.lua
     -> validates server-authored SleepBenefitState
-    -> applies configured bonus to positive AddXP events using addXpNoMultiplier()
     -> forwards presentation state to the Enshrouded Sleep-owned Moodle renderer
 
 SleepBenefitMoodle_Client.lua
@@ -170,9 +170,9 @@ An already-earned benefit is persisted in player ModData using its absolute worl
 
 ### XP boundary
 
-Build 42 exposes XP award callbacks on the owning client. `SleepBenefits_Client.lua` therefore applies the server-supplied percentage to positive `AddXP` events and adds the result with `addXpNoMultiplier()`.
+Build 42's installed server `XpSystem/XpUpdate.lua` registers `Events.AddXP` with the `(player, perk, amount)` event shape. `SleepBenefits_Server.lua` observes positive awards, reads the player's authoritative persisted benefit, and adds the configured percentage to the same event-supplied perk with `addXpNoMultiplier()`.
 
-A recursion guard prevents bonus XP from recursively generating more bonus XP. This path remains a validation target because other XP-altering mods may also observe or modify the same event stream.
+There is no skill enumeration or client award request. A per-player recursion guard prevents the flat bonus award from generating more bonus XP. Missing or failing XP APIs disable only the XP reward for that server session; benefit state, Endurance, sleep, and clock behavior continue. This integration remains a validation target because other XP-altering mods may also observe or modify the event stream.
 
 ### Endurance boundary
 

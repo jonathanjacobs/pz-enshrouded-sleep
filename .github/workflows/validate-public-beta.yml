@@ -33,7 +33,7 @@ jobs:
           RESTED_ICON="$MOD_ROOT/42/media/ui/Moodle_EnshroudedRested.png"
           WELL_RESTED_ICON="$MOD_ROOT/42/media/ui/Moodle_EnshroudedWellRested.png"
           VERSION_VALUE="$(tr -d '\r\n' < VERSION)"
-          DEV_BUILD="$VERSION_VALUE+sleep-benefits-dev"
+          DEV_BUILD="$VERSION_VALUE+sleep-benefits-server-xp-dev"
 
           [[ "$VERSION_VALUE" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           test -f workshop.txt
@@ -143,7 +143,13 @@ jobs:
           grep -Fq 'BUILD_MISMATCH' "$BENEFIT_CLIENT"
           grep -Fq 'CONFIG | build=' "$BENEFIT_CONFIG_DIAG"
           grep -Fq "BUILD_VERSION = \"$DEV_BUILD\"" "$BENEFIT_CONFIG_DIAG"
-          grep -Fq "addXpNoMultiplier" "$BENEFIT_CLIENT"
+          grep -Fq "addXpNoMultiplier" "$BENEFIT_SERVER"
+          grep -Fq "Events.AddXP.Add" "$BENEFIT_SERVER"
+          grep -Fq "XP_BONUS | player=" "$BENEFIT_SERVER"
+          if grep -Fq "Events.AddXP" "$BENEFIT_CLIENT" || grep -Fq "addXpNoMultiplier" "$BENEFIT_CLIENT"; then
+            echo "ERROR: client-authoritative sleep-benefit XP path reintroduced"
+            exit 1
+          fi
           grep -Fq 'require "EnshroudedSleep/SleepBenefitMoodle_Client"' "$BENEFIT_CLIENT"
           grep -Fq 'require "ISUI/ISUIElement"' "$BENEFIT_MOODLE"
           grep -Fq 'getOptionMoodleSize' "$BENEFIT_MOODLE"
@@ -153,6 +159,9 @@ jobs:
           grep -Fq 'Moodles_EnshroudedRested' "$MOODLES_EN"
           grep -Fq 'Moodles_EnshroudedWellRested' "$MOODLES_EN"
           grep -Fq "SPIKE-007" docs/spikes/SPIKE-007-sleep-benefits.md
+          grep -Fq 'Default 5%%.' "$SANDBOX_EN"
+          grep -Fq 'Default 10%%.' "$SANDBOX_EN"
+          grep -Fq '(50%%).' "$SANDBOX_EN"
           if grep -RFq 'MF_ISMoodle' "$BENEFIT_CLIENT" "$BENEFIT_MOODLE"; then
             echo "ERROR: external Moodle Framework runtime dependency reintroduced"
             exit 1

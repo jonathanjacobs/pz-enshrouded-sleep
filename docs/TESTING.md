@@ -49,9 +49,9 @@ v0.1.1 intentionally ships the optional notification path for live Public Beta v
 
 The relevant low-volume prefixes are `[EnshroudedSleepNotify][SERVER]` and `[EnshroudedSleepNotify][CLIENT]`. A client chat-bridge failure should circuit-break notification display for that client session without affecting sleep/time behavior. If the notification path causes a live compatibility issue, disable `SleepNotificationsEnabled` first and preserve the server/client logs before changing the core sleep configuration.
 
-## SPIKE-007 — Rested / Well Rested feature-branch test
+## SPIKE-007 — Rested / Well Rested validation
 
-This test applies only to `feature/sleep-benefits` until the feature passes validation. Use a dedicated multiplayer server, at least two connected living players, and the defaults documented in [`spikes/SPIKE-007-sleep-benefits.md`](spikes/SPIKE-007-sleep-benefits.md).
+This procedure covers the unreleased Rested / Well Rested feature accepted from `feature/sleep-benefits` into `main`. Use it for focused checks and for live validation during the next production release. The full multiplayer sequence uses at least two connected living players and the defaults documented in [`spikes/SPIKE-007-sleep-benefits.md`](spikes/SPIKE-007-sleep-benefits.md).
 
 Enable:
 
@@ -70,7 +70,7 @@ Minimum smoke sequence:
 
 1. Sleep `< 6` game hours and wake; confirm no new benefit.
 2. Sleep `6` to `< 9` game hours; confirm Rested is granted for the configured duration.
-3. Produce a repeatable positive XP event and confirm approximately `1.05×` total XP at the default 5% bonus, with no recursive XP loop.
+3. Produce a repeatable positive XP event and confirm approximately `1.05×` total XP at the default 5% bonus, with a matching server `XP_BONUS` diagnostic and no recursive XP loop.
 4. Sleep `>= 9` game hours; confirm Well Rested replaces Rested.
 5. Deplete Endurance, then recover under controlled conditions; confirm positive recovery is approximately `1.10×` baseline at the default setting while Endurance expenditure itself is unchanged.
 6. Confirm Endurance never exceeds `1.0`.
@@ -94,7 +94,11 @@ Built-in Moodle/UI checks:
 
 No Lifestyle or other third-party custom-Moodle code/assets are part of the candidate; Lifestyle is only a coexistence test target.
 
-Do not treat this smoke sequence as a stable-release gate by itself. The detailed acceptance cases and evidence boundary are maintained in [`spikes/SPIKE-007-sleep-benefits.md`](spikes/SPIKE-007-sleep-benefits.md).
+For the focused server-XP feasibility test, a one-player dedicated-server run is sufficient. Set both XP bonus percentages to `100` so the result is unambiguous, keep diagnostics enabled only for the test window, and use a character below the tested perk's maximum level. Record XP immediately before and after a normal XP-producing action such as exercise for Fitness, then repeat with a different ordinary skill action if practical. A successful event should produce one server `XP_BONUS` line whose `bonus` equals its `base`, and the character should receive approximately twice the underlying gain. Restore the intended percentages and disable verbose diagnostics afterward. Because every configured percentage uses the same direct formula and the module has no access-level/admin-mode branch, separate default-`5%` and non-admin feasibility runs are not required.
+
+The server log—not a client `XP_BONUS` line—is authoritative for this retest. Confirm the log names the same perk being trained, contains no repeated XP exception or runaway loop, and that the client continues receiving the Moodle state. Broader two-player behavior is a live-validation target for the next production release.
+
+The detailed acceptance cases, current GO decision, and evidence boundary are maintained in [`spikes/SPIKE-007-sleep-benefits.md`](spikes/SPIKE-007-sleep-benefits.md).
 
 ## Tier 3 — Public Beta multiplayer protection field test
 

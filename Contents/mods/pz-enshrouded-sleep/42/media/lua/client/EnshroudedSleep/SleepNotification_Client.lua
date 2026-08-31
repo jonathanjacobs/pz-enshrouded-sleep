@@ -14,7 +14,7 @@ local PREFIX = "[EnshroudedSleepNotify][CLIENT]"
 local MODULE = "EnshroudedSleep"
 local COMMAND = "SleepNotification"
 local PROTOCOL_VERSION = 1
-local BUILD_VERSION = "0.1.1+sleep-benefits-dev"
+local BUILD_VERSION = "0.1.1+sleep-benefits-server-xp-dev"
 local DISPLAY_SECONDS = 7
 
 local banner = nil
