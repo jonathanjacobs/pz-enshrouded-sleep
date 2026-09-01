@@ -68,18 +68,19 @@ EnshroudedSleep.DiagnosticForcedCompressionFactor=1.0
 
 Minimum smoke sequence:
 
-1. Sleep `< 6` game hours and wake; confirm no new benefit.
-2. Sleep `6` to `< 9` game hours; confirm Rested is granted for the configured duration.
-3. Produce a repeatable positive XP event and confirm approximately `1.05×` total XP at the default 5% bonus, with a matching server `XP_BONUS` diagnostic and no recursive XP loop.
-4. Sleep `>= 9` game hours; confirm Well Rested replaces Rested.
-5. Deplete Endurance, then recover under controlled conditions; confirm positive recovery is approximately `1.10×` baseline at the default setting while Endurance expenditure itself is unchanged.
-6. Confirm Endurance never exceeds `1.0`.
-7. Confirm a sub-threshold nap does not cancel an active unexpired benefit.
-8. Confirm a later qualifying sleep refreshes/replaces rather than stacks.
-9. Confirm expiry follows game-world hours.
-10. Disconnect/reconnect after earning a benefit and confirm its remaining world-time duration persists.
-11. Confirm death clears the benefit.
-12. Set `SleepBenefitsEnabled=false` and confirm the reward disappears while proportional sleep continues normally.
+1. Sleep `< 8` game hours and wake; confirm no new benefit.
+2. Sleep at least `8` but no more than `12` game hours; confirm Rested is granted for 4 game hours.
+3. Target exactly `12` game hours and confirm the grant remains Rested rather than Well Rested.
+4. Produce a repeatable positive XP event and confirm approximately `1.10×` total XP at the default 10% bonus, with a matching server `XP_BONUS` diagnostic and no recursive XP loop.
+5. Sleep `> 12` game hours; confirm Well Rested replaces Rested and is granted for 6 game hours.
+6. Deplete Endurance, then recover under controlled conditions; confirm positive recovery is approximately `1.10×` baseline at the default setting while Endurance expenditure itself is unchanged.
+7. Confirm Endurance never exceeds `1.0`.
+8. Confirm a sub-threshold nap does not cancel an active unexpired benefit.
+9. Confirm a later qualifying sleep refreshes/replaces rather than stacks.
+10. Confirm expiry follows game-world hours.
+11. Disconnect/reconnect after earning a benefit and confirm its remaining world-time duration persists.
+12. Confirm death clears the benefit.
+13. Set `SleepBenefitsEnabled=false` and confirm the reward disappears while proportional sleep continues normally.
 
 Built-in Moodle/UI checks:
 
@@ -94,7 +95,7 @@ Built-in Moodle/UI checks:
 
 No Lifestyle or other third-party custom-Moodle code/assets are bundled; Lifestyle is only a coexistence test target.
 
-For the focused server-XP feasibility test, a one-player dedicated-server run is sufficient. Set both XP bonus percentages to `100` so the result is unambiguous, keep diagnostics enabled only for the test window, and use a character below the tested perk's maximum level. Record XP immediately before and after a normal XP-producing action such as exercise for Fitness, then repeat with a different ordinary skill action if practical. A successful event should produce one server `XP_BONUS` line whose `bonus` equals its `base`, and the character should receive approximately twice the underlying gain. Restore the intended percentages and disable verbose diagnostics afterward. Because every configured percentage uses the same direct formula and the module has no access-level/admin-mode branch, separate default-`5%` and non-admin feasibility runs are not required.
+For the focused server-XP feasibility test, a one-player dedicated-server run is sufficient. Set both XP bonus percentages to `100` so the result is unambiguous, keep diagnostics enabled only for the test window, and use a character below the tested perk's maximum level. Record XP immediately before and after a normal XP-producing action such as exercise for Fitness, then repeat with a different ordinary skill action if practical. A successful event should produce one server `XP_BONUS` line whose `bonus` equals its `base`, and the character should receive approximately twice the underlying gain. Restore the intended percentages and disable verbose diagnostics afterward. Because every configured percentage uses the same direct formula and the module has no access-level/admin-mode branch, separate default-`10%` and non-admin feasibility runs are not required.
 
 The server log—not a client `XP_BONUS` line—is authoritative for this retest. Confirm the log names the same perk being trained, contains no repeated XP exception or runaway loop, and that the client continues receiving the Moodle state. Broader two-player behavior is a live-validation target for the next production release.
 

@@ -10,9 +10,9 @@
 --
 -- DEFAULT TIERS
 -- -------------
--- < 6 game hours: no new benefit
--- 6 to < 9 hours: Rested      (+5% XP, 12 game hours)
--- >= 9 hours:     Well Rested (+5% XP, +10% endurance recovery, 24 game hours)
+-- < 8 game hours: no new benefit
+-- 8 to 12 hours:  Rested      (+10% XP, 4 game hours)
+-- > 12 hours:     Well Rested (+10% XP, +10% endurance recovery, 6 game hours)
 --
 -- All thresholds, durations, and bonus percentages are server sandbox options.
 -- A qualifying sleep replaces the previous tier; a short sleep below the Rested
@@ -91,18 +91,18 @@ end
 local function getConfig()
     local vars = SandboxVars and SandboxVars.EnshroudedSleep or nil
 
-    local restedMin = clamp(vars and vars.RestedMinimumSleepHours or 6.0, 0.0, 24.0)
-    local wellMin = clamp(vars and vars.WellRestedMinimumSleepHours or 9.0, 0.0, 24.0)
+    local restedMin = clamp(vars and vars.RestedMinimumSleepHours or 8.0, 0.0, 24.0)
+    local wellMin = clamp(vars and vars.WellRestedMinimumSleepHours or 12.0, 0.0, 24.0)
     if wellMin < restedMin then wellMin = restedMin end
 
     return {
         enabled = vars ~= nil and vars.SleepBenefitsEnabled == true,
         restedMinHours = restedMin,
-        restedDurationHours = clamp(vars and vars.RestedDurationHours or 12.0, 0.0, 168.0),
-        restedXPPercent = clamp(vars and vars.RestedXPBonusPercent or 5.0, 0.0, 100.0),
+        restedDurationHours = clamp(vars and vars.RestedDurationHours or 4.0, 0.0, 168.0),
+        restedXPPercent = clamp(vars and vars.RestedXPBonusPercent or 10.0, 0.0, 100.0),
         wellMinHours = wellMin,
-        wellDurationHours = clamp(vars and vars.WellRestedDurationHours or 24.0, 0.0, 168.0),
-        wellXPPercent = clamp(vars and vars.WellRestedXPBonusPercent or 5.0, 0.0, 100.0),
+        wellDurationHours = clamp(vars and vars.WellRestedDurationHours or 6.0, 0.0, 168.0),
+        wellXPPercent = clamp(vars and vars.WellRestedXPBonusPercent or 10.0, 0.0, 100.0),
         wellEndurancePercent = clamp(vars and vars.WellRestedEnduranceRecoveryBonusPercent or 10.0, 0.0, 100.0),
         diagnosticsEnabled = vars ~= nil and vars.DiagnosticsEnabled == true,
     }
@@ -236,7 +236,7 @@ local function clearBenefit(player, reason)
 end
 
 local function classifySleep(config, sleepHours)
-    if sleepHours >= config.wellMinHours then
+    if sleepHours > config.wellMinHours then
         return BENEFIT_WELL_RESTED, config.wellDurationHours
     end
     if sleepHours >= config.restedMinHours then

@@ -16,7 +16,7 @@ No changes yet.
 
 - Added independently configurable `SleepBenefitsEnabled`, disabled by default.
 - Added server sandbox controls for Rested/Well Rested minimum sleep hours, benefit durations, XP percentages, and Well Rested Endurance-recovery percentage.
-- Default candidate policy: `<6h` no new benefit; `6–<9h` Rested (`+5%` XP for 12 game hours); `>=9h` Well Rested (`+5%` XP and `+10%` Endurance recovery for 24 game hours).
+- Default candidate policy: `<8h` no new benefit; `8–12h` Rested (`+10%` XP for 4 game hours); `>12h` Well Rested (`+10%` XP and `+10%` Endurance recovery for 6 game hours).
 - Added server-authoritative sleep-duration classification, persisted earned-benefit expiry, death/disable clearing, and non-stacking replacement/refresh behavior.
 - Added server-authoritative XP bonus handling using positive server `AddXP` events plus flat `addXpNoMultiplier()` bonus XP with per-player recursion protection. The initial owning-client approach was replaced after focused live testing produced no bonus awards.
 - Added server-side directional Well Rested Endurance recovery amplification that does not reduce Endurance expenditure or increase maximum Endurance.

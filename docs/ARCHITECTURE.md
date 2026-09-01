@@ -164,6 +164,8 @@ SleepBenefitMoodle_Client.lua
 
 The server owns qualification, tier, expiry, and Endurance-recovery percentage. A client never decides that a sleep attempt qualified.
 
+The Rested minimum is inclusive. The Well Rested threshold is exclusive: sleep exactly at that threshold remains Rested, while sleep longer than it qualifies as Well Rested. If an administrator configures the Well Rested threshold below the Rested minimum, the effective threshold is clamped up to the Rested minimum before classification.
+
 An in-progress sleep attempt is deliberately **not** persisted. If a player disconnects or the server restarts while the character is sleeping, that unfinished attempt is discarded so offline elapsed world time cannot become rewarded sleep.
 
 An already-earned benefit is persisted in player ModData using its absolute world-hour expiry. That permits an earned Rested / Well Rested state to survive normal reconnect/server restart behavior while still expiring according to game-world time.

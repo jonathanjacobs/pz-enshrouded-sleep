@@ -53,25 +53,25 @@ Default v1.0.0 settings:
 ```text
 EnshroudedSleep.SleepBenefitsEnabled=false
 
-EnshroudedSleep.RestedMinimumSleepHours=6.0
-EnshroudedSleep.RestedDurationHours=12.0
-EnshroudedSleep.RestedXPBonusPercent=5.0
+EnshroudedSleep.RestedMinimumSleepHours=8.0
+EnshroudedSleep.RestedDurationHours=4.0
+EnshroudedSleep.RestedXPBonusPercent=10.0
 
-EnshroudedSleep.WellRestedMinimumSleepHours=9.0
-EnshroudedSleep.WellRestedDurationHours=24.0
-EnshroudedSleep.WellRestedXPBonusPercent=5.0
+EnshroudedSleep.WellRestedMinimumSleepHours=12.0
+EnshroudedSleep.WellRestedDurationHours=6.0
+EnshroudedSleep.WellRestedXPBonusPercent=10.0
 EnshroudedSleep.WellRestedEnduranceRecoveryBonusPercent=10.0
 ```
 
 Default classification:
 
 ```text
-< 6 game hours     -> no new benefit
-6 to < 9 hours     -> Rested: +5% XP for 12 game hours
->= 9 game hours    -> Well Rested: +5% XP and +10% Endurance recovery for 24 game hours
+< 8 game hours     -> no new benefit
+8 to 12 hours      -> Rested: +10% XP for 4 game hours
+> 12 game hours    -> Well Rested: +10% XP and +10% Endurance recovery for 6 game hours
 ```
 
-Sleeping beyond the Well Rested threshold still qualifies as Well Rested; oversleeping does not remove the reward. A qualifying sleep replaces/refreshes the current tier rather than stacking. A sub-threshold nap does not cancel an otherwise active benefit.
+The Rested lower boundary and 12-hour upper boundary are inclusive; Well Rested requires sleep strictly longer than 12 hours. Sleeping beyond the Well Rested threshold still qualifies as Well Rested; oversleeping does not remove the reward. A qualifying sleep replaces/refreshes the current tier rather than stacking. A sub-threshold nap does not cancel an otherwise active benefit.
 
 ### Built-in custom Moodle UI
 

@@ -29,15 +29,17 @@ Goal: determine whether optional sleep can provide a modest positive incentive w
 
 Current v1.0.0 defaults:
 
-- `<6` game hours slept → no new benefit;
-- `6–<9` hours → **Rested**, +5% XP for 12 game hours;
-- `>=9` hours → **Well Rested**, +5% XP and +10% Endurance recovery for 24 game hours;
+- `<8` game hours slept → no new benefit;
+- `8–12` hours (inclusive) → **Rested**, +10% XP for 4 game hours;
+- `>12` hours → **Well Rested**, +10% XP and +10% Endurance recovery for 6 game hours;
 - all thresholds, durations, and percentages are server sandbox options;
 - benefits do not stack;
 - Rested / Well Rested use an Enshrouded Sleep-owned `ISUIElement` Moodle renderer and original artwork; no external Moodle framework is required;
 - the renderer follows the player's current B42 Moodle size and includes read-only Lifestyle stack coexistence when Lifestyle is detected.
 
-Completed checkpoint: the ADR-004 server-authoritative XP path passed a one-player dedicated-server run at an unambiguous `100%` setting, producing exact flat bonus arithmetic across Carving, Fitness, Sprinting, and Strength without recursion or a relevant runtime error. The configured percentage is a direct input to the validated formula, and the module has no access-level/admin-mode branch; default `5%` and non-admin behavior are not separate implementation gates.
+Completed checkpoint: the ADR-004 server-authoritative XP path passed a one-player dedicated-server run at an unambiguous `100%` setting, producing exact flat bonus arithmetic across Carving, Fitness, Sprinting, and Strength without recursion or a relevant runtime error. The configured percentage is a direct input to the validated formula, and the module has no access-level/admin-mode branch; the current default `10%` and non-admin behavior are not separate implementation gates.
+
+Pending focused regression: the revised `8`/`12`-hour defaults and exclusive Well Rested boundary require a runtime classification/duration smoke test before the optional reward layer is treated as validated under this exact policy.
 
 SPIKE-007 is accepted for integration into `main`. Broader two-player validation of reward classification, XP gain, positive Endurance recovery, expiry/reconnect/death behavior, feature-only rollback, built-in Moodle display/scaling, and vanilla/Lifestyle stack coexistence will be collected during the next production release. The live-validation plan remains in [`spikes/SPIKE-007-sleep-benefits.md`](spikes/SPIKE-007-sleep-benefits.md) and tracking issue [#10](https://github.com/jonathanjacobs/pz-enshrouded-sleep/issues/10).
 

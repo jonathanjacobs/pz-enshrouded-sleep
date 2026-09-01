@@ -41,7 +41,7 @@ option EnshroudedSleep.RestedMinimumSleepHours = {
     type = double,
     min = 0.0,
     max = 24.0,
-    default = 6.0,
+    default = 8.0,
     page = EnshroudedSleep,
     translation = EnshroudedSleep_RestedMinimumSleepHours,
 }
@@ -50,7 +50,7 @@ option EnshroudedSleep.RestedDurationHours = {
     type = double,
     min = 0.0,
     max = 168.0,
-    default = 12.0,
+    default = 4.0,
     page = EnshroudedSleep,
     translation = EnshroudedSleep_RestedDurationHours,
 }
@@ -59,7 +59,7 @@ option EnshroudedSleep.RestedXPBonusPercent = {
     type = double,
     min = 0.0,
     max = 100.0,
-    default = 5.0,
+    default = 10.0,
     page = EnshroudedSleep,
     translation = EnshroudedSleep_RestedXPBonusPercent,
 }
@@ -68,7 +68,7 @@ option EnshroudedSleep.WellRestedMinimumSleepHours = {
     type = double,
     min = 0.0,
     max = 24.0,
-    default = 9.0,
+    default = 12.0,
     page = EnshroudedSleep,
     translation = EnshroudedSleep_WellRestedMinimumSleepHours,
 }
@@ -77,7 +77,7 @@ option EnshroudedSleep.WellRestedDurationHours = {
     type = double,
     min = 0.0,
     max = 168.0,
-    default = 24.0,
+    default = 6.0,
     page = EnshroudedSleep,
     translation = EnshroudedSleep_WellRestedDurationHours,
 }
@@ -86,7 +86,7 @@ option EnshroudedSleep.WellRestedXPBonusPercent = {
     type = double,
     min = 0.0,
     max = 100.0,
-    default = 5.0,
+    default = 10.0,
     page = EnshroudedSleep,
     translation = EnshroudedSleep_WellRestedXPBonusPercent,
 }

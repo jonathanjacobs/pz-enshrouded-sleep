@@ -24,7 +24,7 @@ Current candidate: `v1.0.0`. Preparing and pushing the candidate to `origin/main
 - [ ] Awake-protection soft rollback and full-mod rollback have been exercised against a preserved server/save state.
 - [ ] CPU cost and normal log volume are operationally acceptable at the representative tested population.
 - [x] Major world-time interactions and compatibility limits are documented and accepted for the release.
-- [x] The optional Rested / Well Rested feature passed its focused server-authority gate, remains disabled by default, and retains broader multiplayer behavior as a live-validation condition.
+- [ ] The optional Rested / Well Rested feature passed its focused server-authority gate, but the revised `8`/`12`-hour defaults and exclusive Well Rested boundary still need a focused runtime classification/duration regression; the feature remains disabled by default and broader multiplayer behavior remains a live-validation condition.
 
 ## Deployment gate
 
@@ -42,6 +42,7 @@ Conditions carried into deployment and live validation:
 - stop the server cleanly and back up the world, save, and configuration before updating;
 - confirm the server and every participating client load the same v1.0.0 package;
 - keep `SleepBenefitsEnabled=false` unless the server administrator intentionally enables the optional reward layer;
+- before enabling sleep benefits in production, confirm the revised `8`/`12`-hour classification and 4/6-hour durations with the focused test in `TESTING.md`;
 - confirm native all-awake baseline, one partial-sleep transition, and exact baseline restoration after deployment;
 - preserve early server and owning-client logs;
 - continue the unchecked representative-client, lifecycle, notification, rollback, CPU/log-volume, and broader sleep-benefit multiplayer checks above;

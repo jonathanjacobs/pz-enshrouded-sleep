@@ -214,23 +214,23 @@ The current in-progress sleep attempt must remain session-scoped: disconnecting 
 The default policy is:
 
 ```text
-sleep < 6 hours      -> no new benefit
-6 <= sleep < 9      -> Rested
-sleep >= 9          -> Well Rested
+sleep < 8 hours      -> no new benefit
+8 <= sleep <= 12    -> Rested
+sleep > 12          -> Well Rested
 
 Rested:
-  duration = 12 game hours
-  XP bonus = 5%
+  duration = 4 game hours
+  XP bonus = 10%
 
 Well Rested:
-  duration = 24 game hours
-  XP bonus = 5%
+  duration = 6 game hours
+  XP bonus = 10%
   Endurance recovery bonus = 10%
 ```
 
 The Rested/Well Rested minimum sleep thresholds, durations, XP percentages, and Well Rested Endurance-recovery percentage must be server sandbox options. If the configured Well Rested threshold is below the Rested threshold, runtime behavior must safely clamp the effective Well Rested threshold upward to the Rested threshold.
 
-Sleeping beyond the Well Rested threshold must remain Well Rested; oversleeping must not remove the reward.
+Well Rested qualification is strictly above its configured threshold. Sleep exactly at that threshold remains Rested when it also meets the Rested minimum. Sleeping beyond the Well Rested threshold must remain Well Rested; oversleeping must not remove the reward.
 
 ### R38 — Benefits do not stack
 
@@ -246,7 +246,7 @@ Death must clear the active benefit. Removing/disabling the feature must not req
 
 The dedicated server must observe positive Build 42 `AddXP` events and determine the reward from the server-authored active benefit and server sandbox percentage. The event-supplied perk must receive the bonus; the implementation must not maintain a skill allowlist or require the client to request or mint bonus XP.
 
-Bonus XP must be added as flat/no-multiplier XP and protected by a per-player recursion guard so a configured 5% reward remains approximately 5% rather than being multiplied again or recursively re-awarded.
+Bonus XP must be added as flat/no-multiplier XP and protected by a per-player recursion guard so the configured percentage is applied once rather than being multiplied again or recursively re-awarded.
 
 A missing/failing XP bridge must fail open for the reward feature and must not affect sleep/time behavior.
 

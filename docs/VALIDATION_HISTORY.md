@@ -151,7 +151,7 @@ This is representative field evidence for the released core controller, server c
 
 Three focused feature-branch dedicated-server sessions provided preliminary evidence for the optional Rested / Well Rested experiment:
 
-- server sleep-duration classification produced Rested and Well Rested at the intended default thresholds and did not let a short sleep replace an active benefit;
+- server sleep-duration classification produced Rested and Well Rested at the then-current `6`/`9`-hour defaults and did not let a short sleep replace an active benefit;
 - earned Well Rested state persisted across reconnect;
 - `4,818` logged positive Endurance corrections followed the configured `10%` and `75%` arithmetic, left non-positive changes untouched, and did not exceed the normal maximum;
 - the original owning-client XP bridge produced no `XP_BONUS` diagnostic at `5%`, `10%`, or `75%`, even though the tested character's Fitness and Strength were below maximum;
@@ -163,7 +163,7 @@ The subsequent `0.1.1+sleep-benefits-server-xp-dev` retest passed the focused se
 
 A client `WARN:MISSING in SettingsTable: AntiCheatXP` line was part of a larger vanilla `ServerSettingsScreen.lua` UI-metadata list that also included `Mods`, `Map`, `SteamVAC`, and many unrelated settings. It does not report an anti-cheat violation or rejected XP award.
 
-**Evidence boundary:** these were one-player runs. They establish the revised server XP mechanism and configurable percentage arithmetic: the same formula handles `100%`, the default `5%`, and other administrator-selected values, and the module has no access-level/admin-mode branch. They do not yet validate broader two-player operation, death clearing, feature-disable rollback, expiry, or wider Moodle coexistence behavior. Those are live-validation targets for the next production release rather than blockers to integration into `main`.
+**Evidence boundary:** these were one-player runs. They establish the revised server XP mechanism and configurable percentage arithmetic: the same formula handles `100%`, the then-current default `5%`, the current default `10%`, and other administrator-selected values, and the module has no access-level/admin-mode branch. The sleep-classification observations used the earlier `6`/`9`-hour defaults and do not validate the later `8`/`12`-hour defaults or exclusive Well Rested boundary. They do not yet validate broader two-player operation, death clearing, feature-disable rollback, expiry, or wider Moodle coexistence behavior. Those are live-validation targets for the next production release rather than blockers to integration into `main`.
 
 ## v1.0.0 release-candidate package validation — 2026-08-31
 

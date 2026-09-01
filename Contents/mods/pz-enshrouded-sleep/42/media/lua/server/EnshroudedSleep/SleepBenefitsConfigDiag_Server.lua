@@ -15,12 +15,12 @@ end
 local function emitIfChanged()
     local vars = SandboxVars and SandboxVars.EnshroudedSleep or nil
     local enabled = vars ~= nil and vars.SleepBenefitsEnabled == true
-    local restedMin = tonumber(value(vars, "RestedMinimumSleepHours", 6.0)) or 6.0
-    local restedDuration = tonumber(value(vars, "RestedDurationHours", 12.0)) or 12.0
-    local restedXP = tonumber(value(vars, "RestedXPBonusPercent", 5.0)) or 5.0
-    local wellMin = tonumber(value(vars, "WellRestedMinimumSleepHours", 9.0)) or 9.0
-    local wellDuration = tonumber(value(vars, "WellRestedDurationHours", 24.0)) or 24.0
-    local wellXP = tonumber(value(vars, "WellRestedXPBonusPercent", 5.0)) or 5.0
+    local restedMin = tonumber(value(vars, "RestedMinimumSleepHours", 8.0)) or 8.0
+    local restedDuration = tonumber(value(vars, "RestedDurationHours", 4.0)) or 4.0
+    local restedXP = tonumber(value(vars, "RestedXPBonusPercent", 10.0)) or 10.0
+    local wellMin = tonumber(value(vars, "WellRestedMinimumSleepHours", 12.0)) or 12.0
+    local wellDuration = tonumber(value(vars, "WellRestedDurationHours", 6.0)) or 6.0
+    local wellXP = tonumber(value(vars, "WellRestedXPBonusPercent", 10.0)) or 10.0
     local wellEndurance = tonumber(value(vars, "WellRestedEnduranceRecoveryBonusPercent", 10.0)) or 10.0
     local diagnostics = vars ~= nil and vars.DiagnosticsEnabled == true
 

@@ -14,9 +14,9 @@ Can Enshrouded Sleep make voluntary multiplayer sleep meaningfully beneficial wi
 
 | Sleep completed | Benefit | Default effect | Default duration |
 | --- | --- | --- | --- |
-| `< 6` game hours | None | No new benefit | — |
-| `6` to `< 9` game hours | Rested | `+5%` XP gain | `12` game hours |
-| `>= 9` game hours | Well Rested | `+5%` XP gain; `+10%` Endurance recovery | `24` game hours |
+| `< 8` game hours | None | No new benefit | — |
+| `8` to `12` game hours (inclusive) | Rested | `+10%` XP gain | `4` game hours |
+| `> 12` game hours | Well Rested | `+10%` XP gain; `+10%` Endurance recovery | `6` game hours |
 
 Sleeping beyond the Well Rested threshold remains Well Rested; oversleeping does not remove the reward.
 
@@ -28,16 +28,16 @@ The feature is independently disabled by default and uses server sandbox values:
 
 ```text
 EnshroudedSleep.SleepBenefitsEnabled=false
-EnshroudedSleep.RestedMinimumSleepHours=6.0
-EnshroudedSleep.RestedDurationHours=12.0
-EnshroudedSleep.RestedXPBonusPercent=5.0
-EnshroudedSleep.WellRestedMinimumSleepHours=9.0
-EnshroudedSleep.WellRestedDurationHours=24.0
-EnshroudedSleep.WellRestedXPBonusPercent=5.0
+EnshroudedSleep.RestedMinimumSleepHours=8.0
+EnshroudedSleep.RestedDurationHours=4.0
+EnshroudedSleep.RestedXPBonusPercent=10.0
+EnshroudedSleep.WellRestedMinimumSleepHours=12.0
+EnshroudedSleep.WellRestedDurationHours=6.0
+EnshroudedSleep.WellRestedXPBonusPercent=10.0
 EnshroudedSleep.WellRestedEnduranceRecoveryBonusPercent=10.0
 ```
 
-If `WellRestedMinimumSleepHours` is configured below `RestedMinimumSleepHours`, the runtime clamps the effective Well Rested threshold upward to the Rested threshold.
+If `WellRestedMinimumSleepHours` is configured below `RestedMinimumSleepHours`, the runtime clamps the effective Well Rested threshold upward to the Rested threshold. Well Rested qualification is strictly above that effective threshold; sleep exactly at it remains Rested when it meets the Rested minimum.
 
 ## Development-package deployment preflight
 
@@ -144,7 +144,9 @@ All `35` server calculations matched `bonus = base × 100 / 100`; no client `XP_
 
 The client printed vanilla `ServerSettingsScreen.lua` `WARN:MISSING in SettingsTable` messages for many server settings, including `AntiCheatXP`, `Mods`, `Map`, and `SteamVAC`. Build 42 emits that bulk warning when a server option lacks an entry in the screen's UI metadata table. It is not an anti-cheat violation and was not correlated with any rejected XP award.
 
-Decision: the focused server-authoritative XP checkpoint is **PASS**. The `100%` run exercised the same configurable formula used at the default `5%`, and the implementation has no access-level or admin-mode branch. A separate default-percentage or non-admin run is not required to validate this mechanism. The feature is accepted for `main`; broader two-player and lifecycle coverage will be collected during the next production release.
+Decision: the focused server-authoritative XP checkpoint is **PASS**. The `100%` run exercised the same configurable formula now used at the default `10%`, and the implementation has no access-level or admin-mode branch. A separate default-percentage or non-admin run is not required to validate this mechanism. The feature is accepted for `main`; broader two-player and lifecycle coverage will be collected during the next production release.
+
+The classification evidence above used the earlier `6`/`9`-hour defaults and inclusive Well Rested comparison. It does not by itself validate the later `8`/`12`-hour defaults or the exclusive Well Rested boundary; those revised policy details require the Tier A runtime regression below.
 
 ## Required validation
 
@@ -152,10 +154,10 @@ Decision: the focused server-authoritative XP checkpoint is **PASS**. The `100%`
 
 With `SleepBenefitsEnabled=true`:
 
-1. Sleep less than 6 game hours → no new benefit.
-2. Sleep at least 6 but less than 9 game hours → Rested.
-3. Sleep at least 9 game hours → Well Rested.
-4. Sleep longer than 12 hours → still Well Rested.
+1. Sleep less than 8 game hours → no new benefit.
+2. Sleep at least 8 but less than 12 game hours → Rested.
+3. Sleep exactly 12 game hours → still Rested.
+4. Sleep longer than 12 hours → Well Rested.
 5. A qualifying sleep while already buffed replaces/refreshes the benefit rather than stacking.
 6. A sub-threshold nap does not cancel an active benefit.
 
@@ -175,7 +177,7 @@ With `SleepBenefitsEnabled=true`:
 3. Confirm one server `XP_BONUS` line reports that perk and `bonus` approximately equal to `base`; confirm the observed total is approximately `2×` the underlying award.
 4. Repeat with a second perk if practical to confirm the event-supplied perk path is generic rather than Fitness-specific.
 5. Confirm there is no client `XP_BONUS` award path, repeated Lua exception, or runaway XP loop.
-6. Restore the intended production percentage after the focused diagnostic run. A default `5%` sample may be collected as an ordinary smoke check when the increments are large enough to measure reliably, but it is not a separate feasibility gate.
+6. Restore the intended production percentage after the focused diagnostic run. A default `10%` sample may be collected as an ordinary smoke check when the increments are large enough to measure reliably, but it is not a separate feasibility gate.
 7. When a second player becomes available, include XP in the broader dedicated-server regression; no distinct account-access-level path exists in this module.
 
 ### Tier D — Endurance

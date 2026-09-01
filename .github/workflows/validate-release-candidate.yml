@@ -90,12 +90,19 @@ jobs:
           grep -Fq 'option EnshroudedSleep.SleepBenefitsEnabled' "$SANDBOX_OPTIONS"
           grep -A6 -F 'option EnshroudedSleep.SleepBenefitsEnabled' "$SANDBOX_OPTIONS" | grep -Fq 'default = false'
           grep -Fq 'option EnshroudedSleep.RestedMinimumSleepHours' "$SANDBOX_OPTIONS"
+          grep -A5 -F 'option EnshroudedSleep.RestedMinimumSleepHours' "$SANDBOX_OPTIONS" | grep -Fq 'default = 8.0'
           grep -Fq 'option EnshroudedSleep.RestedDurationHours' "$SANDBOX_OPTIONS"
+          grep -A5 -F 'option EnshroudedSleep.RestedDurationHours' "$SANDBOX_OPTIONS" | grep -Fq 'default = 4.0'
           grep -Fq 'option EnshroudedSleep.RestedXPBonusPercent' "$SANDBOX_OPTIONS"
+          grep -A5 -F 'option EnshroudedSleep.RestedXPBonusPercent' "$SANDBOX_OPTIONS" | grep -Fq 'default = 10.0'
           grep -Fq 'option EnshroudedSleep.WellRestedMinimumSleepHours' "$SANDBOX_OPTIONS"
+          grep -A5 -F 'option EnshroudedSleep.WellRestedMinimumSleepHours' "$SANDBOX_OPTIONS" | grep -Fq 'default = 12.0'
           grep -Fq 'option EnshroudedSleep.WellRestedDurationHours' "$SANDBOX_OPTIONS"
+          grep -A5 -F 'option EnshroudedSleep.WellRestedDurationHours' "$SANDBOX_OPTIONS" | grep -Fq 'default = 6.0'
           grep -Fq 'option EnshroudedSleep.WellRestedXPBonusPercent' "$SANDBOX_OPTIONS"
+          grep -A5 -F 'option EnshroudedSleep.WellRestedXPBonusPercent' "$SANDBOX_OPTIONS" | grep -Fq 'default = 10.0'
           grep -Fq 'option EnshroudedSleep.WellRestedEnduranceRecoveryBonusPercent' "$SANDBOX_OPTIONS"
+          grep -A5 -F 'option EnshroudedSleep.WellRestedEnduranceRecoveryBonusPercent' "$SANDBOX_OPTIONS" | grep -Fq 'default = 10.0'
           grep -Fq 'option EnshroudedSleep.DiagnosticsEnabled' "$SANDBOX_OPTIONS"
           grep -Fq 'option EnshroudedSleep.DiagnosticForcedCompressionFactor' "$SANDBOX_OPTIONS"
           ! grep -Fq 'DiagnosticAwakeProtectionPrototype' "$SANDBOX_OPTIONS"
@@ -136,6 +143,7 @@ jobs:
           # Sleep benefits are a released-candidate, independently disabled feature.
           grep -Fq "SleepBenefitsEnabled" "$BENEFIT_SERVER"
           grep -Fq "getWorldAgeHours" "$BENEFIT_SERVER"
+          grep -Fq 'if sleepHours > config.wellMinHours then' "$BENEFIT_SERVER"
           grep -Fq 'resolveCharacterStat("ENDURANCE", "Endurance")' "$BENEFIT_SERVER"
           grep -Fq "buildVersion = \"$VERSION_VALUE\"" "$BENEFIT_SERVER"
           grep -Fq "BUILD_VERSION = \"$VERSION_VALUE\"" "$BENEFIT_CLIENT"
@@ -158,8 +166,11 @@ jobs:
           grep -Fq 'Moodles_EnshroudedRested' "$MOODLES_EN"
           grep -Fq 'Moodles_EnshroudedWellRested' "$MOODLES_EN"
           grep -Fq "SPIKE-007" docs/spikes/SPIKE-007-sleep-benefits.md
-          grep -Fq 'Default 5%%.' "$SANDBOX_EN"
           grep -Fq 'Default 10%%.' "$SANDBOX_EN"
+          grep -Fq 'Default 8 hours.' "$SANDBOX_EN"
+          grep -Fq 'Default 4 hours.' "$SANDBOX_EN"
+          grep -Fq 'Default 12 hours.' "$SANDBOX_EN"
+          grep -Fq 'Default 6 hours.' "$SANDBOX_EN"
           grep -Fq '(50%%).' "$SANDBOX_EN"
           if grep -RFq 'MF_ISMoodle' "$BENEFIT_CLIENT" "$BENEFIT_MOODLE"; then
             echo "ERROR: external Moodle Framework runtime dependency reintroduced"
