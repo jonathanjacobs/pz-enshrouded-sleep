@@ -8,6 +8,8 @@ Week-long Public Beta server evidence now supports repeated proportional compres
 
 The v1.0.0 repository/package candidate is prepared on `main`. GitHub release creation, Steam Workshop publication, and the deployment checks below remain separate actions.
 
+The release checklist records a **CONDITIONAL GO** for v1.0.0 Release Candidate Workshop deployment. Unchecked stable-release evidence remains an explicit live-validation condition rather than being represented as complete.
+
 ### Remaining production-release and live-validation evidence
 
 - review owning-client logs from representative partial- and full-sleep transitions for clock continuity and client exceptions;

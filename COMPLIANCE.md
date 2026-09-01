@@ -19,6 +19,8 @@ Enshrouded Sleep is an unofficial independent community mod. It is not developed
 
 The project name refers to general multiplayer-sleep design inspiration associated with *Enshrouded*. Enshrouded Sleep is not developed by, affiliated with, sponsored by, or endorsed by Keen Games, and the project does not redistribute *Enshrouded* code, assets, models, sounds, text, or game content.
 
+Voluntary support links may be displayed publicly. Donations do not unlock Enshrouded Sleep access, content, bonuses, configuration, support priority, or gameplay functionality; the complete mod remains equally available to non-donors.
+
 ## Distribution boundary
 
 The repository is intentionally Workshop-package compatible. The only deployable Project Zomboid runtime tree is:

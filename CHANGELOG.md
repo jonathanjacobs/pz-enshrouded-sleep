@@ -28,6 +28,7 @@ No changes yet.
 ### Changed
 
 - Removed stale Alpha, Beta, unreleased, and feature-branch wording from current v1.0.0 player, administrator, and test surfaces while preserving historical release evidence.
+- Refreshed the live Project Zomboid modding-policy review, documented the non-exclusive voluntary-support boundary, corrected the Workshop disclaimer formatting, and recorded an evidence-bounded conditional Workshop deployment decision.
 
 ## [0.1.1] - 2026-08-26
 
