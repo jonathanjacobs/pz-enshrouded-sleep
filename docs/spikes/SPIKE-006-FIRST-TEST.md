@@ -189,4 +189,4 @@ The next regression must deliberately exercise legitimate state changes while co
 - resting/sitting;
 - other modifiers that can alter the same fields.
 
-Only after those tests can SPIKE-006 decide whether post-update normalization is safe enough for v0.0.11.
+Those subsequent tests passed for the supported production scope; the final decision is recorded in [`SPIKE-006-awake-player-protection.md`](SPIKE-006-awake-player-protection.md).

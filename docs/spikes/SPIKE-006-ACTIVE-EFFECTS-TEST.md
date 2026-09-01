@@ -2,7 +2,9 @@
 
 Purpose: determine whether the tick-driven awake-player normalizer preserves legitimate player-driven and state-driven survival changes while world/calendar time is compressed.
 
-This follows the successful passive SPIKE-006 validation. The passive mechanism is now a feasibility **GO**; this test is the next production-readiness blocker.
+Status: **Completed — the regression supported the production GO recorded in `SPIKE-006-awake-player-protection.md`.**
+
+This procedure followed the successful passive SPIKE-006 validation and served as the production-readiness blocker at that time.
 
 ## Branch
 
@@ -293,7 +295,7 @@ No routine manual action timestamps are required. The analysis should use the `E
 
 ## Acceptance criteria
 
-SPIKE-006 can move toward production implementation only if:
+At the time of this test, SPIKE-006 could move toward production implementation only if:
 
 - passive protected rates remain approximately 1x under 20x calendar compression;
 - eating and drinking retain their normal direct magnitude/semantics;

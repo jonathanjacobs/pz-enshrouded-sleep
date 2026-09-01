@@ -1,8 +1,11 @@
 # SPIKE-006 — Awake-Player Survival Protection Feasibility
 
-Status: **IN PROGRESS — PASSIVE NORMALIZATION GO**  
-Target release: **v0.0.11 candidate**  
-Validated source/runtime baseline: **Project Zomboid 42.20.3**  
+Status: **COMPLETED — GO; PROMOTED TO PUBLIC BETA IN v0.1.0**
+
+Target release: **v0.1.0 Public Beta (released)**
+
+Validated source/runtime baseline: **Project Zomboid 42.20.3 controlled tests; 42.20.4 field evidence**
+
 GitHub issue: **#7**
 
 ## Question
@@ -31,7 +34,7 @@ Controlled runtime testing established that the following scale with compressed 
 
 By contrast, the tested acute bleeding/body-health-loss path and resting endurance recovery remained approximately simulation/real-time bound.
 
-Therefore v0.0.11 must **not** apply broad health compensation. It should target only systems known to accelerate with the world clock.
+Therefore the production implementation does **not** apply broad health compensation. It targets only systems known to accelerate with the world clock.
 
 ## B42.20.3 decompile findings
 
@@ -300,7 +303,7 @@ The baseline and compressed measurement intervals were shorter than the original
 
 **GO for the passive post-update normalization mechanism.**
 
-This is **not yet a production GO**. The next blocker is determining whether the directional correction preserves legitimate player-driven and state-driven changes while compressed.
+At this checkpoint, this was **not yet a production GO**. The subsequent active-effects regression below determined whether the directional correction preserved legitimate player-driven and state-driven changes while compressed.
 
 ## Post-validation implementation cleanup
 
@@ -311,11 +314,11 @@ After the successful passive run:
 
 These changes do not broaden the prototype's mutation boundary.
 
-## Next validation — active effects
+## Subsequent validation — active effects
 
-The next controlled regression is defined in [`SPIKE-006-ACTIVE-EFFECTS-TEST.md`](SPIKE-006-ACTIVE-EFFECTS-TEST.md).
+The controlled regression was defined in [`SPIKE-006-ACTIVE-EFFECTS-TEST.md`](SPIKE-006-ACTIVE-EFFECTS-TEST.md).
 
-It must determine whether the normalizer preserves legitimate effects while compressed, including:
+It tested whether the normalizer preserved legitimate effects while compressed, including:
 
 1. eating;
 2. drinking;
@@ -327,9 +330,11 @@ It must determine whether the normalizer preserves legitimate effects while comp
 8. second-player-join suspension;
 9. selected same-direction direct effects where a safe/reproducible test is available.
 
+The regression passed for the production scope: Carbohydrates and Lipids were exercised away from their clamps, favorable eating and drinking effects were preserved, running/sprinting retained active consequences, sleep immediately suspended awake correction, waking reinitialized the reference snapshot, baseline restoration was clean, and no relevant Enshrouded Sleep Lua exception occurred. Exact observed evidence remains canonical in [`../VALIDATION_HISTORY.md`](../VALIDATION_HISTORY.md).
+
 ## Success criteria
 
-A candidate implementation can advance only if, during 20x partial/forced calendar compression:
+The candidate implementation could advance only if, during 20x partial/forced calendar compression:
 
 ```text
 awake hunger passive rate       ≈ 1x baseline real-time rate
@@ -356,7 +361,9 @@ Eating/drinking and activity modifiers must retain their vanilla magnitude/seman
 
 ## Release decision
 
-Possible outcomes:
+Final outcome: **GO**. The narrowly scoped server-authoritative normalizer was promoted into normal multiplayer partial-sleep behavior in v0.1.0 with `AwakePlayerProtectionEnabled` as an independent soft-rollback control. Subsequent v0.1.1 field evidence covered 38 dedicated-server sessions, 87 proportional partial-sleep states, populations up to seven players, repeated baseline restoration, and no explicit Enshrouded Sleep-prefixed runtime error. Broader lifecycle, rollback, performance, and compatibility coverage remains general release validation in [`../ROADMAP.md`](../ROADMAP.md), not unfinished SPIKE-006 feasibility work.
+
+The evaluated outcomes were:
 
 ### GO
 
