@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - optional Rested / Well Rested sleep benefits
--- Release Candidate v1.0.0 for Project Zomboid Build 42.20+
+-- Enshrouded Sleep v1.0.1 for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -359,7 +359,7 @@ local function stateForClient(player, config, nowWorldHour, knownBenefitType, kn
 
     return {
         protocolVersion = PROTOCOL_VERSION,
-        buildVersion = "1.0.0",
+        buildVersion = "1.0.1",
         benefitType = benefitType,
         expiresAtWorldHour = expires or -1,
         lastQualifyingSleepHours = lastSleep or 0,

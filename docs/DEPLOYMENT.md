@@ -1,10 +1,10 @@
-# Release Candidate Deployment Guide
+# Deployment Guide
 
 This document owns server installation, normal configuration, monitoring, diagnostics, and rollback. Product semantics belong in [`REQUIREMENTS.md`](REQUIREMENTS.md); test evidence belongs in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md).
 
-Current repository/package candidate: `v1.0.0`
+Current repository/package version: `v1.0.1`
 
-Currently published Workshop release: `v1.0.0` (published to the existing Workshop item on 2026-08-31)
+Currently published Workshop release: `v1.0.0` (published to the existing Workshop item on 2026-08-31); `v1.0.1` relabels the same package as the full release and is pending upload
 
 Project Zomboid Mod ID: `pz-enshrouded-sleep`
 
@@ -12,7 +12,7 @@ Steam Workshop ID: `3786842301`
 
 Current validated compatibility checkpoint: Project Zomboid `42.21.0` (`4a0e9546ec`); previous checkpoint `42.20.4` (`b0bbce05d5`)
 
-The Rested / Well Rested sleep-benefit system described below is included in the v1.0.0 release candidate on `main`. It remains disabled by default and must be explicitly enabled by a server administrator. Updating GitHub does not update the installed client/server copies or Steam Workshop item.
+The Rested / Well Rested sleep-benefit system described below is included in v1.0.x. It remains disabled by default and must be explicitly enabled by a server administrator. Updating GitHub does not update the installed client/server copies or Steam Workshop item.
 
 ## Normal server configuration
 
@@ -46,9 +46,9 @@ All-awake and all-asleep transitions use short special messages rather than clai
 
 The in-game sandbox tooltips contain fuller option descriptions. The canonical clock/protection/benefit behavior is in [`REQUIREMENTS.md`](REQUIREMENTS.md).
 
-## Sleep-benefit configuration — v1.0.0
+## Sleep-benefit configuration
 
-Default v1.0.0 settings:
+Default settings:
 
 ```text
 EnshroudedSleep.SleepBenefitsEnabled=false
@@ -75,7 +75,7 @@ The Rested lower boundary and 12-hour upper boundary are inclusive; Well Rested 
 
 ### Built-in custom Moodle UI
 
-v1.0.0 includes its own Rested / Well Rested client Moodle renderer and original artwork. **No additional Workshop/UI dependency is required.**
+Enshrouded Sleep includes its own Rested / Well Rested client Moodle renderer and original artwork. **No additional Workshop/UI dependency is required.**
 
 The renderer follows the player's current Build 42 Moodle-size option, positions the Enshrouded Sleep status after visible vanilla moodles, and uses installed vanilla Moodle background/outline resources at runtime. If Lifestyle is installed and its custom Moodle manager is active, Enshrouded Sleep performs a read-only slot-count compatibility check so its icon can be placed below active Lifestyle moodles rather than overlapping them.
 
@@ -192,13 +192,13 @@ This has no effect on time compression, client clock synchronization, or awake-p
 
 ## Sleep-benefit-only rollback
 
-If the v1.0.0 sleep-benefit system causes XP, Endurance, Moodle, or compatibility problems, disable only:
+If the sleep-benefit system causes XP, Endurance, Moodle, or compatibility problems, disable only:
 
 ```text
 EnshroudedSleep.SleepBenefitsEnabled=false
 ```
 
-The server clears active Rested / Well Rested benefit state. Proportional sleep, awake-player protection, and notification behavior remain independently configured. There is no external Moodle dependency to remove; the custom UI ships as part of v1.0.0 and is designed to fail independently of gameplay authority.
+The server clears active Rested / Well Rested benefit state. Proportional sleep, awake-player protection, and notification behavior remain independently configured. There is no external Moodle dependency to remove; the custom UI ships with the mod and is designed to fail independently of gameplay authority.
 
 ## Full rollback
 
@@ -210,7 +210,7 @@ Use a full rollback for core clock/controller/synchronization failures, recurrin
 4. Restore the prior package/configuration if needed.
 5. Restart and confirm native future sleep/time behavior.
 
-The mod does not maintain a custom persistent sleep database. The v1.0.0 Rested system stores only small per-character ModData fields for an earned benefit and expiry; disabling/removing the mod stops using those values. World-time-driven changes that already occurred require a prior save backup if they need to be undone.
+The mod does not maintain a custom persistent sleep database. The Rested system stores only small per-character ModData fields for an earned benefit and expiry; disabling/removing the mod stops using those values. World-time-driven changes that already occurred require a prior save backup if they need to be undone.
 
 ## Operational boundary
 

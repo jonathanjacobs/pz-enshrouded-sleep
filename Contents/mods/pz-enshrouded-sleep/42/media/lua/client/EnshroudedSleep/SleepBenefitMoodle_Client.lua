@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - self-contained Rested / Well Rested client Moodle UI
--- Release Candidate v1.0.0 for Project Zomboid Build 42.20+
+-- Enshrouded Sleep v1.0.1 for Project Zomboid Build 42.20+
 --
 -- This renderer is intentionally narrow: it draws one non-stacking positive
 -- sleep-benefit status using Enshrouded Sleep artwork and installed vanilla Moodle

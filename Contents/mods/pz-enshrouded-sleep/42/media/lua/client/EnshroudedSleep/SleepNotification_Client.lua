@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - client sleep-status notification display
--- Release Candidate v1.0.0 for Project Zomboid Build 42.20+
+-- Enshrouded Sleep v1.0.1 for Project Zomboid Build 42.20+
 --
 -- Receives server-authored sleep-state notifications and displays them through a
 -- small self-contained ISUIElement banner. The live B42.20.4 Kahlua environment
@@ -14,7 +14,7 @@ local PREFIX = "[EnshroudedSleepNotify][CLIENT]"
 local MODULE = "EnshroudedSleep"
 local COMMAND = "SleepNotification"
 local PROTOCOL_VERSION = 1
-local BUILD_VERSION = "1.0.0"
+local BUILD_VERSION = "1.0.1"
 local DISPLAY_SECONDS = 7
 
 local banner = nil

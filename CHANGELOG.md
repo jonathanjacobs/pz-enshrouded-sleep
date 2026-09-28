@@ -6,7 +6,19 @@ This file records **what changed between releases**. Detailed test evidence belo
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-09-28
+
+**Full release.** Relabels the v1.0.0 package as the stable release. No gameplay, configuration, or save-data change.
+
+### Changed
+
+- Removed the "Release Candidate" label from both `mod.info` files, the Workshop title and description, the in-game sandbox tooltip, and runtime load messages; runtime build identifiers now report `1.0.1`.
+- Package validation now rejects pre-release status labels in the package and public text, and checks that every runtime version label matches `VERSION`.
+
 ### Documentation
+
+- Simplified the testing guide into a short checklist and relaxed release gates to fit a hobby mod: normal-session logs count as evidence, and lifecycle, notification display, and CPU/log volume are watched during normal play rather than staged.
+- Recorded the v1.0.1 GO decision in the release checklist and moved the roadmap to stable maintenance.
 
 - Recorded a Project Zomboid 42.21.0 (`4a0e9546ec`) compatibility checkpoint for the published v1.0.0 package from live dedicated-server and client logs, and updated the README, Workshop description, and deployment guide to "tested with 42.21.0". Updated `loadstring`/`loadstream` wording now that 42.21.0 restored those APIs; Enshrouded Sleep still uses neither.
 - Recorded the 2026-08-31 v1.0.0 Steam Workshop publication and the WHG live-server evidence for the core controller, sleep notifications, and Rested / Well Rested benefits.

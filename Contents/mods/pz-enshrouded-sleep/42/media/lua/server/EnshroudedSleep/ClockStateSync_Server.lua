@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - server-to-client MinutesPerDay replication
--- Release Candidate v1.0.0 for Project Zomboid Build 42.20+
+-- Enshrouded Sleep v1.0.1 for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -205,7 +205,7 @@ local function synchronizeClients()
 
     local args = {
         protocolVersion = PROTOCOL_VERSION,
-        buildVersion = "1.0.0",
+        buildVersion = "1.0.1",
         mode = mode,
         minutesPerDay = targetMinutesPerDay,
         baselineMinutesPerDay = baselineMinutesPerDay or targetMinutesPerDay,
@@ -242,4 +242,4 @@ else
     Events.OnTick.Add(synchronizeClients)
 end
 
-log("Loaded Release Candidate v1.0.0 authoritative MinutesPerDay replication.")
+log("Loaded v1.0.1 authoritative MinutesPerDay replication.")

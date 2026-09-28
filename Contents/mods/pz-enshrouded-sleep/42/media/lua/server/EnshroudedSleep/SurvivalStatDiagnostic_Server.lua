@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - focused server survival-stat diagnostic
--- Release Candidate v1.0.0 for Project Zomboid Build 42.20+
+-- Enshrouded Sleep v1.0.1 for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -167,4 +167,4 @@ else
     Events.OnTick.Add(sample)
 end
 
-log("Loaded Release Candidate v1.0.0 server survival-stat diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")
+log("Loaded v1.0.1 server survival-stat diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")

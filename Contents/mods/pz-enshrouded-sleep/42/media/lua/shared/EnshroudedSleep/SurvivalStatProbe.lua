@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - shared survival-stat diagnostic probe
--- Release Candidate v1.0.0 for Project Zomboid Build 42.20+
+-- Enshrouded Sleep v1.0.1 for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
