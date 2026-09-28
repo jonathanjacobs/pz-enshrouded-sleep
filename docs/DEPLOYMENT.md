@@ -105,8 +105,8 @@ Players joining a Workshop-configured server should use the Workshop-distributed
 7. Start the server and confirm the controller, clock sync, roster logger, awake-protection module, notification modules, and sleep-benefit modules load without an Enshrouded Sleep Lua exception.
 8. Confirm native baseline `MinutesPerDay` while all living players are awake.
 9. During the first natural partial-sleep event, confirm partial mode appears and later returns to baseline.
-10. If `SleepNotificationsEnabled=true`, confirm one concise chat message appears per effective sleep-state change without repeated spam.
-11. If the deployed production package enables `SleepBenefitsEnabled=true`, perform the SPIKE-007 reward/XP/Endurance/Moodle smoke test and preserve the live-validation logs.
+10. If `SleepNotificationsEnabled=true`, confirm one concise notification banner appears per effective sleep-state change without repeated spam.
+11. If `SleepBenefitsEnabled=true`, confirm from the server log that the first qualifying sleep grants the expected tier for the active thresholds.
 12. Preserve early session logs after a material runtime update.
 
 Workshop authoring/publication mechanics are maintained separately in [`STEAM_WORKSHOP.md`](STEAM_WORKSHOP.md).
