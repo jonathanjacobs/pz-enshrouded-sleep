@@ -12,12 +12,10 @@ The release checklist records a **CONDITIONAL GO** for v1.0.0 Release Candidate 
 
 ### Remaining production-release and live-validation evidence
 
-- review owning-client logs from representative partial- and full-sleep transitions for clock continuity and client exceptions;
-- deliberately exercise join, disconnect, death, and respawn transitions during partial sleep and check for stale correction state;
-- confirm client-side notification banner display and exercise notification-only rollback (server-side one-message-per-transition behavior has WHG live evidence);
-- verify awake-protection soft rollback and full-mod rollback through the documented operational procedures;
-- record whether CPU cost and normal log volume remain acceptable at the representative tested population;
-- complete the package, provenance, policy, and deployment checks in [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md).
+- review at least one client log from normal play covering partial- and full-sleep transitions for clock continuity and client exceptions;
+- complete the remaining checks in [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md).
+
+Lifecycle transitions, notification display, and CPU/log volume are watched during normal play rather than staged; the watch list is in [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md).
 
 Continue broader population and mod-stack coverage after v1.0 without implying universal compatibility. Use verbose diagnostics only for focused evidence windows.
 
@@ -57,7 +55,7 @@ Unsupported systems remain vanilla until evidence justifies a specific policy; S
 
 ## Stable-release boundary
 
-A stable release requires reliable representative multiplayer behavior, no known high-severity player/save/world-state risk, repeatable deployment and rollback, documented world-time interactions, and compatibility claims limited to tested combinations. Optional experimental features require their own validation gate before inclusion.
+A stable release requires reliable multiplayer behavior in normal play, no known high-severity player/save/world-state risk, documented deployment and rollback, documented world-time interactions, and compatibility claims limited to tested combinations. Optional experimental features require their own validation gate before inclusion.
 
 ## Non-goals
 

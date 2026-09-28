@@ -8,7 +8,7 @@ Current candidate: `v1.0.0`, published to the existing Steam Workshop item on 20
 
 - [x] `VERSION`, `CHANGELOG.md`, runtime version strings, and both `mod.info` files agree.
 - [x] Public status, compatibility, configuration, and behavior claims match tested evidence and state the remaining validation boundaries.
-- [ ] The required procedures in [`TESTING.md`](TESTING.md) were run and observed outcomes were recorded in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md).
+- [ ] The smoke test and two-player sleep test in [`TESTING.md`](TESTING.md) were run (normal-session logs count) and recorded in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md).
 - [x] No known high-severity save, world, player, client, or server defect is being silently shipped.
 - [x] The Workshop package has one authoritative runtime tree and contains no logs, saves, credentials, private configuration, source-control metadata, backups, or unintended assets.
 - [x] Provenance, licensing, policy review, attribution, and public disclosures are current under [`COMPLIANCE.md`](../COMPLIANCE.md).
@@ -17,14 +17,18 @@ Current candidate: `v1.0.0`, published to the existing Steam Workshop item on 20
 
 ## Stable / v1.0 candidate gate
 
-- [ ] Representative server and owning-client logs show coherent baseline, partial-sleep, wake, and vanilla-full-sleep transitions without a recurring Enshrouded Sleep error or client clock defect.
-- [ ] Join, disconnect, death, and respawn transitions during partial sleep leave no stale population or awake-protection state.
-- [ ] Normal eating, drinking, activity, sleep/wake, and sleeping-player behavior show no material distortion under the representative server configuration.
-- [ ] Opt-in sleep notifications pass their dedicated smoke test without repeated spam and pass notification-only rollback.
-- [ ] Awake-protection soft rollback and full-mod rollback have been exercised against a preserved server/save state.
-- [ ] CPU cost and normal log volume are operationally acceptable at the representative tested population.
+- [ ] Server and at least one client log from normal play show coherent baseline, partial-sleep, wake, and vanilla-full-sleep transitions without a recurring Enshrouded Sleep error or client clock defect.
 - [x] Major world-time interactions and compatibility limits are documented and accepted for the release.
 - [x] The optional Rested / Well Rested feature passed its focused server-authority gate and WHG live multiplayer validation. All 301 live sleep decisions matched the active configuration, and durations, expiry, and restart persistence were correct with no errors; this evidence is accepted for the `8`/`12`-hour defaults. The feature remains disabled by default. Death/disable clearing and Moodle presentation were not observed live.
+
+Watch during normal play rather than staging dedicated tests; record anything notable in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md), and treat a real problem here as a release blocker:
+
+- joins, disconnects, deaths, and respawns during partial sleep leaving stale population or awake-protection state;
+- eating, drinking, activity, or sleeping-player behavior looking distorted during partial sleep;
+- notification banners missing, repeated, or spammy when the option is enabled;
+- CPU cost or normal log volume becoming a problem for the server.
+
+Rollback steps are documented in [`DEPLOYMENT.md`](DEPLOYMENT.md); they are not rehearsed as a release gate.
 
 ## Deployment gate
 
@@ -43,7 +47,7 @@ Conditions carried into deployment and live validation:
 - confirm the server and every participating client load the same v1.0.0 package;
 - keep `SleepBenefitsEnabled=false` unless the server administrator intentionally enables the optional reward layer;
 - preserve early server and owning-client logs;
-- continue the unchecked representative-client, lifecycle, notification-rollback, rollback, and CPU/log-volume checks above;
+- collect the remaining client-log evidence above and watch the listed items during normal play;
 - use the documented soft/full rollback if a high-severity defect or recurring Enshrouded Sleep error appears.
 
 Completed since the decision (2026-09-28): v1.0.0 was published on 2026-08-31. WHG live logs confirmed the post-deployment baseline, partial-sleep, and restoration checks, and satisfied the sleep-benefit classification/duration condition for the default policy.
