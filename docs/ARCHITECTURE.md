@@ -126,12 +126,12 @@ SleepNotification_Server.lua
 
 SleepNotification_Client.lua
     -> validates the packet
-    -> displays the server-authored text through ChatManager.showServerChatMessage()
+    -> displays the server-authored text in a self-contained ISUIElement banner
 ```
 
 `SleepNotificationsEnabled` defaults to `false`. The server notifier does not announce ordinary all-awake startup state and emits only when the effective sleep state changes. Population changes during partial sleep are included because they can change the active sleep fraction and therefore the displayed acceleration.
 
-The client chat bridge is circuit-broken after a bridge failure. A notification failure cannot change `MinutesPerDay`, player sleep state, client clock policy, or awake-player protection.
+The client does not use `ChatManager`, which the live Build 42.20.4 Kahlua environment does not expose; package validation rejects reintroducing that bridge. The banner is circuit-broken after a UI failure. A notification failure cannot change `MinutesPerDay`, player sleep state, client clock policy, or awake-player protection.
 
 ## Optional Rested / Well Rested benefits
 
