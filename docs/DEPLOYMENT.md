@@ -4,7 +4,7 @@ This document owns server installation, normal configuration, monitoring, diagno
 
 Current repository/package candidate: `v1.0.0`
 
-Currently published Workshop release: `v0.1.1` until the existing Workshop item is updated
+Currently published Workshop release: `v1.0.0` (published to the existing Workshop item on 2026-08-31)
 
 Project Zomboid Mod ID: `pz-enshrouded-sleep`
 

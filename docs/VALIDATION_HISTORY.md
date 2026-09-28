@@ -182,8 +182,35 @@ The local static validation equivalent passed:
 
 **Validation boundary:** this is source/package validation, not a new gameplay run. It does not publish the Steam Workshop item, update any installed client/server copy, or expand the focused one-player sleep-benefit evidence described above.
 
+## v1.0.0 Workshop release — WHG live evidence — 2026-09-28
+
+v1.0.0 was published to the existing Workshop item `3786842301` on 2026-08-31. Server DebugLogs from the WHG dedicated server covering 58 v1.0.0 sessions (2026-09-01 to 2026-09-28) were reviewed on 2026-09-28. Every session reported `build=1.0.0` with verbose diagnostics off. Living populations reached seven players.
+
+**Core controller:**
+- 1,203 baseline states, all at the captured native `MinutesPerDay=240`.
+- 189 proportional partial-sleep states (`MinutesPerDay` 9–30) with 2–5 living players and 1–3 sleepers.
+- 156 vanilla full-sleep handoffs, each restoring `MinutesPerDay=240`.
+
+**Sleep notifications:** `SleepNotificationsEnabled=true` in all 58 sessions. The server logged 569 broadcasts covering the all-awake, partial-sleep, and all-asleep messages. No identical message repeated within 60 seconds, and no notification error was logged.
+
+**Rested / Well Rested:** `SleepBenefitsEnabled=true` in all 58 sessions, mostly with administrator-customised thresholds.
+- All 301 logged sleep decisions (83 no reward, 216 Rested, 2 Well Rested) matched the configuration active at the time.
+- 190 benefit clears were all expiries.
+- Earned benefits were restored across server restarts 84 times.
+- The sleep-benefit module logged no error.
+
+Per-configuration detail is in [`spikes/SPIKE-007-sleep-benefits.md`](spikes/SPIKE-007-sleep-benefits.md).
+
+No Enshrouded Sleep-prefixed error or Lua exception appeared in the reviewed server logs.
+
+**Evidence boundary:**
+- These are server logs from one server; no owning-client DebugLogs were included. Client clock continuity, notification banner display, and Moodle presentation were not observed.
+- XP/Endurance bonus amounts are not logged with diagnostics off.
+- No death or feature-disable benefit clear, notification-only rollback, awake-protection rollback, or CPU measurement occurred in the window.
+- Other servers running the Workshop item have not supplied logs, so their operation is not evidence here.
+
 ## Evidence boundary
 
 The architecture is strongly supported for proportional calendar compression, server/client day-length synchronization, baseline restoration, vanilla full-sleep handoff, normal-speed awake simulation, the measured SPIKE-004 time domains, the confirmed SPIKE-005 world-system examples, and controlled plus field SPIKE-006 awake-protection evidence. Project Zomboid 42.20.4 additionally has a recorded startup/baseline/client-sync compatibility checkpoint.
 
-The notification path and the v1.0.0 optional Rested / Well Rested layer retain the live-validation boundaries recorded above. Do not infer compatibility or compensation for untested systems from this summary. Use the detailed SPIKE record when a claim needs exact test conditions or measured ratios.
+The notification path and the v1.0.0 optional Rested / Well Rested layer have server-side live multiplayer evidence from the WHG v1.0.0 window. Client presentation, rollback, and death-clearing remain outside that evidence, as recorded above. Do not infer compatibility or compensation for untested systems from this summary. Use the detailed SPIKE record when a claim needs exact test conditions or measured ratios.
