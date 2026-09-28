@@ -200,7 +200,7 @@ jobs:
 
           # PZ 42.20.4 removed dynamic loadstring/loadstream execution. Enshrouded
           # Sleep uses predefined command handlers and structured arguments only.
-          if grep -RFnE '(^|[^[:alnum:]_])(loadstring|loadstream)([^[:alnum:]_]|$)' "$RUNTIME_LUA"; then
+          if grep -RnE '(^|[^[:alnum:]_])(loadstring|loadstream)([^[:alnum:]_]|$)' "$RUNTIME_LUA"; then
             echo "ERROR: removed dynamic-code API referenced by runtime Lua"
             exit 1
           fi
