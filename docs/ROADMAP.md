@@ -6,7 +6,7 @@ This file owns current work and release-exit criteria. Runtime semantics belong 
 
 Week-long Public Beta server evidence now supports repeated proportional compression, baseline restoration, vanilla full-sleep handoff, changing multiplayer populations, and stable operation in the normal server mod stack. The observed results and their limits are recorded in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md).
 
-The v1.0.0 package was published to the existing Steam Workshop item on 2026-08-31 and is in live use. WHG server logs from 2026-09-01 to 2026-09-28 are summarised in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md). GitHub release creation remains a separate action.
+The v1.0.0 package was published to the existing Steam Workshop item on 2026-08-31 and is in live use. WHG server logs from 2026-09-01 to 2026-09-28 are summarised in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md). The matching [GitHub release](https://github.com/jonathanjacobs/pz-enshrouded-sleep/releases/tag/v1.0.0) tags the published commit as `v1.0.0`.
 
 The release checklist records a **CONDITIONAL GO** for v1.0.0 Release Candidate Workshop deployment. Unchecked stable-release evidence remains an explicit live-validation condition rather than being represented as complete.
 
