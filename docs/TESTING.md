@@ -2,6 +2,18 @@
 
 Short, repeatable checks for a multiplayer-server mod. Record results in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md); expected behavior and formulas are in [`REQUIREMENTS.md`](REQUIREMENTS.md); long experimental procedures live in [`spikes/`](spikes/).
 
+## Contents
+
+- [Before testing](#before-testing)
+- [Smoke test](#smoke-test)
+- [Two-player sleep test](#two-player-sleep-test)
+- [Field test (normal play)](#field-test-normal-play)
+- [Feature checks](#feature-checks)
+- [Rollback checks](#rollback-checks)
+- [Chasing a problem](#chasing-a-problem)
+- [After a Project Zomboid update](#after-a-project-zomboid-update)
+- [Recording results](#recording-results)
+
 ## Before testing
 
 - Server and clients show the same Project Zomboid `version=` / `revision=` line and the same Enshrouded Sleep build (server `CONFIG`, client `SERVER_BUILD`).
