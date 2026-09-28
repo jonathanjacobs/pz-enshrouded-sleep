@@ -75,9 +75,9 @@ jobs:
           grep -Fq "Release Candidate" "$MOD_ROOT/42/mod.info"
           grep -Fq "Release Candidate" README.md
           grep -Fq "Current version: **v$VERSION_VALUE**" README.md
-          grep -Fq "Validated Project Zomboid baseline: **42.20.4**" README.md
+          grep -Fq "Validated Project Zomboid baseline: **42.21.0**" README.md
           grep -Fq "Version:[/b] $VERSION_VALUE" workshop-description.bbcode
-          grep -Fq "Tested with:[/b] Project Zomboid 42.20.4" workshop-description.bbcode
+          grep -Fq "Tested with:[/b] Project Zomboid 42.21.0" workshop-description.bbcode
           grep -Fxq "id=3786842301" workshop.txt
           grep -Fxq "title=Enshrouded Sleep - Release Candidate" workshop.txt
           grep -Fq "description=Release Candidate v$VERSION_VALUE " workshop.txt
@@ -198,10 +198,10 @@ jobs:
             fi
           done
 
-          # PZ 42.20.4 removed dynamic loadstring/loadstream execution. Enshrouded
-          # Sleep uses predefined command handlers and structured arguments only.
+          # PZ 42.20.4 removed and 42.21.0 restored loadstring/loadstream. Enshrouded
+          # Sleep still uses predefined command handlers and structured arguments only.
           if grep -RnE '(^|[^[:alnum:]_])(loadstring|loadstream)([^[:alnum:]_]|$)' "$RUNTIME_LUA"; then
-            echo "ERROR: removed dynamic-code API referenced by runtime Lua"
+            echo "ERROR: dynamic-code API referenced by runtime Lua"
             exit 1
           fi
 

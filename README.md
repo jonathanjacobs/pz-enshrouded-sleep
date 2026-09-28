@@ -10,7 +10,7 @@ Status: **Release Candidate**
 
 Current version: **v1.0.0**
 
-Validated Project Zomboid baseline: **42.20.4**
+Validated Project Zomboid baseline: **42.21.0**
 
 [![Buy Me A Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://buymeacoffee.com/jonathanjacobs)
 
@@ -37,11 +37,11 @@ Local/standalone single-player gameplay is outside the supported scope.
 - self-contained Rested / Well Rested Moodle display with no external Moodle framework dependency;
 - low-volume operational logging plus opt-in verbose diagnostics.
 
-## Build 42.20.4 compatibility
+## Build 42.21.0 compatibility
 
-Release Candidate v1.0.0 retains the Project Zomboid **42.20.4** (`b0bbce05d5`) compatibility checkpoint established from dedicated-server and connected-client logs. Startup, native baseline capture, normal all-awake operation, and server-to-client `ClockState` synchronization completed without a relevant Enshrouded Sleep Lua exception.
+Release Candidate v1.0.0 is tested with Project Zomboid **42.21.0** (`4a0e9546ec`) on a live dedicated server. Startup, baseline capture, proportional partial sleep with awake-player protection, client clock synchronization, exact baseline restoration on wake, sleep notifications, and a Rested grant completed without an Enshrouded Sleep Lua exception. The previous checkpoint was **42.20.4** (`b0bbce05d5`).
 
-The 42.20.4 security hotfix removed Lua `loadstring`/`loadstream`. Enshrouded Sleep does not use either API. Its multiplayer synchronization and optional notification paths use predefined named `sendServerCommand` / `OnServerCommand` messages with structured arguments rather than server-supplied executable code.
+Project Zomboid 42.20.4 removed Lua `loadstring`/`loadstream` and 42.21.0 restored them. Enshrouded Sleep uses neither. Its multiplayer synchronization and optional notification paths use predefined named `sendServerCommand` / `OnServerCommand` messages with structured arguments rather than server-supplied executable code.
 
 Optional notifications and sleep benefits are independently disabled by default. Either can be turned off without changing proportional sleep, clock synchronization, or awake-player protection.
 

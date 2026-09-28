@@ -8,6 +8,7 @@ This file records **what changed between releases**. Detailed test evidence belo
 
 ### Documentation
 
+- Recorded a Project Zomboid 42.21.0 (`4a0e9546ec`) compatibility checkpoint for the published v1.0.0 package from live dedicated-server and client logs, and updated the README, Workshop description, and deployment guide to "tested with 42.21.0". Updated `loadstring`/`loadstream` wording now that 42.21.0 restored those APIs; Enshrouded Sleep still uses neither.
 - Recorded the 2026-08-31 v1.0.0 Steam Workshop publication and the WHG live-server evidence for the core controller, sleep notifications, and Rested / Well Rested benefits.
 - Removed `[center]`/`[br]` tags from the Workshop description because Steam does not render them.
 - Corrected notification architecture/testing docs to describe the client banner, and fixed the package-validation `loadstring`/`loadstream` guard, which never matched.

@@ -195,7 +195,7 @@ A chat/UI bridge failure must degrade independently and must never affect the sl
 
 ### R34 — Multiplayer messages use predefined commands, not executable payloads
 
-Server/client synchronization and optional notifications must use predefined named command handlers and structured data. Runtime code must not depend on dynamic execution APIs such as `loadstring` or `loadstream` for server-supplied code. This preserves the command architecture required by Project Zomboid 42.20.4 and later security behavior.
+Server/client synchronization and optional notifications must use predefined named command handlers and structured data. Runtime code must not depend on dynamic execution APIs such as `loadstring` or `loadstream` for server-supplied code. Project Zomboid 42.20.4 removed those APIs and 42.21.0 restored them; this requirement is a design choice that keeps executable code off the network path regardless of their availability.
 
 ## Optional Rested / Well Rested sleep benefits
 

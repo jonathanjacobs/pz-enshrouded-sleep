@@ -10,7 +10,7 @@ Project Zomboid Mod ID: `pz-enshrouded-sleep`
 
 Steam Workshop ID: `3786842301`
 
-Current validated compatibility checkpoint: Project Zomboid `42.20.4` (`b0bbce05d5`)
+Current validated compatibility checkpoint: Project Zomboid `42.21.0` (`4a0e9546ec`); previous checkpoint `42.20.4` (`b0bbce05d5`)
 
 The Rested / Well Rested sleep-benefit system described below is included in the v1.0.0 release candidate on `main`. It remains disabled by default and must be explicitly enabled by a server administrator. Updating GitHub does not update the installed client/server copies or Steam Workshop item.
 
