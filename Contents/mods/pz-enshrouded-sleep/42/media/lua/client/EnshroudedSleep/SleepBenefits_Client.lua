@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - owning-client Rested / Well Rested behavior
--- Release Candidate v1.0.0 for Project Zomboid Build 42.20+
+-- Enshrouded Sleep v1.0.1 for Project Zomboid Build 42.20+
 
 if not isClient() then return end
 
@@ -9,7 +9,7 @@ local PREFIX = "[EnshroudedSleepBenefits][CLIENT]"
 local MODULE = "EnshroudedSleep"
 local COMMAND = "SleepBenefitState"
 local PROTOCOL_VERSION = 1
-local BUILD_VERSION = "1.0.0"
+local BUILD_VERSION = "1.0.1"
 local BENEFIT_NONE = "none"
 local BENEFIT_RESTED = "rested"
 local BENEFIT_WELL_RESTED = "well-rested"

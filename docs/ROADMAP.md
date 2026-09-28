@@ -2,30 +2,25 @@
 
 This file owns current work and release-exit criteria. Runtime semantics belong in [`REQUIREMENTS.md`](REQUIREMENTS.md); completed evidence belongs in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md).
 
-## Current phase — v1.0.0 release candidate
+## Current phase — v1.0.x stable maintenance
 
-Week-long Public Beta server evidence now supports repeated proportional compression, baseline restoration, vanilla full-sleep handoff, changing multiplayer populations, and stable operation in the normal server mod stack. The observed results and their limits are recorded in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md).
+v1.0.1 is the full release. It relabels the v1.0.0 package, which was published to the existing Steam Workshop item on 2026-08-31 and has been in live use since; there is no gameplay or configuration change. The [GitHub release](https://github.com/jonathanjacobs/pz-enshrouded-sleep/releases/tag/v1.0.0) tags the published v1.0.0 commit. The release checklist records a **GO** for v1.0.1, and the supporting WHG live evidence and Project Zomboid 42.21.0 checkpoint are in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md).
 
-The v1.0.0 package was published to the existing Steam Workshop item on 2026-08-31 and is in live use. WHG server logs from 2026-09-01 to 2026-09-28 are summarised in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md). The matching [GitHub release](https://github.com/jonathanjacobs/pz-enshrouded-sleep/releases/tag/v1.0.0) tags the published commit as `v1.0.0`.
+Ongoing work:
 
-The release checklist records a **CONDITIONAL GO** for v1.0.0 Release Candidate Workshop deployment. Unchecked stable-release evidence remains an explicit live-validation condition rather than being represented as complete.
+- upload v1.0.1 to the Workshop and tag the matching GitHub release;
+- watch the items listed in [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md) during normal play;
+- run the update checks in [`TESTING.md`](TESTING.md) after each Project Zomboid release.
 
-### Remaining production-release and live-validation evidence
+Continue broader population and mod-stack coverage without implying universal compatibility. Use verbose diagnostics only for focused evidence windows.
 
-- review at least one client log from normal play covering partial- and full-sleep transitions for clock continuity and client exceptions;
-- complete the remaining checks in [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md).
-
-Lifecycle transitions, notification display, and CPU/log volume are watched during normal play rather than staged; the watch list is in [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md).
-
-Continue broader population and mod-stack coverage after v1.0 without implying universal compatibility. Use verbose diagnostics only for focused evidence windows.
-
-`main` now carries the optional **Rested / Well Rested** reward layer developed on `feature/sleep-benefits` for servers where sleeping is permitted but not required. It is part of the v1.0.0 release candidate and remains disabled by default until explicitly enabled by a server administrator.
+The optional **Rested / Well Rested** reward layer is part of v1.0.x and remains disabled by default until explicitly enabled by a server administrator.
 
 ## SPIKE-007 — voluntary sleep rewards
 
 Goal: determine whether optional sleep can provide a modest positive incentive without becoming mandatory or distorting combat/skill balance.
 
-Current v1.0.0 defaults:
+Current defaults:
 
 - `<8` game hours slept → no new benefit;
 - `8–12` hours (inclusive) → **Rested**, +10% XP for 4 game hours;
@@ -50,7 +45,6 @@ Unsupported systems remain vanilla until evidence justifies a specific policy; S
 ## Later work
 
 - Consider a read-only administrator status panel for population, sleepers, compression, and active mode.
-- Run focused compatibility regressions after relevant Project Zomboid updates.
 - Expand representative population and mod-stack coverage without claiming universal compatibility.
 
 ## Stable-release boundary

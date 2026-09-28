@@ -73,7 +73,7 @@ Clients do not independently recalculate the sleeping fraction or compression ta
 
 All Enshrouded Sleep multiplayer messages use predefined module/command names and structured argument tables through Project Zomboid's `sendServerCommand` / `OnServerCommand` path. The server does not transmit executable Lua source to clients, and runtime code does not depend on `loadstring` or `loadstream`.
 
-This architecture is intentionally compatible with the Project Zomboid 42.20.4 security change that removed those dynamic-code methods. Package validation rejects future runtime references to either API.
+This architecture was unaffected when the Project Zomboid 42.20.4 security change removed those dynamic-code methods, and is unchanged by their return in 42.21.0. Package validation rejects runtime references to either API.
 
 ## Awake-player survival protection
 

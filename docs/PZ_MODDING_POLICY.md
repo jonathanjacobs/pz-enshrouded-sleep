@@ -55,4 +55,4 @@ The repository's Apache License 2.0 applies only to material for which this proj
 
 ## Release gate
 
-A release is not considered publishable until `docs/RELEASE_CHECKLIST.md` has been reviewed for the release candidate. The live Indie Stone Modding Policy must be rechecked before the first Steam Workshop release and periodically thereafter because the policy may change.
+A release is not considered publishable until `docs/RELEASE_CHECKLIST.md` has been reviewed for the release. The live Indie Stone Modding Policy must be rechecked before the first Steam Workshop release and periodically thereafter because the policy may change.

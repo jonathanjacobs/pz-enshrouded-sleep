@@ -6,11 +6,11 @@
 
 **Proportional multiplayer sleeping for Project Zomboid Build 42 servers.**
 
-Status: **Release Candidate**
+Status: **Stable release**
 
-Current version: **v1.0.0**
+Current version: **v1.0.1**
 
-Validated Project Zomboid baseline: **42.20.4**
+Validated Project Zomboid baseline: **42.21.0**
 
 [![Buy Me A Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://buymeacoffee.com/jonathanjacobs)
 
@@ -20,7 +20,7 @@ Enshrouded Sleep lets part of a multiplayer server population sleep without requ
 
 During partial sleep, the authoritative server accelerates world/calendar time by reducing `GameTime:MinutesPerDay`. Awake movement, combat, vehicles, animations, physics, and ordinary timed actions remain on the normal active-simulation path. When all living players are asleep, the mod restores the native day length and hands full-sleep acceleration back to vanilla Project Zomboid.
 
-The release candidate also protects awake living players from the extra partial-sleep acceleration of Hunger, Thirst, Fatigue, Calories, Carbohydrates, Proteins, Lipids, and Weight progression. Sleeping players remain vanilla-authoritative.
+Enshrouded Sleep also protects awake living players from the extra partial-sleep acceleration of Hunger, Thirst, Fatigue, Calories, Carbohydrates, Proteins, Lipids, and Weight progression. Sleeping players remain vanilla-authoritative.
 
 Local/standalone single-player gameplay is outside the supported scope.
 
@@ -37,11 +37,11 @@ Local/standalone single-player gameplay is outside the supported scope.
 - self-contained Rested / Well Rested Moodle display with no external Moodle framework dependency;
 - low-volume operational logging plus opt-in verbose diagnostics.
 
-## Build 42.20.4 compatibility
+## Build 42.21.0 compatibility
 
-Release Candidate v1.0.0 retains the Project Zomboid **42.20.4** (`b0bbce05d5`) compatibility checkpoint established from dedicated-server and connected-client logs. Startup, native baseline capture, normal all-awake operation, and server-to-client `ClockState` synchronization completed without a relevant Enshrouded Sleep Lua exception.
+Enshrouded Sleep is tested with Project Zomboid **42.21.0** (`4a0e9546ec`) on a live dedicated server. Startup, baseline capture, proportional partial sleep with awake-player protection, client clock synchronization, exact baseline restoration on wake, sleep notifications, and a Rested grant completed without an Enshrouded Sleep Lua exception. The previous checkpoint was **42.20.4** (`b0bbce05d5`).
 
-The 42.20.4 security hotfix removed Lua `loadstring`/`loadstream`. Enshrouded Sleep does not use either API. Its multiplayer synchronization and optional notification paths use predefined named `sendServerCommand` / `OnServerCommand` messages with structured arguments rather than server-supplied executable code.
+Project Zomboid 42.20.4 removed Lua `loadstring`/`loadstream` and 42.21.0 restored them. Enshrouded Sleep uses neither. Its multiplayer synchronization and optional notification paths use predefined named `sendServerCommand` / `OnServerCommand` messages with structured arguments rather than server-supplied executable code.
 
 Optional notifications and sleep benefits are independently disabled by default. Either can be turned off without changing proportional sleep, clock synchronization, or awake-player protection.
 
@@ -52,7 +52,7 @@ WorkshopItems=3786842301
 Mods=pz-enshrouded-sleep
 ```
 
-Recommended Release Candidate defaults:
+Recommended defaults:
 
 ```text
 EnshroudedSleep.Enabled=true
@@ -68,11 +68,11 @@ EnshroudedSleep.DiagnosticForcedCompressionFactor=1.0
 
 For option semantics, upgrade procedure, monitoring, diagnostic use, and rollback, use [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). The in-game sandbox tooltips contain the same administrator-facing option guidance.
 
-## Important release-candidate boundary
+## Important limits
 
 World/calendar time genuinely advances faster during partial sleep. Awake-player protection applies only to the explicitly supported player survival fields above. External world-time systems—including food aging/spoilage, generator and vehicle resources, farming/crops, weather, corpses, and modded world systems—remain on their normal game-world clocks unless separately addressed.
 
-Controlled testing established the core time-compression/client-sync architecture and awake-player protection. Focused dedicated-server testing also validated server-authoritative sleep-benefit XP arithmetic. Broader multiplayer validation of the optional reward lifecycle, Endurance recovery, and Moodle coexistence remains planned during live release use. Current targets are maintained only in [`docs/ROADMAP.md`](docs/ROADMAP.md); detailed evidence lives in [`docs/VALIDATION_HISTORY.md`](docs/VALIDATION_HISTORY.md) and [`docs/spikes/`](docs/spikes/).
+Controlled testing established the core time-compression/client-sync architecture and awake-player protection. Focused dedicated-server testing validated server-authoritative sleep-benefit XP arithmetic, and live server logs validated notifications and the reward classification, duration, expiry, and restart persistence. Moodle presentation and death clearing of rewards have not been observed live. Current targets are maintained only in [`docs/ROADMAP.md`](docs/ROADMAP.md); detailed evidence lives in [`docs/VALIDATION_HISTORY.md`](docs/VALIDATION_HISTORY.md) and [`docs/spikes/`](docs/spikes/).
 
 ## Documentation
 

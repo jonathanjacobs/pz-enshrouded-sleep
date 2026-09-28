@@ -1,6 +1,6 @@
 id=pz-enshrouded-sleep
 name=Enshrouded Sleep
-description=Release Candidate Build 42 multiplayer-server sleep mod with proportional calendar compression, synchronized client clock pacing, vanilla full-sleep handoff, awake-player survival protection, optional sleep notifications, and optional Rested / Well Rested benefits.
+description=Build 42 multiplayer-server sleep mod with proportional calendar compression, synchronized client clock pacing, vanilla full-sleep handoff, awake-player survival protection, optional sleep notifications, and optional Rested / Well Rested benefits.
 author=Jonathan Jacobs
 pzversion=42
-modversion=1.0.0
+modversion=1.0.1

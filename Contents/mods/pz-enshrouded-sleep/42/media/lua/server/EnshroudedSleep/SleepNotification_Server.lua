@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - optional multiplayer sleep-status notifications
--- Release Candidate v1.0.0 for Project Zomboid Build 42.20+
+-- Enshrouded Sleep v1.0.1 for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -19,7 +19,7 @@ local PREFIX = "[EnshroudedSleepNotify][SERVER]"
 local MODULE = "EnshroudedSleep"
 local COMMAND = "SleepNotification"
 local PROTOCOL_VERSION = 1
-local BUILD_VERSION = "1.0.0"
+local BUILD_VERSION = "1.0.1"
 local EPSILON = 0.0001
 
 local baselineMinutesPerDay = nil

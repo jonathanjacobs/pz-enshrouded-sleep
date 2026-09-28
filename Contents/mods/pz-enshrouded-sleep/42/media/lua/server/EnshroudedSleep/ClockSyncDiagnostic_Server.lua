@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - server clock/sleep diagnostic
--- Release Candidate v1.0.0 for Project Zomboid Build 42.20+
+-- Enshrouded Sleep v1.0.1 for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -194,4 +194,4 @@ else
     Events.OnTick.Add(sampleClock)
 end
 
-log("Loaded Release Candidate v1.0.0 server clock/sleep diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")
+log("Loaded v1.0.1 server clock/sleep diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")

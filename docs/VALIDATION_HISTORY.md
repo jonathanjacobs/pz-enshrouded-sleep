@@ -209,8 +209,34 @@ No Enshrouded Sleep-prefixed error or Lua exception appeared in the reviewed ser
 - No death or feature-disable benefit clear, notification-only rollback, awake-protection rollback, or CPU measurement occurred in the window.
 - Other servers running the Workshop item have not supplied logs, so their operation is not evidence here.
 
+## Project Zomboid 42.21.0 compatibility checkpoint — 2026-09-28
+
+The WHG dedicated server was updated to Project Zomboid `42.21.0` revision `4a0e9546ec` and kept the published v1.0.0 Workshop package unchanged. Server console/DebugLogs and one owning-client console/DebugLog from the same day were reviewed.
+
+Observed evidence:
+
+- server and client both reported `42.21.0 4a0e9546ec`, and the client received `SERVER_BUILD | 1.0.0`;
+- every Enshrouded Sleep server and client module loaded without an Enshrouded Sleep Lua exception;
+- baseline capture at `MinutesPerDay=240`, with baseline `ClockState` applied by the client as players joined;
+- with three living players and one sleeper, the server entered partial mode at `sleepFraction=0.3333`, `CalendarCompressionFactor=13.333`, `EffectiveMinutesPerDay=18.000`, matching `40 × 1/3`; awake protection reported `partial-protection-active` for the two awake players, and the sleeping client applied `MinutesPerDay=18`;
+- on wake, server and client restored exactly `MinutesPerDay=240`;
+- notifications: one server broadcast and one client `DISPLAY` line for the partial-sleep state (`1/3 living players sleeping (33%). World time is 13.3x faster.`) and for the return to all awake;
+- Rested / Well Rested (administrator thresholds `2`/`8` hours, Rested `+5%` XP for `4` hours): a `2.999`-hour sleep granted Rested with `expiresAtWorldHour` equal to sleep start plus sleep length plus `4` hours, mirrored on the client;
+- the client logged the Lifestyle Moodle `COMPAT` slot-reservation line;
+- no anti-cheat warning, kick, or rejected packet appeared around the sleep transition.
+
+Decision: the 42.21.0 smoke test and two-player sleep test are accepted as **PASS**, and v1.0.0 is recorded as tested with Project Zomboid 42.21.0.
+
+**Evidence boundary:**
+- No all-asleep vanilla full-sleep handoff occurred on 42.21.0 during the reviewed window. The PASS decision accepts that handoff on the basis of the unchanged v1.0.0 code path and the 156 handoffs in the 42.20.4 WHG window above.
+- Only the sleeping player's client log was reviewed; awake players' client clock application was not observed directly.
+- XP/Endurance bonus amounts are not logged with diagnostics off.
+- Project Zomboid 42.21.0 restored the Lua `loadstring`/`loadstream` methods removed in 42.20.4. Enshrouded Sleep still uses neither, and package validation continues to reject them as a design choice.
+
+Operational note from the same update: removing the Lifestyle mod from the existing world prevented clients from loading it (`WorldDictionaryException: Missing dictionary script on client: Base.LS_Microphone`). Restoring Lifestyle resolved the issue; this was a save/mod-removal interaction unrelated to Enshrouded Sleep.
+
 ## Evidence boundary
 
-The architecture is strongly supported for proportional calendar compression, server/client day-length synchronization, baseline restoration, vanilla full-sleep handoff, normal-speed awake simulation, the measured SPIKE-004 time domains, the confirmed SPIKE-005 world-system examples, and controlled plus field SPIKE-006 awake-protection evidence. Project Zomboid 42.20.4 additionally has a recorded startup/baseline/client-sync compatibility checkpoint.
+The architecture is strongly supported for proportional calendar compression, server/client day-length synchronization, baseline restoration, vanilla full-sleep handoff, normal-speed awake simulation, the measured SPIKE-004 time domains, the confirmed SPIKE-005 world-system examples, and controlled plus field SPIKE-006 awake-protection evidence. Project Zomboid 42.20.4 has a recorded startup/baseline/client-sync compatibility checkpoint, and Project Zomboid 42.21.0 has a recorded startup, partial-sleep, and baseline-restoration checkpoint.
 
 The notification path and the v1.0.0 optional Rested / Well Rested layer have server-side live multiplayer evidence from the WHG v1.0.0 window. Client presentation, rollback, and death-clearing remain outside that evidence, as recorded above. Do not infer compatibility or compensation for untested systems from this summary. Use the detailed SPIKE record when a claim needs exact test conditions or measured ratios.

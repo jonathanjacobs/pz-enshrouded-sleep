@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - authoritative proportional calendar/world-time controller
--- Release Candidate v1.0.0 for Project Zomboid Build 42.20+
+-- Enshrouded Sleep v1.0.1 for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -482,7 +482,7 @@ end
 
 Events.OnTickEvenPaused.Add(update)
 
-log("Loaded Release Candidate v1.0.0 multiplayer-server calendar-compression controller.")
+log("Loaded v1.0.1 multiplayer-server calendar-compression controller.")
 log("Normal partial sleep changes MinutesPerDay only; global simulation multiplier is never modified.")
 log("Diagnostic forced compression is SERVER TEST ONLY and requires exactly one awake living player connected to the multiplayer server.")
 log("If that player sleeps or another living player connects, the diagnostic override restores native MinutesPerDay.")
