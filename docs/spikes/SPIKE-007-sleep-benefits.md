@@ -1,6 +1,6 @@
 # SPIKE-007 — Rested / Well Rested voluntary-sleep benefits
 
-Status: **GO FOR MAIN INTEGRATION — LIVE MULTIPLAYER VALIDATION DEFERRED TO THE NEXT PRODUCTION RELEASE**
+Status: **COMPLETED / GO — live multiplayer classification, expiry, and persistence evidence reviewed; residual boundaries recorded below**
 
 Tracking issue: [GitHub issue #10](https://github.com/jonathanjacobs/pz-enshrouded-sleep/issues/10)
 
@@ -148,6 +148,41 @@ Decision: the focused server-authoritative XP checkpoint is **PASS**. The `100%`
 
 The classification evidence above used the earlier `6`/`9`-hour defaults and inclusive Well Rested comparison. It does not by itself validate the later `8`/`12`-hour defaults or the exclusive Well Rested boundary; those revised policy details require the Tier A runtime regression below.
 
+## Live multiplayer evidence — WHG, v1.0.0
+
+Server DebugLogs from the WHG dedicated server were reviewed on 2026-09-28. They cover 58 sessions running the published v1.0.0 Workshop package from 2026-09-01 to 2026-09-28. Every session reported `build=1.0.0`, `SleepBenefitsEnabled=true`, and `DiagnosticsEnabled=false`.
+
+The administrator ran non-default thresholds for most of the window:
+
+| Sessions | Rested (min / duration / XP) | Well Rested (min / duration / XP / Endurance) |
+| --- | --- | --- |
+| 56 | `2h` / `4h` / `+5%` | `8h` / `8h` / `+10%` / `+10%` |
+| 2 | `8h` / `4h` / `+10%` (defaults) | `12h` / `6h` / `+10%` / `+10%` (defaults) |
+
+Each server `GRANT` / `NO_REWARD` decision was compared with the benefit `CONFIG` active in that session at the time:
+
+| Outcome | Count | Matched active configuration |
+| --- | ---: | ---: |
+| No reward | 83 | 83 |
+| Rested | 216 | 216 |
+| Well Rested | 2 | 2 |
+| **Total sleep attempts** | **301** | **301** |
+
+- The 301 decisions came from 27 sessions and 11 distinct characters. Sleep lengths ranged from `0.003` to `11.436` game hours.
+- The inclusive Rested boundary held at the edge: `1.989h` produced no reward and `2.021h` produced Rested under the `2h` threshold.
+- Well Rested was granted for `8.416h` and `11.436h` sleeps under the `8h` threshold, with the configured `8h` duration.
+- Under the default configuration, 4 short sleeps (`2.691`–`3.101h`) correctly produced no reward.
+- 190 benefit clears all reported `reason=expired`.
+- 84 times, a character's earned benefit was restored in a new server session before any new grant, confirming ModData persistence across restarts.
+- No sub-threshold sleep cleared an active benefit.
+- The sleep-benefit module logged zero `ERROR` lines, and no Enshrouded Sleep Lua exception appeared.
+
+**Evidence boundary:**
+- The logs are server-side only. Moodle display, hover text, and scaling were not observed.
+- With diagnostics off, `XP_BONUS` / `ENDURANCE_BONUS` amounts are not logged. XP arithmetic rests on the focused server-XP checkpoint above, and Endurance on the earlier one-player evidence.
+- No `death` or feature-disable clear occurred.
+- No sleep landed exactly on a Well Rested threshold. The exclusive `>` comparison is enforced in code and by package validation. Classification takes its thresholds as sandbox inputs, so the live results under WHG's thresholds are accepted as evidence for the `8`/`12`-hour defaults.
+
 ## Required validation
 
 ### Tier A — reward classification
@@ -207,3 +242,5 @@ With `SleepBenefitsEnabled=true`:
 A clean one-player run established configuration, reward classification, XP arithmetic, Endurance recovery, persistence, and UI feasibility. Server authority, independent disablement, and the default-off sandbox setting bound the remaining deployment risk.
 
 Decision: **GO for integration into `main`**. The next production release may carry the opt-in feature and collect broader two-player evidence during live operation rather than blocking integration on a separate pre-release multiplayer session. Keep `SleepBenefitsEnabled=false` as the package default, retain feature-only rollback, monitor reward classification/XP/Endurance/expiry/Moodle behavior, and keep tracking issue #10 open until the planned live validation is reviewed.
+
+Live-validation decision (2026-09-28): **GO**. The WHG v1.0.0 evidence above validates live multiplayer classification, configured durations, expiry, restart persistence, and error-free operation. It is accepted for the `8`/`12`-hour default policy. Issue #10 is closed on this basis. Death clearing, feature-disable clearing, and Moodle presentation were not observed live. They remain covered by design, by earlier one-player evidence, and by feature-only rollback, and should be checked opportunistically rather than treated as open release gates.

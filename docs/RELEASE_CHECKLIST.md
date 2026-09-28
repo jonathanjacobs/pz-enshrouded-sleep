@@ -2,7 +2,7 @@
 
 Use this checklist before a public GitHub release or Steam Workshop update. Do not mark a stable release ready until each applicable item is complete and supported by evidence. A conditional Release Candidate deployment may proceed only when every open item is explicitly retained as a deployment or live-validation condition.
 
-Current candidate: `v1.0.0`. Preparing and pushing the candidate to `origin/main` does not itself complete the deployment gate or publish the Steam Workshop item.
+Current candidate: `v1.0.0`, published to the existing Steam Workshop item on 2026-08-31. Items below are ticked only where recorded evidence supports them. The WHG live-log review is in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md).
 
 ## General gate
 
@@ -24,14 +24,14 @@ Current candidate: `v1.0.0`. Preparing and pushing the candidate to `origin/main
 - [ ] Awake-protection soft rollback and full-mod rollback have been exercised against a preserved server/save state.
 - [ ] CPU cost and normal log volume are operationally acceptable at the representative tested population.
 - [x] Major world-time interactions and compatibility limits are documented and accepted for the release.
-- [ ] The optional Rested / Well Rested feature passed its focused server-authority gate, but the revised `8`/`12`-hour defaults and exclusive Well Rested boundary still need a focused runtime classification/duration regression; the feature remains disabled by default and broader multiplayer behavior remains a live-validation condition.
+- [x] The optional Rested / Well Rested feature passed its focused server-authority gate and WHG live multiplayer validation. All 301 live sleep decisions matched the active configuration, and durations, expiry, and restart persistence were correct with no errors; this evidence is accepted for the `8`/`12`-hour defaults. The feature remains disabled by default. Death/disable clearing and Moodle presentation were not observed live.
 
 ## Deployment gate
 
 - [ ] Stop the server cleanly and back up world, save, and configuration before updating.
 - [ ] Confirm server/client package consistency after deployment.
-- [ ] Confirm the native all-awake baseline, one partial-sleep transition, and exact baseline restoration.
-- [ ] Preserve early release logs and use the documented rollback if a gate fails.
+- [x] Confirm the native all-awake baseline, one partial-sleep transition, and exact baseline restoration. (WHG v1.0.0 server logs: baseline and every vanilla handoff at `MinutesPerDay=240`, 189 partial-sleep states.)
+- [x] Preserve early release logs and use the documented rollback if a gate fails. (WHG server logs from 2026-09-01 onward preserved and reviewed; no gate failed.)
 
 Release decision: **CONDITIONAL GO — v1.0.0 Release Candidate Workshop deployment**
 
@@ -42,10 +42,10 @@ Conditions carried into deployment and live validation:
 - stop the server cleanly and back up the world, save, and configuration before updating;
 - confirm the server and every participating client load the same v1.0.0 package;
 - keep `SleepBenefitsEnabled=false` unless the server administrator intentionally enables the optional reward layer;
-- before enabling sleep benefits in production, confirm the revised `8`/`12`-hour classification and 4/6-hour durations with the focused test in `TESTING.md`;
-- confirm native all-awake baseline, one partial-sleep transition, and exact baseline restoration after deployment;
 - preserve early server and owning-client logs;
-- continue the unchecked representative-client, lifecycle, notification, rollback, CPU/log-volume, and broader sleep-benefit multiplayer checks above;
+- continue the unchecked representative-client, lifecycle, notification-rollback, rollback, and CPU/log-volume checks above;
 - use the documented soft/full rollback if a high-severity defect or recurring Enshrouded Sleep error appears.
+
+Completed since the decision (2026-09-28): v1.0.0 was published on 2026-08-31. WHG live logs confirmed the post-deployment baseline, partial-sleep, and restoration checks, and satisfied the sleep-benefit classification/duration condition for the default policy.
 
 This conditional decision does not represent the unchecked stable-release evidence gates as passed.

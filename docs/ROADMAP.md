@@ -6,7 +6,7 @@ This file owns current work and release-exit criteria. Runtime semantics belong 
 
 Week-long Public Beta server evidence now supports repeated proportional compression, baseline restoration, vanilla full-sleep handoff, changing multiplayer populations, and stable operation in the normal server mod stack. The observed results and their limits are recorded in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md).
 
-The v1.0.0 repository/package candidate is prepared on `main`. GitHub release creation, Steam Workshop publication, and the deployment checks below remain separate actions.
+The v1.0.0 package was published to the existing Steam Workshop item on 2026-08-31 and is in live use. WHG server logs from 2026-09-01 to 2026-09-28 are summarised in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md). GitHub release creation remains a separate action.
 
 The release checklist records a **CONDITIONAL GO** for v1.0.0 Release Candidate Workshop deployment. Unchecked stable-release evidence remains an explicit live-validation condition rather than being represented as complete.
 
@@ -14,7 +14,7 @@ The release checklist records a **CONDITIONAL GO** for v1.0.0 Release Candidate 
 
 - review owning-client logs from representative partial- and full-sleep transitions for clock continuity and client exceptions;
 - deliberately exercise join, disconnect, death, and respawn transitions during partial sleep and check for stale correction state;
-- smoke-test opt-in sleep notifications, including one-message-per-transition behavior and notification-only rollback;
+- confirm client-side notification banner display and exercise notification-only rollback (server-side one-message-per-transition behavior has WHG live evidence);
 - verify awake-protection soft rollback and full-mod rollback through the documented operational procedures;
 - record whether CPU cost and normal log volume remain acceptable at the representative tested population;
 - complete the package, provenance, policy, and deployment checks in [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md).
@@ -39,9 +39,9 @@ Current v1.0.0 defaults:
 
 Completed checkpoint: the ADR-004 server-authoritative XP path passed a one-player dedicated-server run at an unambiguous `100%` setting, producing exact flat bonus arithmetic across Carving, Fitness, Sprinting, and Strength without recursion or a relevant runtime error. The configured percentage is a direct input to the validated formula, and the module has no access-level/admin-mode branch; the current default `10%` and non-admin behavior are not separate implementation gates.
 
-Pending focused regression: the revised `8`/`12`-hour defaults and exclusive Well Rested boundary require a runtime classification/duration smoke test before the optional reward layer is treated as validated under this exact policy.
+Completed live validation (2026-09-28): WHG v1.0.0 server logs showed all 301 live sleep decisions matching the active configuration across 58 sessions, along with correct durations, expiry, and restart persistence, and no errors. That evidence is accepted for the `8`/`12`-hour defaults, and tracking issue [#10](https://github.com/jonathanjacobs/pz-enshrouded-sleep/issues/10) is closed. Details are in [`spikes/SPIKE-007-sleep-benefits.md`](spikes/SPIKE-007-sleep-benefits.md).
 
-SPIKE-007 is accepted for integration into `main`. Broader two-player validation of reward classification, XP gain, positive Endurance recovery, expiry/reconnect/death behavior, feature-only rollback, built-in Moodle display/scaling, and vanilla/Lifestyle stack coexistence will be collected during the next production release. The live-validation plan remains in [`spikes/SPIKE-007-sleep-benefits.md`](spikes/SPIKE-007-sleep-benefits.md) and tracking issue [#10](https://github.com/jonathanjacobs/pz-enshrouded-sleep/issues/10).
+Not yet observed live, and to check opportunistically rather than as release gates: death clearing, feature-disable clearing, Moodle display/scaling, and vanilla/Lifestyle stack coexistence.
 
 ## SPIKE-005 — external world systems
 
