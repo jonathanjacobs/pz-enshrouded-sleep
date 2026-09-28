@@ -14,7 +14,7 @@ Run after runtime/configuration changes, a new release candidate, or a relevant 
 4. With all living players awake, confirm authoritative/client `MinutesPerDay` remains at the native baseline.
 5. Confirm `DiagnosticsEnabled=false` does not produce high-frequency diagnostic telemetry.
 6. Confirm `DiagnosticForcedCompressionFactor=1.0` is inert.
-7. With `SleepNotificationsEnabled=false`, confirm no Enshrouded Sleep sleep-state chat messages are emitted.
+7. With `SleepNotificationsEnabled=false`, confirm no Enshrouded Sleep sleep-state notification banners are shown.
 8. With `SleepBenefitsEnabled=false`, confirm no Rested/Well Rested grant occurs and no XP/Endurance modification is applied.
 
 Project Zomboid 42.20.4 (`b0bbce05d5`) passed the startup/baseline/client-sync compatibility checkpoint used as the basis for v0.1.1. See [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md) for the evidence boundary.
@@ -40,14 +40,14 @@ The exact expected factor depends on live `FastForwardMultiplier`, `PartialSleep
 v0.1.1 intentionally ships the optional notification path for live Public Beta validation on WHG. Run the checks below during normal post-deployment use before marking the notification feature field-validated.
 
 1. Start with `SleepNotificationsEnabled=true`, at least two living players, and no sleepers. Confirm the server emits a notification `CONFIG` line reporting `SleepNotificationsEnabled=true`, and confirm no startup/all-awake player-facing notification is sent.
-2. Put one player to sleep. Confirm every connected client receives exactly one concise server-chat message such as `[Enshrouded Sleep] 1/2 living players sleeping (50%). World time is 20x faster.`
+2. Put one player to sleep. Confirm every connected client shows exactly one concise on-screen notification banner (displayed for about seven seconds) such as `[Enshrouded Sleep] 1/2 living players sleeping (50%). World time is 20x faster.`
 3. Change the sleep fraction by sleeping/waking another player or changing the connected living population. Confirm exactly one updated message is sent after the authoritative clock state settles.
 4. Wake all players. Confirm one `[Enshrouded Sleep] All living players are awake. World time is normal.` message.
 5. Put all living players to sleep. Confirm the message reports the living-player count and identifies vanilla full-sleep fast-forward rather than claiming an Enshrouded Sleep compression multiplier.
-6. Confirm there is no per-tick/repeated chat spam and no Enshrouded Sleep Lua exception.
+6. Confirm there is no per-tick/repeated notification spam and no Enshrouded Sleep Lua exception.
 7. Set `SleepNotificationsEnabled=false`; confirm the server `CONFIG` line reflects the change and subsequent sleep-state changes no longer emit messages while proportional sleep continues normally.
 
-The relevant low-volume prefixes are `[EnshroudedSleepNotify][SERVER]` and `[EnshroudedSleepNotify][CLIENT]`. A client chat-bridge failure should circuit-break notification display for that client session without affecting sleep/time behavior. If the notification path causes a live compatibility issue, disable `SleepNotificationsEnabled` first and preserve the server/client logs before changing the core sleep configuration.
+The relevant low-volume prefixes are `[EnshroudedSleepNotify][SERVER]` and `[EnshroudedSleepNotify][CLIENT]`. Notifications are drawn by a self-contained client banner, not the in-game chat. A client banner/UI failure should log `UI_DISABLED` and circuit-break notification display for that client session without affecting sleep/time behavior. If the notification path causes a live compatibility issue, disable `SleepNotificationsEnabled` first and preserve the server/client logs before changing the core sleep configuration.
 
 ## SPIKE-007 — Rested / Well Rested validation
 
