@@ -40,7 +40,7 @@ This mod was created from [pz-mod-template](https://github.com/jonathanjacobs/pz
 - Steam Workshop ID: `3786842301`
 - Supported Project Zomboid build: Build 42; `versionMin=42.20.0`, validated on 42.21.0 (`4a0e9546ec`)
 - Primary multiplayer target: dedicated server only
-- Current development branch/release state: `main` is the v1.0.x stable line. The v1.0.1 release decision is GO and its Workshop upload is pending; v1.0.0 is the version live on the Workshop. v1.0.2, a maintenance release, is in preparation and has not been tested in game.
+- Current development branch/release state: `main` is the v1.0.x stable line. v1.0.0 is the version live on the Workshop. v1.0.1 was tagged on GitHub but never uploaded to the Workshop. v1.0.2, a maintenance release that also carries the v1.0.1 changes, is the next Workshop upload and has not been tested in game.
 - Template version: `v0.9.0` (the pz-mod-template release this repository's files match; update it after applying a template upgrade)
 
 ## Current development context

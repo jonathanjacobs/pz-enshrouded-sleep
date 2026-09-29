@@ -8,7 +8,7 @@ Format: newest release first, each as `## [x.y.z] - YYYY-MM-DD` with `Added`, `C
 
 ## [Unreleased]
 
-Planned as **v1.0.2**, a maintenance release. No gameplay, configuration, or save-data change.
+Planned as **v1.0.2**, a maintenance release. No gameplay, configuration, or save-data change. It is the first Workshop upload since v1.0.0, so it also delivers the v1.0.1 changes below.
 
 ### Changed
 
@@ -22,7 +22,7 @@ Planned as **v1.0.2**, a maintenance release. No gameplay, configuration, or sav
 
 ## [1.0.1] - 2026-09-28
 
-**Full release.** Relabels the v1.0.0 package as the stable release. No gameplay, configuration, or save-data change.
+**Full release.** Relabels the v1.0.0 package as the stable release. No gameplay, configuration, or save-data change. Tagged on GitHub but never uploaded to the Steam Workshop; its changes reach Workshop subscribers with v1.0.2.
 
 ### Changed
 

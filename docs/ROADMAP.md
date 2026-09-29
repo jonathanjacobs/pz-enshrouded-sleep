@@ -8,12 +8,11 @@ Track milestones, their order, known risks, and the evidence required to leave e
 
 ## Current phase — v1.0.x stable maintenance
 
-v1.0.1 is the full release. It relabels the v1.0.0 package, which was published to the existing Steam Workshop item on 2026-08-31 and has been in live use since; there is no gameplay or configuration change. The [GitHub release](https://github.com/jonathanjacobs/pz-enshrouded-sleep/releases/tag/v1.0.0) tags the published v1.0.0 commit. The release checklist records a **GO** for v1.0.1, and the supporting WHG live evidence and Project Zomboid 42.21.0 checkpoint are in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md).
+v1.0.0 was published to the existing Steam Workshop item on 2026-08-31 and has been in live use since. v1.0.1 relabels that package as the full release with no gameplay or configuration change; it is tagged on GitHub but was never uploaded to the Workshop, so v1.0.2 will be the next Workshop upload and carries the v1.0.1 changes with it. The [GitHub release](https://github.com/jonathanjacobs/pz-enshrouded-sleep/releases/tag/v1.0.0) tags the published v1.0.0 commit. The release checklist records a **GO** for v1.0.1, and the supporting WHG live evidence and Project Zomboid 42.21.0 checkpoint are in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md).
 
 Ongoing work:
 
-- upload v1.0.1 to the Workshop (its GitHub release is tagged);
-- test and release v1.0.2, a maintenance release that aligns the root `mod.info` with `42/mod.info` and defines the build version once in a shared Lua module (see the [v1.0.2 release record](RELEASING.md#v102-release-record));
+- test v1.0.2 and upload it to the Workshop; it is a maintenance release that aligns the root `mod.info` with `42/mod.info` and defines the build version once in a shared Lua module (see the [v1.0.2 release record](RELEASING.md#v102-release-record));
 - watch the items listed in the [release checklist](RELEASING.md#v101-release-record) during normal play;
 - run the update checks in [`TESTING.md`](TESTING.md) after each Project Zomboid release.
 
