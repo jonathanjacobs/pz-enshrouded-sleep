@@ -277,6 +277,17 @@ fi
 #     fail "pre-release label found in package or public text"
 #   fi
 
+# Through v1.0.1 the root mod.info carried pzversion=42 and lacked the
+# category= and versionMin= values in 42/mod.info. Both files carry the same
+# shared values (see "Runtime layout" in docs/DESIGN.md).
+if [[ -f "$MOD_ROOT/mod.info" && -f "$MOD_ROOT/42/mod.info" ]]; then
+  for key in id name description author category modversion versionMin; do
+    root_value="$(text "$MOD_ROOT/mod.info" | sed -n "s/^$key=//p" | head -1)"
+    build_value="$(text "$MOD_ROOT/42/mod.info" | sed -n "s/^$key=//p" | head -1)"
+    [[ "$root_value" == "$build_value" ]] || fail "mod.info and 42/mod.info disagree on '$key=' ('$root_value' vs '$build_value')"
+  done
+fi
+
 # ---------------------------------------------------------------------------
 
 mode="pre-publication"

@@ -28,6 +28,10 @@ Once `workshop.txt` has a numeric `id=`, it also requires `preview.png` and the 
 
 Add project-specific regression guards in the marked section near the end of the script. Add a guard only for a defect or design boundary that has already mattered once, and comment what it protects.
 
+This repository's guards:
+
+- both `mod.info` files carry the same `id=`, `name=`, `description=`, `author=`, `category=`, `modversion=`, and `versionMin=` values.
+
 ## `check-lua-syntax.sh`
 
 Checks that every tracked `.lua` file parses as Lua 5.1, the language Project Zomboid's Kahlua interpreter reads, so a syntax error shows up in seconds instead of after a server start and client join. CI runs it as the "Check Lua syntax" job in [`../.github/workflows/validate-package.yml`](../.github/workflows/validate-package.yml).
