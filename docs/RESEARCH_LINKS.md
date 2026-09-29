@@ -1,14 +1,14 @@
 # Research links
 
-Status: **Mods studied recorded; reference links not yet populated**
+Status: **Reference links and mods studied recorded; authors of three studied mods not yet recorded**
 
 Do not update for: material the mod distributes ([`../CREDITS.md`](../CREDITS.md)), or saved copies of external pages (keep those in a local folder outside the repository).
 
 External reference sources for the target Project Zomboid build. These are citations, not redistributed content — see [`PZ_MODDING_POLICY.md`](PZ_MODDING_POLICY.md) for the boundary between studying external material and copying it.
 
-- Community wiki: `TBD`
-- Javadocs / API reference: `TBD`
-- Other stable references: `TBD`
+- Community wiki: [Project Zomboid Wiki](https://pzwiki.net/wiki/Project_Zomboid_Wiki) (main page), and its [Build 42.20.4](https://pzwiki.net/wiki/Build_42.20.4) page
+- Javadocs / API reference: [Unofficial Javadocs, Build 42](https://albion.codeberg.page/PZ-JavaDocs/zombie/package-summary.html)
+- Community discussion: [r/projectzomboid](https://www.reddit.com/r/projectzomboid/)
 
 Local copies (saved wiki pages, community notes, other Workshop mods studied for implementation ideas) belong in a local folder outside the repository; this file is for stable links only.
 
