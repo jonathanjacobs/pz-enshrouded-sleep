@@ -6,9 +6,9 @@ This file records **what changed between releases**. Test evidence belongs in [`
 
 Format: newest release first, each as `## [x.y.z] - YYYY-MM-DD` with `Added`, `Changed`, `Fixed`, `Removed`, and `Documentation` subsections as needed. When server operators or players must do something after updating, such as re-enter a renamed sandbox option, add an `Upgrading` subsection that says what; [`docs/RELEASING.md`](docs/RELEASING.md#choosing-the-version-number) says how that affects the version number. Collect unreleased work under `## [Unreleased]` and rename it when the release is cut.
 
-## [Unreleased]
+## [1.0.2] - 2026-09-29
 
-Planned as **v1.0.2**, a maintenance release. No gameplay, configuration, or save-data change. It is the first Workshop upload since v1.0.0, so it also delivers the v1.0.1 changes below.
+**Maintenance release.** No gameplay, configuration, or save-data change. It is the first Workshop upload since v1.0.0, so it also delivers the v1.0.1 changes below.
 
 ### Changed
 

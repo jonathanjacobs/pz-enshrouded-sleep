@@ -40,7 +40,7 @@ This mod was created from [pz-mod-template](https://github.com/jonathanjacobs/pz
 - Steam Workshop ID: `3786842301`
 - Supported Project Zomboid build: Build 42; `versionMin=42.20.0`, validated on 42.21.0 (`4a0e9546ec`)
 - Primary multiplayer target: dedicated server only
-- Current development branch/release state: `main` is the v1.0.x stable line. v1.0.0 is the version live on the Workshop. v1.0.1 was tagged on GitHub but never uploaded to the Workshop. v1.0.2, a maintenance release that also carries the v1.0.1 changes, is the next Workshop upload and has not been tested in game.
+- Current development branch/release state: `main` is the v1.0.x stable line. v1.0.2 is the version live on the Workshop (uploaded 2026-09-29). v1.0.1 was tagged on GitHub but never uploaded; v1.0.2 carries its changes.
 - Template version: `v0.9.0` (the pz-mod-template release this repository's files match; update it after applying a template upgrade)
 
 ## Current development context
@@ -52,7 +52,7 @@ Keep this section short and current. Record what an agent starting cold must kno
 - The server-authoritative XP path has focused one-player dedicated-server evidence. Broader multiplayer behavior remains a live-release validation item; do not represent it as already proven.
 - Before interpreting a test, confirm the client and dedicated server run the same package. Duplicate local/Workshop copies with the same Mod ID can produce mixed Lua and sandbox-option versions.
 - On a case-insensitive file system (Windows, default macOS), a root-level ignore pattern such as `Server/` also matches `42/media/lua/server/` unless it is anchored with a leading `/`. Check `git check-ignore -v` before assuming a new server Lua file is tracked. This repository's `.gitignore` is already anchored; the template's is not yet (see jonathanjacobs/pz-mod-template#2).
-- v1.0.2 closes the two package gaps found when restructuring to pz-mod-template v0.9.0: the root `mod.info` now carries the same values as `42/mod.info`, and the build version is defined once in `42/media/lua/shared/EnshroudedSleep/Version.lua`. Neither change has in-game evidence yet; the v1.0.2 release record in `docs/RELEASING.md` lists the required test.
+- v1.0.2 closes the two package gaps found when restructuring to pz-mod-template v0.9.0: the root `mod.info` now carries the same values as `42/mod.info`, and the build version is defined once in `42/media/lua/shared/EnshroudedSleep/Version.lua`. Both have a one-player dedicated-server smoke test on the uploaded Workshop package (see `docs/VALIDATION_HISTORY.md`, 2026-09-29).
 
 ## Engineering boundaries
 

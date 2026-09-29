@@ -8,11 +8,10 @@ Track milestones, their order, known risks, and the evidence required to leave e
 
 ## Current phase — v1.0.x stable maintenance
 
-v1.0.0 was published to the existing Steam Workshop item on 2026-08-31 and has been in live use since. v1.0.1 relabels that package as the full release with no gameplay or configuration change; it is tagged on GitHub but was never uploaded to the Workshop, so v1.0.2 will be the next Workshop upload and carries the v1.0.1 changes with it. The [GitHub release](https://github.com/jonathanjacobs/pz-enshrouded-sleep/releases/tag/v1.0.0) tags the published v1.0.0 commit. The release checklist records a **GO** for v1.0.1, and the supporting WHG live evidence and Project Zomboid 42.21.0 checkpoint are in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md).
+v1.0.2 is the current release, uploaded to the existing Steam Workshop item on 2026-09-29 and tagged as a [GitHub release](https://github.com/jonathanjacobs/pz-enshrouded-sleep/releases/tag/v1.0.2). It is the first Workshop upload since v1.0.0 (2026-08-31) and carries the v1.0.1 relabel, which was tagged on GitHub but never uploaded. v1.0.2 changes no gameplay or configuration. Its Workshop package has a one-player smoke test on Project Zomboid 42.21.0; the WHG live evidence and 42.21.0 checkpoint for the unchanged gameplay code are also in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md).
 
 Ongoing work:
 
-- test v1.0.2 and upload it to the Workshop; it is a maintenance release that aligns the root `mod.info` with `42/mod.info` and defines the build version once in a shared Lua module (see the [v1.0.2 release record](RELEASING.md#v102-release-record));
 - watch the items listed in the [release checklist](RELEASING.md#v101-release-record) during normal play;
 - run the update checks in [`TESTING.md`](TESTING.md) after each Project Zomboid release.
 
