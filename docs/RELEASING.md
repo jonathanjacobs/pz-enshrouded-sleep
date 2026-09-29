@@ -58,7 +58,7 @@ Rollback steps are documented under [Rollback](#rollback); they are not rehearse
 #### Deployment gate
 
 - [ ] Stop the server cleanly and back up world, save, and configuration before updating.
-- [ ] Upload v1.0.1 to Workshop item `3786842301` and paste [`workshop-description.bbcode`](workshop-description.bbcode) into the item description.
+- [ ] Upload v1.0.1 to Workshop item `3786842301`, then paste [`workshop-description.bbcode`](workshop-description.bbcode) into the item description (the upload replaces it with the one-line `workshop.txt` summary).
 - [ ] Confirm the server and every participating client log `SERVER_BUILD | 1.0.1` / `build=1.0.1` after deployment.
 - [ ] Preserve early release logs and use the documented rollback if a problem appears.
 
