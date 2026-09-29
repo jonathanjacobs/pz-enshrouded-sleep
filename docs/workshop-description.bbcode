@@ -1,77 +1,59 @@
 [h1]Enshrouded Sleep[/h1]
 
-Proportional multiplayer sleeping for Project Zomboid Build 42 servers.
+Let some players sleep through the night without waiting for everyone else. For Project Zomboid Build 42 dedicated servers.
 
-[b]Version:[/b] 1.0.2
 [b]Tested with:[/b] Project Zomboid 42.21.0
 
-[h2]What it does[/h2]
-When some, but not all, living players are asleep, Enshrouded Sleep proportionally compresses world/calendar time while awake players continue moving, fighting, driving, crafting, and interacting at normal active-simulation speed.
+[h2]Why your server needs it[/h2]
+In vanilla multiplayer, time only speeds up when every living player is asleep. On a server where people play on different schedules that rarely happens, so a player who goes to bed sits through the whole night in real time.
 
-Enshrouded Sleep protects awake players from the extra survival-needs/metabolism progression caused by that calendar compression. Hunger, thirst, fatigue, calories, carbohydrates, proteins, lipids, and weight progression are normalized toward the rate expected at the server's native day length. Sleeping players are never corrected.
+[h2]How it works[/h2]
+- When some players are asleep, world time speeds up in proportion to how many are sleeping. With half the players asleep, time runs at about half of vanilla's full-sleep speed.
+- Only the clock and calendar move faster. Awake players keep moving, fighting, driving, and crafting at normal speed.
+- Awake players are protected from the faster clock: their hunger, thirst, fatigue, and nutrition progress at the normal rate. Sleeping players are left to vanilla.
+- When everyone is asleep, the mod steps aside and vanilla's full-sleep fast-forward takes over. When everyone is awake, time runs at your server's normal day length.
+- The server decides the speed and keeps every client's clock in step, so clocks don't jump.
 
-When all living players are asleep, Enshrouded Sleep restores the native day length and vanilla Project Zomboid full-sleep fast-forward takes over.
-
-[h2]What's new in v1.0.2[/h2]
-- First full (stable) release on the Workshop. No gameplay or configuration changes from v1.0.0.
-- Both mod.info files now carry the same metadata, including the oldest supported Project Zomboid build (42.20.0).
-- The build version shown in server and client logs now comes from one shared file, so a server and client running different versions of the mod are easier to spot.
-
-[h2]Included since v1.0.0[/h2]
-- Adds optional Rested / Well Rested rewards for qualifying sleep, disabled by default and configurable by the server administrator.
-- Awards XP bonuses authoritatively on the server and amplifies only positive Endurance recovery while Well Rested.
-- Adds a self-contained Rested / Well Rested Moodle display with no external Moodle framework dependency.
-- Retains optional server-admin sleep-status broadcasts.
-
-Notifications and sleep benefits are independently disabled by default. Either can be switched off without affecting proportional sleep, client clock sync, or awake-player protection.
-
-[h2]Before you install[/h2]
-Back up your server before installing or updating. Core proportional sleep, awake-player protection, sleep notifications, and Rested / Well Rested rewards have controlled and live-server evidence.
-
-[h2]Build 42.21.0 compatibility[/h2]
-Enshrouded Sleep is tested with Project Zomboid 42.21.0 (4a0e9546ec) on a live dedicated server: startup, proportional partial sleep with awake-player protection, client clock sync, baseline restoration on wake, sleep notifications, and a Rested grant completed without an Enshrouded Sleep Lua exception. The previous checkpoint was 42.20.4 (b0bbce05d5).
-
-Project Zomboid 42.20.4 removed Lua loadstring/loadstream and 42.21.0 restored them. Enshrouded Sleep uses neither; its multiplayer messages use predefined named commands and structured arguments rather than executable code sent by the server.
-
-[h2]Important time behavior[/h2]
-World/calendar time genuinely passes faster during partial sleep. External world systems such as spoilage, generators, farming, vehicles, weather, and other systems keyed to game-world time continue following vanilla world time. Enshrouded Sleep only normalizes the explicitly supported awake-player survival fields listed above; it does not globally slow the world or compensate every subsystem.
-
-[h2]Configuration[/h2]
-Recommended settings:
-
-[code]
-EnshroudedSleep.Enabled=true
-EnshroudedSleep.PartialSleepSpeedScale=1.0
-EnshroudedSleep.AwakePlayerProtectionEnabled=true
-EnshroudedSleep.SleepNotificationsEnabled=false
-EnshroudedSleep.SleepBenefitsEnabled=false
-EnshroudedSleep.DiagnosticsEnabled=false
-EnshroudedSleep.DiagnosticForcedCompressionFactor=1.0
-[/code]
-
-[b]AwakePlayerProtectionEnabled[/b] can be turned off independently if a compatibility issue is suspected. This returns awake survival progression to vanilla world-time behavior while leaving proportional partial-sleep calendar compression active.
-
-[b]SleepNotificationsEnabled[/b] is an optional server-administrator setting, disabled by default. When enabled it posts concise sleep-state messages to connected players, such as [i][Enshrouded Sleep] 1/2 living players sleeping (50%). World time is 20x faster.[/i] It changes player-facing notifications only and does not affect sleep/time behavior, client clock synchronization, or awake-player protection.
-
-[b]SleepBenefitsEnabled[/b] is an optional server-administrator setting, disabled by default. When enabled, qualifying sleep grants non-stacking Rested / Well Rested rewards. Thresholds, durations, XP percentages, and Well Rested Endurance-recovery percentage are configurable.
-
-[b]DiagnosticsEnabled[/b] is a support/testing option and can generate very large logs, especially with multiple players. Leave it off for ordinary play unless collecting a focused dataset.
-
-[b]DiagnosticForcedCompressionFactor[/b] is a one-player test tool only. Keep it at 1.0 during normal multiplayer play.
+[h2]Things to know[/h2]
+- Anything else that runs on game time moves faster during partial sleep, just as it does during vanilla sleep: food spoilage, generator fuel, crops, weather, corpses, and other mods' timers.
+- Dedicated servers only. Single-player is not supported.
 
 [h2]Server setup[/h2]
+Back up your world and server configuration before installing or updating.
+
 [code]
 WorkshopItems=3786842301
 Mods=pz-enshrouded-sleep
 [/code]
 
+Players should use the Workshop copy only. A second, manually installed copy with the same Mod ID can load old and new files together.
+
+[h2]Configuration[/h2]
+All settings are on the Enshrouded Sleep page of the server's sandbox options. The defaults suit most servers.
+
+[b]Core[/b]
+- [b]Enabled[/b] (default: on): turns the mod on or off.
+- [b]PartialSleepSpeedScale[/b] (default: 1.0, range 0–5): how fast time runs during partial sleep. Below 1.0 is gentler, above 1.0 is faster, and 0 turns the speed-up off.
+- [b]AwakePlayerProtectionEnabled[/b] (default: on): keeps awake players' survival needs at the normal rate. Turn it off if you suspect a conflict with another mod that changes hunger, thirst, fatigue, or nutrition.
+
+[b]Sleep notifications (optional)[/b]
+- [b]SleepNotificationsEnabled[/b] (default: off): shows players a short banner whenever the sleep state changes, for example [i][Enshrouded Sleep] 1/2 living players sleeping (50%). World time is 20x faster.[/i]
+
+[b]Rested / Well Rested rewards (optional)[/b]
+- [b]SleepBenefitsEnabled[/b] (default: off): rewards a good night's sleep with a bonus that lasts for a set number of game hours. The bonus shows as its own moodle; no extra UI mod is needed.
+- [b]Rested[/b]: at least 8 hours of sleep gives +10% XP for 4 hours.
+- [b]Well Rested[/b]: more than 12 hours gives +10% XP and +10% Endurance recovery for 6 hours.
+- The sleep thresholds, durations, and bonus percentages are all adjustable. A new reward replaces the current one rather than stacking, and dying clears it.
+
+[b]Troubleshooting only[/b]
+- [b]DiagnosticsEnabled[/b] (default: off): detailed logging for tracking down a problem. It can produce very large logs, so leave it off in normal play.
+- [b]DiagnosticForcedCompressionFactor[/b] (default: 1.0): a test tool that only works with diagnostics on and one awake player connected. Keep it at 1.0.
+
 [h2]Compatibility[/h2]
-Other mods that alter multiplayer sleep, MinutesPerDay, GameTime pacing, player hunger/thirst/fatigue/nutrition, chat UI, or sleep fast-forward may conflict. Compatibility claims are limited to configurations actually tested. If a survival-state compatibility problem appears, disable AwakePlayerProtectionEnabled first and collect logs before removing the entire mod. If only notifications misbehave, disable SleepNotificationsEnabled.
+Mods that change multiplayer sleep, the length of the day, or player hunger, thirst, fatigue, or nutrition may conflict. If players report odd survival stats, turn off [b]AwakePlayerProtectionEnabled[/b] first; the rest of the mod keeps working. If only the banners misbehave, turn off [b]SleepNotificationsEnabled[/b].
 
-[h2]Source code, documentation, issues, and test results[/h2]
-[url=https://github.com/jonathanjacobs/pz-enshrouded-sleep]GitHub — Enshrouded Sleep repository[/url]
-
-The GitHub repository contains installation details, configuration documentation, architecture notes, validation history, SPIKE test results, known limitations, and issue tracking.
+[h2]Documentation and issues[/h2]
+[url=https://github.com/jonathanjacobs/pz-enshrouded-sleep]Enshrouded Sleep on GitHub[/url]: the full configuration reference, known limits, and issue reports.
 
 [h2]Unofficial community mod[/h2]
 Enshrouded Sleep is an unofficial community mod and is not developed by, affiliated with, sponsored by, endorsed by, or otherwise official to The Indie Stone.
