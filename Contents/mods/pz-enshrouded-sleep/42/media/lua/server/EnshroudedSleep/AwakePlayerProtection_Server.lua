@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - awake-player survival protection
--- Enshrouded Sleep v1.0.1 for Project Zomboid Build 42.20+
+-- Enshrouded Sleep for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -37,6 +37,7 @@
 if isClient() then return end
 
 local Probe = require "EnshroudedSleep/SurvivalStatProbe"
+local Version = require "EnshroudedSleep/Version"
 
 local PREFIX = "[EnshroudedSleepAwakeProtect][SERVER]"
 local EPSILON = 0.0000001
@@ -400,6 +401,6 @@ end
 
 Events.OnTick.Add(onTick)
 
-log("Loaded v1.0.1 awake-player survival protection.")
+log("Loaded v" .. Version.BUILD_VERSION .. " awake-player survival protection.")
 log("Normal partial sleep protects all awake living players; sleeping players remain vanilla-authoritative.")
 log("Supported fields: Hunger, Thirst, Fatigue, Calories, Carbohydrates, Proteins, Lipids, Weight.")

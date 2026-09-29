@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - client MinutesPerDay synchronization
--- Enshrouded Sleep v1.0.1 for Project Zomboid Build 42.20+
+-- Enshrouded Sleep for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -14,7 +14,7 @@
 -- clients retained their native day length and visibly snapped when vanilla
 -- corrected TimeOfDay. v0.0.6 introduced explicit ClockState replication, and
 -- v0.0.7 fixed a Kahlua multi-return conversion bug. That synchronization model
--- remains the validated design used by Enshrouded Sleep v1.0.1.
+-- remains the validated design.
 --
 -- MUTATION BOUNDARY
 -- -----------------
@@ -24,6 +24,8 @@
 -- or any player simulation state.
 
 if not isClient() then return end
+
+local Version = require "EnshroudedSleep/Version"
 
 local PREFIX = "[EnshroudedSleepSync][CLIENT]"
 local MODULE = "EnshroudedSleep"
@@ -159,7 +161,7 @@ end
 
 if Events.OnServerCommand then
     Events.OnServerCommand.Add(onServerCommand)
-    log("Loaded v1.0.1 client MinutesPerDay synchronization.")
+    log("Loaded v" .. Version.BUILD_VERSION .. " client MinutesPerDay synchronization.")
 else
     log("ERROR | Events.OnServerCommand unavailable; client clock replication disabled")
 end

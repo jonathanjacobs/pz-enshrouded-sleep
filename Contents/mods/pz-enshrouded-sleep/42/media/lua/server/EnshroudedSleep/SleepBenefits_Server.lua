@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - optional Rested / Well Rested sleep benefits
--- Enshrouded Sleep v1.0.1 for Project Zomboid Build 42.20+
+-- Enshrouded Sleep for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -37,6 +37,7 @@
 if isClient() then return end
 
 local Probe = require "EnshroudedSleep/SurvivalStatProbe"
+local Version = require "EnshroudedSleep/Version"
 
 local PREFIX = "[EnshroudedSleepBenefits][SERVER]"
 local MODULE = "EnshroudedSleep"
@@ -359,7 +360,7 @@ local function stateForClient(player, config, nowWorldHour, knownBenefitType, kn
 
     return {
         protocolVersion = PROTOCOL_VERSION,
-        buildVersion = "1.0.1",
+        buildVersion = Version.BUILD_VERSION,
         benefitType = benefitType,
         expiresAtWorldHour = expires or -1,
         lastQualifyingSleepHours = lastSleep or 0,

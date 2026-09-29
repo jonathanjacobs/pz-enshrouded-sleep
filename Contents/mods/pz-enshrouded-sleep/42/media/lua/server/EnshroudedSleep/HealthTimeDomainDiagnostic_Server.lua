@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - broad server health/time-domain diagnostic
--- Enshrouded Sleep v1.0.1 for Project Zomboid Build 42.20+
+-- Enshrouded Sleep for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -19,6 +19,8 @@
 -- mismatches must never fail or mutate the gameplay session.
 
 if isClient() then return end
+
+local Version = require "EnshroudedSleep/Version"
 
 local PREFIX = "[EnshroudedSleepHealthDiag][SERVER]"
 local SAMPLE_INTERVAL_SECONDS = 1
@@ -454,4 +456,4 @@ else
     Events.OnTick.Add(sampleHealthTimeDomains)
 end
 
-log("Loaded v1.0.1 broad server health/time-domain diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")
+log("Loaded v" .. Version.BUILD_VERSION .. " broad server health/time-domain diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")

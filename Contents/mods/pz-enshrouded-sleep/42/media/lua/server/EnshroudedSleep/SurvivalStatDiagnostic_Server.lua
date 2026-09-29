@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - focused server survival-stat diagnostic
--- Enshrouded Sleep v1.0.1 for Project Zomboid Build 42.20+
+-- Enshrouded Sleep for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -22,6 +22,7 @@
 if isClient() then return end
 
 local SurvivalStatProbe = require "EnshroudedSleep/SurvivalStatProbe"
+local Version = require "EnshroudedSleep/Version"
 
 local PREFIX = "[EnshroudedSleepSurvivalDiag][SERVER]"
 local SAMPLE_INTERVAL_SECONDS = 1
@@ -167,4 +168,4 @@ else
     Events.OnTick.Add(sample)
 end
 
-log("Loaded v1.0.1 server survival-stat diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")
+log("Loaded v" .. Version.BUILD_VERSION .. " server survival-stat diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")

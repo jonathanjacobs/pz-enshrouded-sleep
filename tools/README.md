@@ -30,7 +30,8 @@ Add project-specific regression guards in the marked section near the end of the
 
 This repository's guards:
 
-- both `mod.info` files carry the same `id=`, `name=`, `description=`, `author=`, `category=`, `modversion=`, and `versionMin=` values.
+- both `mod.info` files carry the same `id=`, `name=`, `description=`, `author=`, `category=`, `modversion=`, and `versionMin=` values;
+- the build version is defined only in `42/media/lua/shared/EnshroudedSleep/Version.lua`; any other runtime Lua file with a `BUILD_VERSION = "x.y.z"` or `buildVersion = "x.y.z"` literal, a `Loaded vx.y.z` banner, or an `Enshrouded Sleep vx.y.z` header fails.
 
 ## `check-lua-syntax.sh`
 

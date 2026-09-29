@@ -328,8 +328,9 @@ Some names outlive the code that defines them, because something outside the cur
 | Server-to-client command | Module `EnshroudedSleep`, command `SleepBenefitState` | `SleepBenefits_Server.lua` / `SleepBenefits_Client.lua` | 1.0.0 |
 | Lua module path (internal) | `EnshroudedSleep/SurvivalStatProbe` | `42/media/lua/shared/EnshroudedSleep/SurvivalStatProbe.lua` | 0.0.10 |
 | Lua module path (internal) | `EnshroudedSleep/SleepBenefitMoodle_Client` | `42/media/lua/client/EnshroudedSleep/SleepBenefitMoodle_Client.lua` | 1.0.0 |
+| Lua module path (internal) | `EnshroudedSleep/Version` | `42/media/lua/shared/EnshroudedSleep/Version.lua` | 1.0.2 |
 
-The mod defines no item, recipe, or other script modules, and sends no client-to-server commands. The two Lua modules marked internal are `require`d only by the mod itself and are not supported for other mods to build on; moving or renaming one needs a changelog note, not a breaking-change version.
+The mod defines no item, recipe, or other script modules, and sends no client-to-server commands. The Lua modules marked internal are `require`d only by the mod itself and are not supported for other mods to build on; moving or renaming one needs a changelog note, not a breaking-change version.
 
 A change to a listed name follows the rules in `AGENTS.md`: only on explicit request, with an `Upgrading` note in [`../CHANGELOG.md`](../CHANGELOG.md) and a version number chosen as [`RELEASING.md`](RELEASING.md#choosing-the-version-number) describes. Mark a retired name `retired in x.y.z` instead of deleting its row, so the history of what saves may still contain stays visible.
 
@@ -619,4 +620,4 @@ Recommended from the first multiplayer build. Mixed-version installs — a stale
 
 With this in place, confirming that everyone runs the same package is a log search rather than a guess, and it is the first step in [`TESTING.md`](TESTING.md#before-testing) and in post-release verification.
 
-Current state in Enshrouded Sleep: the handshake is in place. The server logs `CONFIG | build=` from the notification and sleep-benefit configuration modules, the `ClockState` and `SleepBenefitState` messages carry `buildVersion`, and the notification and sleep-benefit clients log `SERVER_BUILD` and `BUILD_MISMATCH`. The version itself is still a literal repeated in each of those Lua files rather than defined once; moving it into `42/media/lua/shared/EnshroudedSleep/Version.lua` is a recorded gap (see [`ROADMAP.md`](ROADMAP.md#later-work)).
+Current state in Enshrouded Sleep: the handshake is in place. The version is defined once, in `42/media/lua/shared/EnshroudedSleep/Version.lua`, and every runtime file that reports it requires that module. The server logs `CONFIG | build=` from the notification and sleep-benefit configuration modules, the `ClockState` and `SleepBenefitState` messages carry `buildVersion`, the notification and sleep-benefit clients log `SERVER_BUILD` and `BUILD_MISMATCH`, and each module's `Loaded vx.y.z` banner reads the same value. The package validator fails if any other runtime Lua file hard-codes the version.
