@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - server-to-client MinutesPerDay replication
--- Enshrouded Sleep v1.0.1 for Project Zomboid Build 42.20+
+-- Enshrouded Sleep for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -20,6 +20,8 @@
 -- controller has had a chance to apply its new MinutesPerDay.
 
 if isClient() then return end
+
+local Version = require "EnshroudedSleep/Version"
 
 local PREFIX = "[EnshroudedSleepSync][SERVER]"
 local MODULE = "EnshroudedSleep"
@@ -205,7 +207,7 @@ local function synchronizeClients()
 
     local args = {
         protocolVersion = PROTOCOL_VERSION,
-        buildVersion = "1.0.1",
+        buildVersion = Version.BUILD_VERSION,
         mode = mode,
         minutesPerDay = targetMinutesPerDay,
         baselineMinutesPerDay = baselineMinutesPerDay or targetMinutesPerDay,
@@ -242,4 +244,4 @@ else
     Events.OnTick.Add(synchronizeClients)
 end
 
-log("Loaded v1.0.1 authoritative MinutesPerDay replication.")
+log("Loaded v" .. Version.BUILD_VERSION .. " authoritative MinutesPerDay replication.")

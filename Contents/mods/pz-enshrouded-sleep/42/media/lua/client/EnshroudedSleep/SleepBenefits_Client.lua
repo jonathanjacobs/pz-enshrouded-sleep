@@ -1,15 +1,16 @@
 -- Enshrouded Sleep - owning-client Rested / Well Rested behavior
--- Enshrouded Sleep v1.0.1 for Project Zomboid Build 42.20+
+-- Enshrouded Sleep for Project Zomboid Build 42.20+
 
 if not isClient() then return end
 
 local MoodleUI = require "EnshroudedSleep/SleepBenefitMoodle_Client"
+local Version = require "EnshroudedSleep/Version"
 
 local PREFIX = "[EnshroudedSleepBenefits][CLIENT]"
 local MODULE = "EnshroudedSleep"
 local COMMAND = "SleepBenefitState"
 local PROTOCOL_VERSION = 1
-local BUILD_VERSION = "1.0.1"
+local BUILD_VERSION = Version.BUILD_VERSION
 local BENEFIT_NONE = "none"
 local BENEFIT_RESTED = "rested"
 local BENEFIT_WELL_RESTED = "well-rested"

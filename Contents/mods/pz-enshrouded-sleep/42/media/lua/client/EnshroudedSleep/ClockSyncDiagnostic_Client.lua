@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - client clock/sleep diagnostic
--- Enshrouded Sleep v1.0.1 for Project Zomboid Build 42.20+
+-- Enshrouded Sleep for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -17,6 +17,8 @@
 -- intentionally mutates local MinutesPerDay.
 
 if not isClient() then return end
+
+local Version = require "EnshroudedSleep/Version"
 
 local PREFIX = "[EnshroudedSleepDiag][CLIENT]"
 local SAMPLE_INTERVAL_SECONDS = 1
@@ -170,4 +172,4 @@ else
     Events.OnTick.Add(sampleClock)
 end
 
-log("Loaded v1.0.1 client clock/sleep diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")
+log("Loaded v" .. Version.BUILD_VERSION .. " client clock/sleep diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")

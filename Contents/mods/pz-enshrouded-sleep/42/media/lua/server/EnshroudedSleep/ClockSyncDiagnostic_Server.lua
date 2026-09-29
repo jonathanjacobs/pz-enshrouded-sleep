@@ -1,5 +1,5 @@
 -- Enshrouded Sleep - server clock/sleep diagnostic
--- Enshrouded Sleep v1.0.1 for Project Zomboid Build 42.20+
+-- Enshrouded Sleep for Project Zomboid Build 42.20+
 --
 -- PURPOSE
 -- -------
@@ -19,6 +19,8 @@
 -- fatigue, medication state, or native synchronization behavior.
 
 if isClient() then return end
+
+local Version = require "EnshroudedSleep/Version"
 
 local PREFIX = "[EnshroudedSleepDiag][SERVER]"
 local SAMPLE_INTERVAL_SECONDS = 1
@@ -194,4 +196,4 @@ else
     Events.OnTick.Add(sampleClock)
 end
 
-log("Loaded v1.0.1 server clock/sleep diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")
+log("Loaded v" .. Version.BUILD_VERSION .. " server clock/sleep diagnostic; telemetry is disabled unless DiagnosticsEnabled=true.")

@@ -3,8 +3,10 @@
 
 if isClient() then return end
 
+local Version = require "EnshroudedSleep/Version"
+
 local PREFIX = "[EnshroudedSleepBenefits][SERVER]"
-local BUILD_VERSION = "1.0.1"
+local BUILD_VERSION = Version.BUILD_VERSION
 local lastSignature = nil
 
 local function value(vars, key, fallback)

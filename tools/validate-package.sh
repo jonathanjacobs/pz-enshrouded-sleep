@@ -277,6 +277,33 @@ fi
 #     fail "pre-release label found in package or public text"
 #   fi
 
+# Through v1.0.1 the root mod.info carried pzversion=42 and lacked the
+# category= and versionMin= values in 42/mod.info. Both files carry the same
+# shared values (see "Runtime layout" in docs/DESIGN.md).
+if [[ -f "$MOD_ROOT/mod.info" && -f "$MOD_ROOT/42/mod.info" ]]; then
+  for key in id name description author category modversion versionMin; do
+    root_value="$(text "$MOD_ROOT/mod.info" | sed -n "s/^$key=//p" | head -1)"
+    build_value="$(text "$MOD_ROOT/42/mod.info" | sed -n "s/^$key=//p" | head -1)"
+    [[ "$root_value" == "$build_value" ]] || fail "mod.info and 42/mod.info disagree on '$key=' ('$root_value' vs '$build_value')"
+  done
+fi
+
+# Through v1.0.1 the build version was a literal repeated in more than a dozen
+# runtime Lua files. It is now defined once in the shared Version module (see
+# "Build stamp and version handshake" in docs/DESIGN.md); every other file
+# requires it.
+VERSION_LUA="$RUNTIME_LUA/shared/EnshroudedSleep/Version.lua"
+if [[ ! -f "$VERSION_LUA" ]]; then
+  fail "$VERSION_LUA is missing"
+elif ! grep -Eq 'BUILD_VERSION[[:space:]]*=[[:space:]]*"[0-9]+\.[0-9]+\.[0-9]+"' "$VERSION_LUA"; then
+  fail "$VERSION_LUA does not define BUILD_VERSION = \"x.y.z\""
+fi
+if [[ -d "$RUNTIME_LUA" ]] && grep -RnE --include='*.lua' \
+     '(BUILD_VERSION|buildVersion)[[:space:]]*=[[:space:]]*"[0-9]+\.[0-9]+\.[0-9]+"|Loaded v[0-9]+\.[0-9]+\.[0-9]+|Enshrouded Sleep v[0-9]+\.[0-9]+\.[0-9]+' \
+     "$RUNTIME_LUA" | grep -v '/shared/EnshroudedSleep/Version\.lua:'; then
+  fail "runtime Lua outside shared/EnshroudedSleep/Version.lua hard-codes the build version; require \"EnshroudedSleep/Version\" instead"
+fi
+
 # ---------------------------------------------------------------------------
 
 mode="pre-publication"

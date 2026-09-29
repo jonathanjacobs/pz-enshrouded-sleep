@@ -27,6 +27,7 @@ jobs:
           BENEFIT_CONFIG_DIAG="$MOD_ROOT/42/media/lua/server/EnshroudedSleep/SleepBenefitsConfigDiag_Server.lua"
           BENEFIT_CLIENT="$MOD_ROOT/42/media/lua/client/EnshroudedSleep/SleepBenefits_Client.lua"
           BENEFIT_MOODLE="$MOD_ROOT/42/media/lua/client/EnshroudedSleep/SleepBenefitMoodle_Client.lua"
+          VERSION_LUA="$MOD_ROOT/42/media/lua/shared/EnshroudedSleep/Version.lua"
           SANDBOX_OPTIONS="$MOD_ROOT/42/media/sandbox-options.txt"
           SANDBOX_EN="$MOD_ROOT/42/media/lua/shared/Translate/EN/Sandbox.json"
           MOODLES_EN="$MOD_ROOT/42/media/lua/shared/Translate/EN/Moodles.json"
@@ -52,6 +53,7 @@ jobs:
           test -f "$BENEFIT_CONFIG_DIAG"
           test -f "$BENEFIT_CLIENT"
           test -f "$BENEFIT_MOODLE"
+          test -f "$VERSION_LUA"
           test -f "$SANDBOX_EN"
           test -f "$MOODLES_EN"
           test -f "$RESTED_ICON"
@@ -121,15 +123,28 @@ jobs:
             grep -Fq "\"Sandbox_EnshroudedSleep_$option\"" "$SANDBOX_EN"
           done
 
-          grep -Fq "Loaded v$VERSION_VALUE awake-player survival protection." "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/AwakePlayerProtection_Server.lua"
-          grep -Fq "Loaded v$VERSION_VALUE multiplayer-server calendar-compression controller." "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/EnshroudedSleep_Server.lua"
-          grep -Fq "Loaded v$VERSION_VALUE authoritative MinutesPerDay replication." "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/ClockStateSync_Server.lua"
-          grep -Fq "Loaded v$VERSION_VALUE client MinutesPerDay synchronization." "$MOD_ROOT/42/media/lua/client/EnshroudedSleep/ClockStateSync_Client.lua"
+          # The build version is defined once in the shared Version module; every
+          # build stamp reads it from there.
+          grep -Fq "BUILD_VERSION = \"$VERSION_VALUE\"" "$VERSION_LUA"
+          for stamped in \
+            "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/AwakePlayerProtection_Server.lua" \
+            "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/EnshroudedSleep_Server.lua" \
+            "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/ClockStateSync_Server.lua" \
+            "$MOD_ROOT/42/media/lua/client/EnshroudedSleep/ClockStateSync_Client.lua" \
+            "$NOTIFY_SERVER" "$NOTIFY_CLIENT" "$BENEFIT_SERVER" "$BENEFIT_CLIENT" "$BENEFIT_CONFIG_DIAG"
+          do
+            grep -Fq 'local Version = require "EnshroudedSleep/Version"' "$stamped"
+            grep -Fq 'Version.BUILD_VERSION' "$stamped"
+          done
+          grep -Fq 'log("Loaded v" .. Version.BUILD_VERSION .. " awake-player survival protection.")' "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/AwakePlayerProtection_Server.lua"
+          grep -Fq 'log("Loaded v" .. Version.BUILD_VERSION .. " multiplayer-server calendar-compression controller.")' "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/EnshroudedSleep_Server.lua"
+          grep -Fq 'log("Loaded v" .. Version.BUILD_VERSION .. " authoritative MinutesPerDay replication.")' "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/ClockStateSync_Server.lua"
+          grep -Fq 'log("Loaded v" .. Version.BUILD_VERSION .. " client MinutesPerDay synchronization.")' "$MOD_ROOT/42/media/lua/client/EnshroudedSleep/ClockStateSync_Client.lua"
           grep -Fq "Loaded sleep-status broadcaster | build=" "$NOTIFY_SERVER"
           grep -Fq "Loaded sleep-status banner | build=" "$NOTIFY_CLIENT"
-          grep -Fq "buildVersion = \"$VERSION_VALUE\"" "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/ClockStateSync_Server.lua"
-          grep -Fq "BUILD_VERSION = \"$VERSION_VALUE\"" "$NOTIFY_SERVER"
-          grep -Fq "BUILD_VERSION = \"$VERSION_VALUE\"" "$NOTIFY_CLIENT"
+          grep -Fq "buildVersion = Version.BUILD_VERSION" "$MOD_ROOT/42/media/lua/server/EnshroudedSleep/ClockStateSync_Server.lua"
+          grep -Fq "local BUILD_VERSION = Version.BUILD_VERSION" "$NOTIFY_SERVER"
+          grep -Fq "local BUILD_VERSION = Version.BUILD_VERSION" "$NOTIFY_CLIENT"
           grep -Fq "SleepNotificationsEnabled=true" "$NOTIFY_SERVER"
           grep -Fq "CONFIG | build=" "$NOTIFY_SERVER"
           grep -Fq "World time is %s faster." "$NOTIFY_SERVER"
@@ -147,11 +162,11 @@ jobs:
           grep -Fq "getWorldAgeHours" "$BENEFIT_SERVER"
           grep -Fq 'if sleepHours > config.wellMinHours then' "$BENEFIT_SERVER"
           grep -Fq 'resolveCharacterStat("ENDURANCE", "Endurance")' "$BENEFIT_SERVER"
-          grep -Fq "buildVersion = \"$VERSION_VALUE\"" "$BENEFIT_SERVER"
-          grep -Fq "BUILD_VERSION = \"$VERSION_VALUE\"" "$BENEFIT_CLIENT"
+          grep -Fq "buildVersion = Version.BUILD_VERSION" "$BENEFIT_SERVER"
+          grep -Fq "local BUILD_VERSION = Version.BUILD_VERSION" "$BENEFIT_CLIENT"
           grep -Fq 'BUILD_MISMATCH' "$BENEFIT_CLIENT"
           grep -Fq 'CONFIG | build=' "$BENEFIT_CONFIG_DIAG"
-          grep -Fq "BUILD_VERSION = \"$VERSION_VALUE\"" "$BENEFIT_CONFIG_DIAG"
+          grep -Fq "local BUILD_VERSION = Version.BUILD_VERSION" "$BENEFIT_CONFIG_DIAG"
           grep -Fq "addXpNoMultiplier" "$BENEFIT_SERVER"
           grep -Fq "Events.AddXP.Add" "$BENEFIT_SERVER"
           grep -Fq "XP_BONUS | player=" "$BENEFIT_SERVER"
@@ -188,17 +203,12 @@ jobs:
           grep -Fq "World time is 20x faster." docs/DESIGN.md
           grep -Fq "World time is 20x faster." CHANGELOG.md
 
-          # Every runtime version label and load banner in Lua must agree with VERSION.
-          mapfile -t runtime_release_labels < <(
-            grep -RhoE '(Enshrouded Sleep|Loaded) v[0-9]+\.[0-9]+\.[0-9]+' "$RUNTIME_LUA" | sed -E 's/^.* v/v/' | sort -u || true
-          )
-          test "${#runtime_release_labels[@]}" -gt 0
-          for label in "${runtime_release_labels[@]}"; do
-            if [[ "$label" != "v$VERSION_VALUE" ]]; then
-              echo "ERROR: stale runtime version label found: $label (expected v$VERSION_VALUE)"
-              exit 1
-            fi
-          done
+          # Runtime Lua carries no literal version labels; headers are unversioned and
+          # load banners read Version.BUILD_VERSION.
+          if grep -RnE '(Enshrouded Sleep|Loaded) v[0-9]+\.[0-9]+\.[0-9]+' "$RUNTIME_LUA"; then
+            echo "ERROR: literal runtime version label found; use Version.BUILD_VERSION"
+            exit 1
+          fi
 
           # PZ 42.20.4 removed and 42.21.0 restored loadstring/loadstream. Enshrouded
           # Sleep still uses predefined command handlers and structured arguments only.
