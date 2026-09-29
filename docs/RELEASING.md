@@ -216,5 +216,6 @@ Record the provenance of every image in [`../CREDITS.md`](../CREDITS.md). Do not
 ### Workshop description
 
 - Update [`workshop-description.bbcode`](workshop-description.bbcode) in Git when public behavior or status changes materially, then paste it into the existing item. Do not keep a second copy of the description anywhere else.
+- Write it for server administrators deciding whether to install the mod and how to configure it: why a server needs it, what it does, how it behaves in play, setup, each setting with its default, and troubleshooting tips. Leave out release history, version numbers, test evidence, and implementation detail. Per-release changes go in the item's Change Notes (step 4 of [Publishing to Steam Workshop](#publishing-to-steam-workshop)); evidence and design live in the repository, which the description links to.
 - Steam does not render `[center]` or `[br]`; they show as literal text. Use blank lines for spacing. The validator rejects both.
 - An optional support or donation section is allowed as long as donations unlock nothing (rule 5 in [`PZ_MODDING_POLICY.md`](PZ_MODDING_POLICY.md)). Host any button image externally and link it with `[url=...][img]...[/img][/url]`.

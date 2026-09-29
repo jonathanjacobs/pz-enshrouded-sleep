@@ -80,7 +80,6 @@ jobs:
           fi
           grep -Fq "Current version: **v$VERSION_VALUE**" README.md
           grep -Fq "Validated Project Zomboid baseline: **42.21.0**" README.md
-          grep -Fq "Version:[/b] $VERSION_VALUE" docs/workshop-description.bbcode
           grep -Fq "Tested with:[/b] Project Zomboid 42.21.0" docs/workshop-description.bbcode
           grep -Fxq "id=3786842301" workshop.txt
           grep -Fxq "title=Enshrouded Sleep" workshop.txt

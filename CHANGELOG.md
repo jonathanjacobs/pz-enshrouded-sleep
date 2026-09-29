@@ -18,6 +18,7 @@ Planned as **v1.0.2**, a maintenance release. No gameplay, configuration, or sav
 
 ### Documentation
 
+- Rewrote the Workshop description for server administrators: why a server needs the mod, how it behaves, setup, every setting with its default, and troubleshooting tips. Release history, the version line, and test-evidence detail moved out; per-release changes go in the Workshop Change Notes. `docs/RELEASING.md` records this rule, and the release workflow no longer requires a version line in the description.
 - Restructured the repository to pz-mod-template v0.9.0: requirements and architecture merged into `docs/DESIGN.md`; release checklist, Workshop publication, and deployment merged into `docs/RELEASING.md`, the README configuration reference, and `docs/TESTING.md`; third-party notices merged into `CREDITS.md` and `docs/RESEARCH_LINKS.md`; `COMPLIANCE.md` removed; `workshop-description.bbcode` moved to `docs/`. The mod package is unchanged. Landed back into the existing repository as a single pull request.
 
 ## [1.0.1] - 2026-09-28
