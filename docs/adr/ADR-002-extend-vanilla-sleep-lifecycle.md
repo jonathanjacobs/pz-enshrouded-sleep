@@ -60,4 +60,4 @@ Tradeoff:
 
 - [`../spikes/SPIKE-002-vanilla-sleep-lifecycle.md`](../spikes/SPIKE-002-vanilla-sleep-lifecycle.md)
 - [`../VALIDATION_HISTORY.md`](../VALIDATION_HISTORY.md)
-- [`../REQUIREMENTS.md`](../REQUIREMENTS.md)
+- [`../DESIGN.md`](../DESIGN.md#requirements)

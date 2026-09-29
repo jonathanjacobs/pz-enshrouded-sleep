@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Stop a commit that adds a server IP address, Steam ID, password, token, or
+# local secrets file. Turn this on once in each clone with:
+#   git config core.hooksPath .githooks
+exec bash "$(git rev-parse --show-toplevel)/tools/check-sensitive-content.sh" staged

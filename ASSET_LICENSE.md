@@ -23,7 +23,7 @@ The Rested / Well Rested Moodle icons are original project artwork generated spe
 
 These creative assets fall under the all-rights-reserved creative-asset boundary above unless a later explicit asset license states otherwise.
 
-Third-party creative assets must retain their original license/permission terms, be recorded in `THIRD_PARTY_NOTICES.md`, and receive all required repository and Steam Workshop attribution before distribution.
+Third-party creative assets must retain their original license/permission terms, be recorded in [`CREDITS.md`](CREDITS.md), and receive all required repository and Steam Workshop attribution before distribution.
 
 Project Zomboid assets are property of The Indie Stone and are not licensed by this repository. Runtime references to vanilla assets or identifiers do not grant redistribution rights to those assets.
 

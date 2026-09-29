@@ -1,20 +1,20 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
+about: Suggest a change or addition to this mod
 title: ''
-labels: ''
+labels: enhancement
 assignees: ''
 
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+**What problem would this solve?**
+Describe the situation in play where the mod falls short today.
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+**What would you like to happen?**
+Describe the behavior you have in mind. For a multiplayer mod, say whether it should affect everyone on the server or only some players, and whether a server administrator should be able to turn it off.
 
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
+**Alternatives considered**
+Other approaches, settings, or existing mods you have tried.
 
 **Additional context**
-Add any other context or screenshots about the feature request here.
+Screenshots, examples from other games, or anything else that helps.

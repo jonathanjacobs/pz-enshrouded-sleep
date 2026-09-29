@@ -1,6 +1,10 @@
 # Roadmap
 
-This file owns current work and release-exit criteria. Runtime semantics belong in [`REQUIREMENTS.md`](REQUIREMENTS.md); completed evidence belongs in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md).
+Status: **v1.0.x stable maintenance**
+
+Do not update for: test results ([`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md)), the details of an individual defect or question (its GitHub Issue), or release criteria ([`RELEASING.md`](RELEASING.md#release-checklist)).
+
+Track milestones, their order, known risks, and the evidence required to leave each milestone. Cite issues here by number rather than restating them. Runtime semantics belong in the [requirements](DESIGN.md#requirements).
 
 ## Current phase — v1.0.x stable maintenance
 
@@ -9,7 +13,7 @@ v1.0.1 is the full release. It relabels the v1.0.0 package, which was published 
 Ongoing work:
 
 - upload v1.0.1 to the Workshop and tag the matching GitHub release;
-- watch the items listed in [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md) during normal play;
+- watch the items listed in the [release checklist](RELEASING.md#v101-release-record) during normal play;
 - run the update checks in [`TESTING.md`](TESTING.md) after each Project Zomboid release.
 
 Continue broader population and mod-stack coverage without implying universal compatibility. Use verbose diagnostics only for focused evidence windows.
@@ -46,6 +50,7 @@ Unsupported systems remain vanilla until evidence justifies a specific policy; S
 
 - Consider a read-only administrator status panel for population, sleepers, compression, and active mode.
 - Expand representative population and mod-stack coverage without claiming universal compatibility.
+- Align the package with pz-mod-template conventions in a normal release: give the root `mod.info` the same `category=` and `versionMin=` values as `42/mod.info`, and move the build version into one shared Lua module that the existing `BUILD_VERSION` / `buildVersion` sites require.
 
 ## Stable-release boundary
 

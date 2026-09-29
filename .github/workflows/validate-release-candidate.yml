@@ -1,4 +1,4 @@
-name: Validate Package
+name: Validate Enshrouded Sleep release
 
 on:
   push:
@@ -36,7 +36,7 @@ jobs:
 
           [[ "$VERSION_VALUE" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           test -f workshop.txt
-          test -f workshop-description.bbcode
+          test -f docs/workshop-description.bbcode
           test -f preview.png
           test -d "$MOD_ROOT/common"
           test -d "$MOD_ROOT/42"
@@ -72,14 +72,14 @@ jobs:
           grep -Fxq "modversion=$VERSION_VALUE" "$MOD_ROOT/mod.info"
           grep -Fxq "modversion=$VERSION_VALUE" "$MOD_ROOT/42/mod.info"
           # v1.0.1 is the full release; the Release Candidate status label must not return.
-          if grep -RIni 'release candidate' "$MOD_ROOT" README.md workshop.txt workshop-description.bbcode; then
+          if grep -RIni 'release candidate' "$MOD_ROOT" README.md workshop.txt docs/workshop-description.bbcode; then
             echo "ERROR: Release Candidate label found in package or public text"
             exit 1
           fi
           grep -Fq "Current version: **v$VERSION_VALUE**" README.md
           grep -Fq "Validated Project Zomboid baseline: **42.21.0**" README.md
-          grep -Fq "Version:[/b] $VERSION_VALUE" workshop-description.bbcode
-          grep -Fq "Tested with:[/b] Project Zomboid 42.21.0" workshop-description.bbcode
+          grep -Fq "Version:[/b] $VERSION_VALUE" docs/workshop-description.bbcode
+          grep -Fq "Tested with:[/b] Project Zomboid 42.21.0" docs/workshop-description.bbcode
           grep -Fxq "id=3786842301" workshop.txt
           grep -Fxq "title=Enshrouded Sleep" workshop.txt
           grep -Fq "description=Enshrouded Sleep v$VERSION_VALUE " workshop.txt
@@ -181,11 +181,11 @@ jobs:
 
           # Keep the current public/admin notification examples synchronized with the released runtime wording.
           grep -Fq "World time is 20x faster." README.md
-          grep -Fq "World time is 20x faster." workshop-description.bbcode
+          grep -Fq "World time is 20x faster." docs/workshop-description.bbcode
           grep -Fq "World time is 20x faster." "$SANDBOX_EN"
-          grep -Fq "World time is 20x faster." docs/DEPLOYMENT.md
+          grep -Fq "World time is 20x faster." README.md
           grep -Fq "World time is 20x faster." docs/TESTING.md
-          grep -Fq "World time is 20x faster." docs/REQUIREMENTS.md
+          grep -Fq "World time is 20x faster." docs/DESIGN.md
           grep -Fq "World time is 20x faster." CHANGELOG.md
 
           # Every runtime version label and load banner in Lua must agree with VERSION.
