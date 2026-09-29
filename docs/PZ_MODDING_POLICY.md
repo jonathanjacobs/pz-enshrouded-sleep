@@ -1,5 +1,7 @@
 # Project Zomboid Modding Policy Compliance
 
+Do not update for: an individual asset or piece of third-party material (record it in [`../CREDITS.md`](../CREDITS.md)).
+
 This repository is developed under a project-wide compliance rule: work intended for distribution as a Project Zomboid mod must comply with The Indie Stone's current Project Zomboid Modding Policy, the Project Zomboid Terms and Conditions incorporated by that policy, and applicable distribution-platform rules.
 
 Authoritative policy:
@@ -18,7 +20,7 @@ This document is an engineering and release-control policy for this repository. 
    - Studying another mod for behavior, interoperability, API discovery, or prior art does not authorize copying its implementation or assets.
 
 2. **Third-party material**
-   - Any incorporated third-party component must be recorded in `THIRD_PARTY_NOTICES.md` before distribution.
+   - Any incorporated third-party component must be recorded in [`../CREDITS.md`](../CREDITS.md) before distribution.
    - The record must identify the component, source, version/revision where practical, copyright holder or author where known, license or permission basis, modification status, redistribution requirements, and required attribution.
    - Required Workshop attribution must be included on the Steam Workshop description as well as in the repository.
 
@@ -51,8 +53,13 @@ This document is an engineering and release-control policy for this repository. 
 
 ## License boundary
 
-The repository's Apache License 2.0 applies only to material for which this project has the right to grant that license. It does not relicense Project Zomboid content or third-party material. Non-code creative assets may have separate terms described in `ASSET_LICENSE.md`.
+The repository's Apache License 2.0 applies only to material for which this project has the right to grant that license. It does not relicense Project Zomboid content or third-party material. Non-code creative assets may have separate terms described in [`../ASSET_LICENSE.md`](../ASSET_LICENSE.md).
 
-## Release gate
+## Release checks
 
-A release is not considered publishable until `docs/RELEASE_CHECKLIST.md` has been reviewed for the release. The live Indie Stone Modding Policy must be rechecked before the first Steam Workshop release and periodically thereafter because the policy may change.
+A release is not considered publishable until the [release checklist](RELEASING.md#release-checklist) has been reviewed for the release. The live Indie Stone Modding Policy must be rechecked before the first Steam Workshop release and periodically thereafter because the policy may change.
+
+Part of the [release checklist](RELEASING.md#release-checklist):
+
+- [`../CREDITS.md`](../CREDITS.md) covers every distributed file that is not original code.
+- Public material (README, Workshop description, `mod.info`) presents the mod as unofficial and independent.

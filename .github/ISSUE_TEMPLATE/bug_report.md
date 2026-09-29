@@ -1,38 +1,32 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Report something this mod does wrong in Project Zomboid
 title: ''
-labels: ''
+labels: bug
 assignees: ''
 
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+**What happened**
+A clear description of the problem, and what you expected instead.
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+**Steps to reproduce**
+1. 
+2. 
+3. 
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+**Versions**
+- Project Zomboid version and revision (from the log's `version=` line, for example `42.21.0 4a0e9546ec`):
+- Mod version (from the mod list or the log's `build=` line):
+- Installed from: Steam Workshop / manual copy
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+**How you play**
+- Mode: single-player / hosted multiplayer / dedicated server
+- Number of players online when it happened:
+- Did this start after a Project Zomboid or mod update?
 
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
- - Browser [e.g. chrome, safari]
- - Version [e.g. 22]
+**Other mods**
+List other mods loaded, especially any that touch the same systems. If you can, say whether the problem still happens with this mod alone.
 
-**Smartphone (please complete the following information):**
- - Device: [e.g. iPhone6]
- - OS: [e.g. iOS8.1]
- - Browser [e.g. stock browser, safari]
- - Version [e.g. 22]
-
-**Additional context**
-Add any other context about the problem here.
+**Logs**
+Attach or paste the relevant part of `Zomboid/console.txt` (client) and, for a server, the server console or DebugLog. Lines starting with this mod's log prefix, and any Lua error or stack trace, are the most useful. Remove anything private such as IP addresses, Steam IDs, or passwords before posting.

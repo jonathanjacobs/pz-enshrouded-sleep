@@ -61,4 +61,4 @@ SPIKE-004 exists specifically to characterize the player-health/survival consequ
 
 - [`../spikes/SPIKE-001-minutes-per-day-feasibility.md`](../spikes/SPIKE-001-minutes-per-day-feasibility.md)
 - [`../VALIDATION_HISTORY.md`](../VALIDATION_HISTORY.md)
-- [`../ARCHITECTURE.md`](../ARCHITECTURE.md)
+- [`../DESIGN.md`](../DESIGN.md#architecture)

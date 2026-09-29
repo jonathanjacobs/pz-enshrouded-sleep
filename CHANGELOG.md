@@ -2,9 +2,15 @@
 
 Human-readable history of notable Enshrouded Sleep release changes. Git remains authoritative for exact diffs.
 
-This file records **what changed between releases**. Detailed test evidence belongs in [`docs/VALIDATION_HISTORY.md`](docs/VALIDATION_HISTORY.md) and [`docs/spikes/`](docs/spikes/); current/future work belongs in [`docs/ROADMAP.md`](docs/ROADMAP.md); durable design rationale belongs in [`docs/adr/`](docs/adr/).
+This file records **what changed between releases**. Test evidence belongs in [`docs/VALIDATION_HISTORY.md`](docs/VALIDATION_HISTORY.md) and [`docs/spikes/`](docs/spikes/); current and future work belongs in [`docs/ROADMAP.md`](docs/ROADMAP.md); durable design rationale belongs in [`docs/adr/`](docs/adr/). Cross-reference GitHub issues by number where one exists.
+
+Format: newest release first, each as `## [x.y.z] - YYYY-MM-DD` with `Added`, `Changed`, `Fixed`, `Removed`, and `Documentation` subsections as needed. When server operators or players must do something after updating, such as re-enter a renamed sandbox option, add an `Upgrading` subsection that says what; [`docs/RELEASING.md`](docs/RELEASING.md#choosing-the-version-number) says how that affects the version number. Collect unreleased work under `## [Unreleased]` and rename it when the release is cut.
 
 ## [Unreleased]
+
+### Documentation
+
+- Restructured the repository to pz-mod-template v0.9.0: requirements and architecture merged into `docs/DESIGN.md`; release checklist, Workshop publication, and deployment merged into `docs/RELEASING.md`, the README configuration reference, and `docs/TESTING.md`; third-party notices merged into `CREDITS.md` and `docs/RESEARCH_LINKS.md`; `COMPLIANCE.md` removed; `workshop-description.bbcode` moved to `docs/`. The mod package is unchanged. Landed back into the existing repository as a single pull request.
 
 ## [1.0.1] - 2026-09-28
 

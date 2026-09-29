@@ -44,4 +44,4 @@ This result established the central project distinction:
 
 - SPIKE-002 investigated vanilla player/sleep lifecycle semantics and full-sleep handoff.
 - ADR-001 records the decision to use `MinutesPerDay` rather than a global multiplier.
-- Current normative behavior is defined in [`../REQUIREMENTS.md`](../REQUIREMENTS.md).
+- Current normative behavior is defined in [`../DESIGN.md`](../DESIGN.md#requirements).

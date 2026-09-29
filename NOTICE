@@ -12,3 +12,12 @@ Project Zomboid is developed by The Indie Stone. Enshrouded Sleep is an unoffici
 Enshrouded / Keen Games
 -----------------------
 The project name refers to general multiplayer-sleep design inspiration associated with the game Enshrouded. Enshrouded Sleep is not developed by, affiliated with, sponsored by, endorsed by, or otherwise official to Keen Games. No Enshrouded code, assets, or game content are included or redistributed by this project.
+
+pz-mod-template
+---------------
+Copyright 2026 Jonathan Jacobs
+https://github.com/jonathanjacobs/pz-mod-template
+
+Licensed under the Apache License, Version 2.0.
+
+This repository contains starter material for independent Project Zomboid mod development. Project Zomboid is developed by The Indie Stone; Project Zomboid names, code, assets, and other property remain the property of their respective owners. They are not included in or relicensed by this repository, and a mod created from it is an unofficial independent community mod.

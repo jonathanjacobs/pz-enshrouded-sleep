@@ -1,22 +1,49 @@
-# Local Project Zomboid diagnostics / test artifacts
-Logs/
-logs/
-DebugLog*/
-server-console*.txt
+# Project Zomboid / local runtime output. Anchored to the repository root: on a
+# case-insensitive file system, an unanchored Server/ also matches the mod's
+# 42/media/lua/server/ folder and silently ignores its Lua files.
+/Zomboid/
+/Saves/
+/Server/
+/Workshop/
 *.log
+DebugLog*/
+logs/
+server-console*.txt
 
-# Local archives and scratch output
-*.zip
-*.7z
-*.tmp
-*.bak
-
-# Platform/editor noise
+# Local and editor files
+.claude/settings.local.json
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
+*.code-workspace
 
-# Source-control metadata is never part of the Workshop payload.
-# (.git/ itself is inherently excluded from Git tracking; do not copy it into
-# the Project Zomboid Workshop authoring directory when publishing.)
+# Archives and generated release output
+dist/
+exports/
+*.zip
+*.7z
+*.bak
+*.tmp
+workshop-staging/
+build/
+
+# Never commit private or game-derived material
+.env
+.env.*
+*.env
+!*.env.example
+*.pem
+*.ppk
+id_rsa*
+id_ecdsa*
+id_ed25519*
+extracted-game-assets/
+
+# Test logs, decompiled game source, and research material belong in local
+# folders outside the repository. These lines catch copies placed here anyway.
+Logs/
+decompiled/
+research-source/
+*.java
+*.class

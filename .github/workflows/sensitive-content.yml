@@ -1,0 +1,61 @@
+name: Sensitive Content
+
+# Looks for server IP addresses, Steam IDs, passwords, tokens, and local secrets
+# files in tracked files, pull request text, and commit messages. The patterns
+# live in tools/check-sensitive-content.sh, which the optional pre-commit hook in
+# .githooks/ also runs. docs/PRIVATE_DATA.md explains the rules and what to do
+# when this check finds something.
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sensitive-content:
+    name: Check for private details
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check tracked files
+        if: always()
+        env:
+          SENSITIVE_PATTERNS: ${{ secrets.SENSITIVE_PATTERNS }}
+        run: bash tools/check-sensitive-content.sh tracked
+
+      - name: Check pull request text and commit messages
+        if: always() && github.event_name == 'pull_request'
+        env:
+          SENSITIVE_PATTERNS: ${{ secrets.SENSITIVE_PATTERNS }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          status=0
+          printf '%s\n' "${PR_TITLE}" "${PR_BODY}" |
+            bash tools/check-sensitive-content.sh text "the pull request title or description" || status=1
+          for commit in $(git rev-list "${BASE_SHA}..${HEAD_SHA}"); do
+            git log -1 --format=%B "${commit}" |
+              bash tools/check-sensitive-content.sh text "the message of commit ${commit}" || status=1
+          done
+          exit "${status}"
+
+      - name: Explain the result
+        if: always()
+        run: |
+          {
+            echo "## Sensitive content"
+            echo
+            echo "These checks match known patterns only. They do not read issues or comments, and a pass does not show that the repository is free of private details."
+          } >> "${GITHUB_STEP_SUMMARY}"

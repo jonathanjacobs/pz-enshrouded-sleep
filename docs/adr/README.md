@@ -1,10 +1,28 @@
-# Architecture Decision Records
+# Architecture decision records
 
-Formal architecture decisions live in this directory when a decision is important enough that future maintainers should understand the alternatives, rationale, and consequences.
+Do not update for: a routine implementation choice, or a change to an accepted decision (write a new ADR that supersedes it, and mark the old one `Superseded`).
 
-The initial directory README was only scaffolding. That was incomplete because the project already had several durable architectural decisions established through controlled spikes. Those decisions are now documented retrospectively as ADR-001 through ADR-003.
+Create an ADR when a consequential technical decision has realistic alternatives and should remain understandable after the immediate implementation work is over. Do not create ADRs for routine implementation details.
 
-## ADR index
+## Format
+
+Name each file `ADR-###-short-decision-name.md`. ADR numbers are stable and never reused; decisions start at `ADR-001`. [`ADR-000`](ADR-000-record-format.md) is reserved for the format note itself.
+
+Each ADR includes:
+
+- Status
+- Context
+- Decision
+- Alternatives considered
+- Consequences and tradeoffs
+- Validation evidence
+- Related spike, issue, or commit references where applicable
+
+Status values: `Proposed`, `Accepted`, `Rejected`, `Deprecated`, `Superseded`. A superseded ADR stays in the repository and links to its replacement rather than being deleted.
+
+## Index
+
+Maintain a running list here as ADRs are added, one line each with its status and a short description. This gives an at-a-glance view of project decisions without opening every file.
 
 | ADR | Status | Decision |
 |---|---|---|
@@ -16,23 +34,4 @@ The initial directory README was only scaffolding. That was incomplete because t
 
 [`SPIKE-004`](../spikes/SPIKE-004-health-time-domains.md) remains deliberately an investigation first; a separate ADR should be created only if its evidence leads to a new durable policy, such as targeted compensation or a deployment-time compression cap.
 
-## ADR convention
-
-Future architectural decisions should use stable numbered filenames:
-
-```text
-ADR-004-short-title.md
-ADR-005-short-title.md
-```
-
-Recommended sections:
-
-- Status
-- Context
-- Decision
-- Alternatives considered
-- Consequences / tradeoffs
-- Validation evidence
-- Related issues/spikes/commits
-
-ADRs record durable architectural choices, not transient debugging notes. Current architecture is summarized in [`../ARCHITECTURE.md`](../ARCHITECTURE.md), while normative required behavior is defined in [`../REQUIREMENTS.md`](../REQUIREMENTS.md).
+Current architecture is summarized in the [architecture section of `DESIGN.md`](../DESIGN.md#architecture), while normative required behavior is defined in its [requirements](../DESIGN.md#requirements).
