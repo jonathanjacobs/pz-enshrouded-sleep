@@ -1,6 +1,6 @@
 # Validation history
 
-Status: **Recorded through the Project Zomboid 42.21.0 checkpoint (2026-09-28).**
+Status: **Recorded through the v1.0.2 Workshop package smoke test (2026-09-29).**
 
 Do not update for: planned tests ([`TESTING.md`](TESTING.md) or [`ROADMAP.md`](ROADMAP.md)), or correcting an earlier entry in place (add a new entry instead).
 
@@ -272,8 +272,24 @@ Decision: the 42.21.0 smoke test and two-player sleep test are accepted as **PAS
 
 Operational note from the same update: removing the Lifestyle mod from the existing world prevented clients from loading it (`WorldDictionaryException: Missing dictionary script on client: Base.LS_Microphone`). Restoring Lifestyle resolved the issue; this was a save/mod-removal interaction unrelated to Enshrouded Sleep.
 
+## 2026-09-29 — v1.0.2 Workshop package smoke test
+
+Build `1.0.2` on Project Zomboid `42.21.0` `4a0e9546ec`; a remote dedicated server with 1 player. Logs reviewed: the server console and server DebugLog, and the client console and client DebugLog, from one session after v1.0.2 was uploaded to the Workshop.
+
+- Server and client both reported `version=42.21.0 4a0e9546ec`. Both loaded the mod from Workshop item `3786842301`; the client downloaded the update on join and had no second local copy with the same Mod ID.
+- Every server and client `Loaded v…` banner reported `v1.0.2`. The server logged `CONFIG | build=1.0.2` from the notification and sleep-benefit modules; the client logged `SERVER_BUILD | 1.0.2` from both the notification and sleep-benefit clients and no `BUILD_MISMATCH`.
+- Neither side logged a Lua error from Enshrouded Sleep, an error mentioning `EnshroudedSleep/Version`, or any message about the `mod.info` files. The server's `ERROR` lines were all vanilla engine messages (animation parsing, fence thump sounds, and a mannequin zone).
+- With the player awake, server and client stayed at `MinutesPerDay=240`. When the only player slept, the server entered `mode=vanilla-full-sleep` with `restoredMinutesPerDay=240.000` and broadcast the all-asleep message, which the client displayed. On wake, both returned to `mode=baseline` at `240` and the client displayed the all-awake message.
+- Rested / Well Rested (administrator thresholds `2`/`8` hours, Rested `+5%` XP for `4` hours): a `3.057`-hour sleep granted Rested with `expiresAtWorldHour=7336.692`, equal to sleep start `7329.636` plus sleep length plus `4` hours; the client received the same state.
+- The client logged the Lifestyle Moodle `COMPAT` slot-reservation line.
+- On join, the server logged `CLEAR | reason=expired` for the player's expired benefit twice, about 9 frames apart, and the benefit ended cleared. This code path is unchanged in v1.0.2 apart from requiring the Version module; the cause of the second clear was not investigated.
+
+Result: smoke test PASS (notifications and sleep benefits were enabled on this server, so the check that disabled features stay quiet applied only to diagnostics, which stayed quiet); package-metadata / Version module feature check PASS; two-player sleep test not run.
+
+Not covered: partial sleep with two or more players; awake-player protection while another player sleeps; the in-game mod manager listing, beyond both sides loading the mod; death or disable clearing of a benefit.
+
 ## Evidence boundary
 
-The architecture is strongly supported for proportional calendar compression, server/client day-length synchronization, baseline restoration, vanilla full-sleep handoff, normal-speed awake simulation, the measured SPIKE-004 time domains, the confirmed SPIKE-005 world-system examples, and controlled plus field SPIKE-006 awake-protection evidence. Project Zomboid 42.20.4 has a recorded startup/baseline/client-sync compatibility checkpoint, and Project Zomboid 42.21.0 has a recorded startup, partial-sleep, and baseline-restoration checkpoint.
+The architecture is strongly supported for proportional calendar compression, server/client day-length synchronization, baseline restoration, vanilla full-sleep handoff, normal-speed awake simulation, the measured SPIKE-004 time domains, the confirmed SPIKE-005 world-system examples, and controlled plus field SPIKE-006 awake-protection evidence. Project Zomboid 42.20.4 has a recorded startup/baseline/client-sync compatibility checkpoint, and Project Zomboid 42.21.0 has a recorded startup, partial-sleep, and baseline-restoration checkpoint. The v1.0.2 Workshop package has a one-player dedicated-server smoke test on 42.21.0 confirming matching server and client builds and no Enshrouded Sleep Lua errors.
 
 The notification path and the v1.0.0 optional Rested / Well Rested layer have server-side live multiplayer evidence from the WHG v1.0.0 window. Client presentation, rollback, and death-clearing remain outside that evidence, as recorded above. Do not infer compatibility or compensation for untested systems from this summary. Use the detailed SPIKE record when a claim needs exact test conditions or measured ratios.

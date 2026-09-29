@@ -1,6 +1,6 @@
 # Releasing
 
-Status: **v1.0.2 in preparation; not yet tested or released.**
+Status: **v1.0.2 released to the Workshop on 2026-09-29.**
 
 Do not update for: player-facing installation or configuration ([`../README.md`](../README.md)), Workshop description text ([`workshop-description.bbcode`](workshop-description.bbcode)), or test results ([`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md)).
 
@@ -27,19 +27,23 @@ A **stable** release (`1.0.0` or later) additionally needs server and client log
 
 ### v1.0.2 release record
 
-Candidate: `v1.0.2`, a maintenance release and the first Workshop upload since v1.0.0, so it also delivers the v1.0.1 relabel to Workshop subscribers. The root `mod.info` gains the `category=` and `versionMin=` values that `42/mod.info` carries, and the runtime build version moves into the shared `EnshroudedSleep/Version` module. No gameplay, configuration, or save-data change. The Version module is required by the core controller, clock sync, awake protection, notification, and sleep-benefit files, so a load failure there would affect core behavior; the smoke test and the package-metadata feature check in [`TESTING.md`](TESTING.md#feature-checks) are required before release.
+Current release: `v1.0.2`, a maintenance release and the first Workshop upload since v1.0.0, so it also delivers the v1.0.1 relabel to Workshop subscribers. The root `mod.info` gains the `category=` and `versionMin=` values that `42/mod.info` carries, and the runtime build version moves into the shared `EnshroudedSleep/Version` module. No gameplay, configuration, or save-data change. The Version module is required by the core controller, clock sync, awake protection, notification, and sleep-benefit files, so a load failure there would affect core behavior; the smoke test and the package-metadata feature check in [`TESTING.md`](TESTING.md#feature-checks) were required before release.
 
-- [ ] `bash tools/validate-package.sh` passes, and the Validate Package, Validate Enshrouded Sleep release, and Sensitive Content CI workflows pass on the release commit.
-- [ ] The smoke test and the package-metadata / Version module feature check in [`TESTING.md`](TESTING.md) passed on the v1.0.2 package with server and client on the same build, and are recorded in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md).
-- [ ] Public claims (status, "tested with", configuration) still match recorded evidence.
-- [ ] `CHANGELOG.md` `[Unreleased]` is renamed to `[1.0.2]` with the release date.
-- [ ] Stop the server cleanly and back up world, save, and configuration before updating.
-- [ ] Upload v1.0.2 to Workshop item `3786842301`, then paste [`workshop-description.bbcode`](workshop-description.bbcode) into the item description.
-- [ ] Confirm the server and every participating client log `SERVER_BUILD | 1.0.2` / `build=1.0.2` after deployment.
+- [x] `bash tools/validate-package.sh` passes, and the Validate Package, Validate Enshrouded Sleep release, and Sensitive Content CI workflows pass on the release commit. (Passed on `717d175`; the package is unchanged from the uploaded one.)
+- [x] The smoke test and the package-metadata / Version module feature check in [`TESTING.md`](TESTING.md) passed on the v1.0.2 package with server and client on the same build, and are recorded in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md).
+- [x] Public claims (status, "tested with", configuration) still match recorded evidence.
+- [x] `CHANGELOG.md` `[Unreleased]` is renamed to `[1.0.2]` with the release date.
+- [ ] Stop the server cleanly and back up world, save, and configuration before updating. (Not recorded.)
+- [x] Upload v1.0.2 to Workshop item `3786842301`, then paste [`workshop-description.bbcode`](workshop-description.bbcode) into the item description and add the change notes. (2026-09-29.)
+- [x] Confirm the server and every participating client log `SERVER_BUILD | 1.0.2` / `build=1.0.2` after deployment. (One server and one client, 2026-09-29.)
 - [ ] Preserve early release logs and use the documented rollback if a problem appears.
-- [ ] Tag `v1.0.2` and publish the GitHub release.
+- [x] Tag `v1.0.2` and publish the GitHub release.
 
-Release decision: **pending**
+Release decision: **GO — v1.0.2**
+
+Review date: **2026-09-29**
+
+The early-release log item stays open while v1.0.2 is in normal play.
 
 ### v1.0.1 release record
 
