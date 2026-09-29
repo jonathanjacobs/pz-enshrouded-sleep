@@ -12,7 +12,8 @@ v1.0.1 is the full release. It relabels the v1.0.0 package, which was published 
 
 Ongoing work:
 
-- upload v1.0.1 to the Workshop and tag the matching GitHub release;
+- upload v1.0.1 to the Workshop (its GitHub release is tagged);
+- test and release v1.0.2, a maintenance release that aligns the root `mod.info` with `42/mod.info` and defines the build version once in a shared Lua module (see the [v1.0.2 release record](RELEASING.md#v102-release-record));
 - watch the items listed in the [release checklist](RELEASING.md#v101-release-record) during normal play;
 - run the update checks in [`TESTING.md`](TESTING.md) after each Project Zomboid release.
 
@@ -50,7 +51,6 @@ Unsupported systems remain vanilla until evidence justifies a specific policy; S
 
 - Consider a read-only administrator status panel for population, sleepers, compression, and active mode.
 - Expand representative population and mod-stack coverage without claiming universal compatibility.
-- Align the package with pz-mod-template conventions in a normal release: give the root `mod.info` the same `category=` and `versionMin=` values as `42/mod.info`, and move the build version into one shared Lua module that the existing `BUILD_VERSION` / `buildVersion` sites require.
 
 ## Stable-release boundary
 

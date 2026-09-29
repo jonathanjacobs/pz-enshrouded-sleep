@@ -1,6 +1,6 @@
 # Releasing
 
-Status: **v1.0.1 release decision recorded; Workshop upload pending.**
+Status: **v1.0.2 in preparation; not yet tested or released.**
 
 Do not update for: player-facing installation or configuration ([`../README.md`](../README.md)), Workshop description text ([`workshop-description.bbcode`](workshop-description.bbcode)), or test results ([`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md)).
 
@@ -24,6 +24,21 @@ Tick an item only where recorded evidence supports it; evidence lives in [`VALID
 - [ ] Rollback below is still accurate for this release.
 
 A **stable** release (`1.0.0` or later) additionally needs server and client logs from normal play showing the core behavior with no recurring error from this mod.
+
+### v1.0.2 release record
+
+Candidate: `v1.0.2`, a maintenance release. The root `mod.info` gains the `category=` and `versionMin=` values that `42/mod.info` carries, and the runtime build version moves into the shared `EnshroudedSleep/Version` module. No gameplay, configuration, or save-data change. The Version module is required by the core controller, clock sync, awake protection, notification, and sleep-benefit files, so a load failure there would affect core behavior; the smoke test and the package-metadata feature check in [`TESTING.md`](TESTING.md#feature-checks) are required before release.
+
+- [ ] `bash tools/validate-package.sh` passes, and the Validate Package, Validate Enshrouded Sleep release, and Sensitive Content CI workflows pass on the release commit.
+- [ ] The smoke test and the package-metadata / Version module feature check in [`TESTING.md`](TESTING.md) passed on the v1.0.2 package with server and client on the same build, and are recorded in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md).
+- [ ] Public claims (status, "tested with", configuration) still match recorded evidence.
+- [ ] `CHANGELOG.md` `[Unreleased]` is renamed to `[1.0.2]` with the release date.
+- [ ] Stop the server cleanly and back up world, save, and configuration before updating.
+- [ ] Upload v1.0.2 to Workshop item `3786842301`, then paste [`workshop-description.bbcode`](workshop-description.bbcode) into the item description.
+- [ ] Confirm the server and every participating client log `SERVER_BUILD | 1.0.2` / `build=1.0.2` after deployment.
+- [ ] Tag `v1.0.2` and publish the GitHub release.
+
+Release decision: **pending**
 
 ### v1.0.1 release record
 

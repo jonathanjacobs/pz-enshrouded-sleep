@@ -1,6 +1,6 @@
 # Design
 
-Status: **Current for v1.0.1**
+Status: **Current for v1.0.2**
 
 Do not update for: task status or milestones ([`ROADMAP.md`](ROADMAP.md)), test results ([`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md)), or experiment narratives ([`spikes/`](spikes/)).
 

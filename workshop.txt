@@ -1,6 +1,6 @@
 version=1
 id=3786842301
 title=Enshrouded Sleep
-description=Enshrouded Sleep v1.0.1 for Project Zomboid Build 42 multiplayer servers. Proportional partial-sleep calendar compression with normal-speed awake simulation, awake-player survival protection, optional administrator-controlled sleep-status notifications, optional Rested / Well Rested benefits, and vanilla full-sleep handoff. Unofficial community mod; not affiliated with or endorsed by The Indie Stone or Keen Games.
+description=Enshrouded Sleep v1.0.2 for Project Zomboid Build 42 multiplayer servers. Proportional partial-sleep calendar compression with normal-speed awake simulation, awake-player survival protection, optional administrator-controlled sleep-status notifications, optional Rested / Well Rested benefits, and vanilla full-sleep handoff. Unofficial community mod; not affiliated with or endorsed by The Indie Stone or Keen Games.
 tags=Build 42;Multiplayer
 visibility=public

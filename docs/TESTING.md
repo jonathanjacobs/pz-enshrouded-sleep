@@ -1,6 +1,6 @@
 # Testing
 
-Status: **Current for v1.0.1**
+Status: **Current for v1.0.2**
 
 Do not update for: a test that was run (record it in [`VALIDATION_HISTORY.md`](VALIDATION_HISTORY.md)), or a change in what the mod should do (change the requirements in [`DESIGN.md`](DESIGN.md#requirements) first).
 
@@ -49,6 +49,7 @@ Only when that feature changes.
 
 - **Sleep notifications:** one banner per sleep-state change on each client (for example `[Enshrouded Sleep] 1/2 living players sleeping (50%). World time is 20x faster.`), no spam, and turning the option off stops messages.
 - **Rested / Well Rested:** sleep length gives the expected tier for the active thresholds, XP gains show the configured bonus with one server `XP_BONUS` line per event, and the Moodle icon shows without overlapping other moodles.
+- **Package metadata or the Version module:** the mod appears in the server's and client's mod lists; every server `Loaded v…` banner and `CONFIG | build=` line shows the new version; each client logs `SERVER_BUILD |` with that version and no `BUILD_MISMATCH`; and neither side logs a Lua error mentioning `EnshroudedSleep/Version`. The smoke test covers the rest.
 
 ## After a Project Zomboid update
 

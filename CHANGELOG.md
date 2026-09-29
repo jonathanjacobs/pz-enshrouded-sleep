@@ -8,6 +8,14 @@ Format: newest release first, each as `## [x.y.z] - YYYY-MM-DD` with `Added`, `C
 
 ## [Unreleased]
 
+Planned as **v1.0.2**, a maintenance release. No gameplay, configuration, or save-data change.
+
+### Changed
+
+- The root `mod.info` now carries the same `category=features` and `versionMin=42.20.0` values as `42/mod.info`, replacing its `pzversion=42` line.
+- The build version is defined once, in the new shared module `42/media/lua/shared/EnshroudedSleep/Version.lua`. Every runtime file that reports it (server `CONFIG` lines, `Loaded vx.y.z` banners, and the `buildVersion` field in `ClockState` and `SleepBenefitState` messages) requires that module instead of repeating a literal; log output and message fields are unchanged. Lua file header comments no longer carry a version.
+- Package validation fails when the two `mod.info` files disagree on a shared value, or when runtime Lua outside the Version module hard-codes the build version.
+
 ### Documentation
 
 - Restructured the repository to pz-mod-template v0.9.0: requirements and architecture merged into `docs/DESIGN.md`; release checklist, Workshop publication, and deployment merged into `docs/RELEASING.md`, the README configuration reference, and `docs/TESTING.md`; third-party notices merged into `CREDITS.md` and `docs/RESEARCH_LINKS.md`; `COMPLIANCE.md` removed; `workshop-description.bbcode` moved to `docs/`. The mod package is unchanged. Landed back into the existing repository as a single pull request.

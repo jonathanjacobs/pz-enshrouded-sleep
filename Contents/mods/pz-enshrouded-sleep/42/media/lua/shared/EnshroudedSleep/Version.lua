@@ -9,7 +9,7 @@
 -- docs/DESIGN.md).
 
 local Version = {
-    BUILD_VERSION = "1.0.1",
+    BUILD_VERSION = "1.0.2",
 }
 
 return Version
